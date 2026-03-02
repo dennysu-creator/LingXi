@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "靈犀",
+    "slug": "lingxi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "lingxi",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#08080f"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.youquan.lingxi",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "靈犀需要使用相機進行面相分析",
+        "NSLocationWhenInUseUsageDescription": "靈犀需要您的位置來提供即時風水分析",
+        "NSMotionUsageDescription": "靈犀需要使用指南針來判斷方位"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#08080f"
+      },
+      "package": "com.yourname.lingxi",
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-apple-authentication",
+      "expo-camera",
+      "expo-location",
+      "expo-sensors",
+      "expo-notifications",
+      "expo-font"
+    ]
+  }
+}
