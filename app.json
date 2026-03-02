@@ -22,7 +22,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "靈犀需要使用相機進行面相分析",
         "NSLocationWhenInUseUsageDescription": "靈犀需要您的位置來提供即時風水分析",
-        "NSMotionUsageDescription": "靈犀需要使用指南針來判斷方位"
+        "NSMotionUsageDescription": "靈犀需要使用指南針來判斷方位",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
