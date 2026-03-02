@@ -37,7 +37,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'lingxi_member_monthly',
     type: 'member',
     name: '靈犀會員',
-    priceMonthly: 149,
+    priceMonthly: 390,
     features: [
       '每功能每日 5 次',
       '靈寵等級上限 Lv.20',
@@ -49,7 +49,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'lingxi_supreme_monthly',
     type: 'supreme',
     name: '靈犀至尊',
-    priceMonthly: 399,
+    priceMonthly: 1990,
     features: [
       '所有功能無限次',
       '靈寵等級無上限',

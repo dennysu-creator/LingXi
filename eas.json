@@ -23,7 +23,8 @@
         "autoIncrement": true
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://lingxi-api-316167025817.asia-east1.run.app"
+        "EXPO_PUBLIC_API_BASE_URL": "https://lingxi-api-316167025817.asia-east1.run.app",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_IZsvCYOnhhhGvDgjcnCGglJLlEi"
       }
     }
   },
@@ -31,7 +32,7 @@
     "production": {
       "ios": {
         "appleId": "dennysu@icloud.com",
-        "ascAppId": "YOUR_ASC_APP_ID",
+        "ascAppId": "6759918378",
         "appleTeamId": "Q63M5BB879"
       }
     }

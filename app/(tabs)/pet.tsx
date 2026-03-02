@@ -307,7 +307,7 @@ export default function PetScreen() {
             {/* 會員版 */}
             <View style={styles.planCard}>
               <Text style={styles.planTitle}>⭐ {t('upgrade.memberTitle')}</Text>
-              <Text style={styles.planPrice}>NT$149/{t('upgrade.month')}</Text>
+              <Text style={styles.planPrice}>NT$390/{t('upgrade.month')}</Text>
               <Text style={styles.planFeature}>· {t('upgrade.memberFeature1')}</Text>
               <Text style={styles.planFeature}>· {t('upgrade.memberFeature2')}</Text>
               <Text style={styles.planFeature}>· {t('upgrade.memberFeature3')}</Text>
@@ -327,7 +327,7 @@ export default function PetScreen() {
             {/* 至尊版 */}
             <View style={[styles.planCard, styles.planCardSupreme]}>
               <Text style={[styles.planTitle, { color: '#a78bfa' }]}>👑 {t('upgrade.supremeTitle')}</Text>
-              <Text style={[styles.planPrice, { color: '#a78bfa' }]}>NT$399/{t('upgrade.month')}</Text>
+              <Text style={[styles.planPrice, { color: '#a78bfa' }]}>NT$1,990/{t('upgrade.month')}</Text>
               <Text style={styles.planFeature}>· {t('upgrade.supremeFeature1')}</Text>
               <Text style={styles.planFeature}>· {t('upgrade.supremeFeature2')}</Text>
               <Text style={styles.planFeature}>· {t('upgrade.supremeFeature3')}</Text>
