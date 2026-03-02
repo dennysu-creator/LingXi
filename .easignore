@@ -1,0 +1,9 @@
+server/
+functions/
+*.pptx
+*.py
+*.html
+ART_PROMPTS.md
+DEV-PROGRESS.md
+UI_FLOW.md
+lingxi-full-prototype.jsx
