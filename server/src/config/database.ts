@@ -8,7 +8,7 @@ function buildPoolConfig(): PoolConfig {
     user: process.env.DB_USER || 'lingxi',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'lingxi',
-    max: 20,
+    max: parseInt(process.env.DB_POOL_MAX || '5', 10),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
   };

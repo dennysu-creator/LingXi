@@ -11,7 +11,8 @@
     "heart": "Pet's Heart",
     "pearl": "Spirit Pearl",
     "body": "Pet's Body",
-    "soul": "Pet's Soul"
+    "soul": "Pet's Soul",
+    "profile": "Profile"
   },
   "onboarding": {
     "selectLanguage": "Select Language",
@@ -223,7 +224,8 @@
     "goodNight": "Good night, Master!",
     "defaultMsg1": "Good morning, Master~ Today the View Gate is in the South, great for socializing. Wear bright colors!",
     "defaultMsg2": "Good afternoon~ For meetings, sit facing Southeast for the Open Gate's blessing.",
-    "defaultMsg3": "Great work today! Evening meditation is ideal, with the Block Gate in the North."
+    "defaultMsg3": "Great work today! Evening meditation is ideal, with the Block Gate in the North.",
+    "evoStage": "Evolution Stage"
   },
   "narrator": {
     "greetNight": "It's late, Master",
@@ -348,5 +350,52 @@
     "predictionDesc": "Important event prediction alerts",
     "ultimateEvo": "Ultimate Evolution",
     "ultimateEvoDesc": "Spirit Pet's third evolution"
+  },
+  "chat": {
+    "feedResponse": "Yummy~ Thank you, Master! {{petName}} is full of energy!",
+    "playResponse": "So much fun! Playing with Master is the best~",
+    "meditateResponse": "Hmm... I can feel the spiritual energy flowing... {{petName}}'s wisdom has grown!",
+    "levelUp": "✨ {{petName}} reached Lv.{{level}}! Feeling stronger than ever!",
+    "evolve": "🌟 {{petName}} has evolved! Stage {{evolution}} form!"
+  },
+  "upgrade": {
+    "petVoice": "Master, today's uses are all gone... Upgrade so I can do more for you!",
+    "laterBtn": "Come back tomorrow",
+    "upgradeBtn": "Upgrade Now",
+    "memberF1": "· Spirit Eye/Heart/Soul 5 uses/day",
+    "memberF2": "· Pet level cap Lv.20",
+    "memberF3": "· AI deep reading (Sonnet)",
+    "supremeF1": "· All features unlimited",
+    "supremeF2": "· No pet level cap",
+    "supremeF3": "· Exclusive evolution + skins"
+  },
+  "actionBar": {
+    "eye": "Eye",
+    "heart": "Heart",
+    "soul": "Soul"
+  },
+  "profile": {
+    "title": "Profile",
+    "supreme": "Ling Xi Supreme",
+    "member": "Ling Xi Member",
+    "free": "Free Tier",
+    "guest": "Guest",
+    "language": "Language",
+    "destinyData": "Destiny Chart",
+    "bazi": "BaZi",
+    "ziweiMain": "Zi Wei Main Star",
+    "zodiac": "Zodiac Sign",
+    "solarTermPet": "Solar Term Pet",
+    "other": "Other",
+    "notifications": "Notifications",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "about": "About Ling Xi",
+    "logout": "Log Out",
+    "logoutConfirm": "Are you sure you want to log out?",
+    "restorePurchases": "Restore Purchases",
+    "restoreSuccess": "Purchases restored successfully",
+    "restoreFailed": "Failed to restore purchases",
+    "upgradeCta": "Upgrade to unlock more features"
   }
 }

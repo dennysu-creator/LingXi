@@ -86,6 +86,19 @@ export interface DivinationResult {
   luckyElement: string;
 }
 
+// ─── AI 回傳統一格式 ───
+
+interface AiResponse<T> {
+  data: T;
+  remaining?: number;
+}
+
+/** 快取最近一次各 AI 端點回傳的剩餘次數 */
+const _lastRemaining: Record<string, number | undefined> = {};
+export function getLastRemaining(endpoint: string): number | undefined {
+  return _lastRemaining[endpoint];
+}
+
 // ─── API 呼叫函式 ───
 
 /**
@@ -97,12 +110,14 @@ export async function analyzeFace(
   qimenInfo: string,
   date: string,
 ): Promise<FaceReadingResult> {
-  return api.post<FaceReadingResult>('/api/ai/face-reading', {
-    image: imageBase64,
+  const result = await api.post<AiResponse<FaceReadingResult>>('/ai/face-reading', {
+    imageBase64,
     bazi: baziInfo,
     qimen: qimenInfo,
     date,
   });
+  _lastRemaining['face-reading'] = result.remaining;
+  return result.data;
 }
 
 /**
@@ -114,12 +129,16 @@ export async function generatePetMessage(
   qimenInfo: string,
   messageType: 'morning' | 'noon' | 'evening' | 'special',
 ): Promise<PetMessageResult> {
-  return api.post<PetMessageResult>('/api/ai/pet-message', {
-    pet: petInfo,
+  const result = await api.post<AiResponse<PetMessageResult>>('/ai/pet-message', {
+    petName: petInfo.name,
+    petElement: petInfo.element,
+    creature: petInfo.type,
     bazi: baziInfo,
     qimen: qimenInfo,
-    type: messageType,
+    messageType,
   });
+  _lastRemaining['pet-message'] = result.remaining;
+  return result.data;
 }
 
 /**
@@ -133,14 +152,16 @@ export async function analyzeFengShui(
   baziInfo: string,
   qimenInfo: string,
 ): Promise<FengShuiResult> {
-  return api.post<FengShuiResult>('/api/ai/feng-shui', {
-    lat: latitude,
-    lng: longitude,
+  const result = await api.post<AiResponse<FengShuiResult>>('/ai/feng-shui', {
+    latitude,
+    longitude,
     heading,
-    location: locationName,
+    locationDescription: locationName,
     bazi: baziInfo,
     qimen: qimenInfo,
   });
+  _lastRemaining['feng-shui'] = result.remaining;
+  return result.data;
 }
 
 /**
@@ -152,12 +173,14 @@ export async function getOutfitAdvice(
   weather: { temp: number; condition: string },
   faceScore?: { nose: number },
 ): Promise<OutfitResult> {
-  return api.post<OutfitResult>('/api/ai/outfit', {
+  const result = await api.post<AiResponse<OutfitResult>>('/ai/outfit', {
     bazi: baziInfo,
     qimen: qimenInfo,
-    weather,
-    face: faceScore,
+    weather: weather ? `${weather.temp}°C, ${weather.condition}` : undefined,
+    faceAnalysis: faceScore ? JSON.stringify(faceScore) : undefined,
   });
+  _lastRemaining['outfit'] = result.remaining;
+  return result.data;
 }
 
 /**
@@ -168,11 +191,13 @@ export async function getDailyFortune(
   qimenInfo: string,
   date: string,
 ): Promise<DailyFortuneResult> {
-  return api.post<DailyFortuneResult>('/api/ai/fortune', {
+  const result = await api.post<AiResponse<DailyFortuneResult>>('/ai/fortune', {
     bazi: baziInfo,
     qimen: qimenInfo,
     date,
   });
+  _lastRemaining['fortune'] = result.remaining;
+  return result.data;
 }
 
 /**
@@ -182,8 +207,11 @@ export async function getDivinationReading(
   type: 'traditional' | 'hexagram',
   data: Record<string, any>,
 ): Promise<DivinationResult> {
-  return api.post<DivinationResult>('/api/ai/divination', {
-    type,
+  const backendType = type === 'traditional' ? 'lingqian' : 'hexagram';
+  const result = await api.post<AiResponse<DivinationResult>>('/ai/divination', {
+    type: backendType,
     ...data,
   });
+  _lastRemaining['divination'] = result.remaining;
+  return result.data;
 }

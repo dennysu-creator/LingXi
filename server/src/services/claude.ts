@@ -112,9 +112,26 @@ export async function callClaudeVision(
 }
 
 export function parseClaudeJson<T>(text: string): T {
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('No JSON object found in Claude response');
+  // Strategy 1: Try parsing the full text as JSON
+  try { return JSON.parse(text) as T; } catch { /* continue */ }
+
+  // Strategy 2: Extract from code block
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlock?.[1]) {
+    try { return JSON.parse(codeBlock[1].trim()) as T; } catch { /* continue */ }
   }
-  return JSON.parse(jsonMatch[0]) as T;
+
+  // Strategy 3: Lazy match for first complete JSON object
+  const jsonMatch = text.match(/\{[\s\S]*?\}(?=[^}]*$|\s*$)/);
+  if (jsonMatch) {
+    try { return JSON.parse(jsonMatch[0]) as T; } catch { /* continue */ }
+  }
+
+  // Strategy 4: Greedy match as final fallback
+  const greedyMatch = text.match(/\{[\s\S]*\}/);
+  if (greedyMatch) {
+    return JSON.parse(greedyMatch[0]) as T;
+  }
+
+  throw new Error('No JSON object found in Claude response');
 }

@@ -11,7 +11,8 @@
     "heart": "靈寵之心",
     "pearl": "靈珠威能",
     "body": "靈寵之身",
-    "soul": "靈寵之魂"
+    "soul": "靈寵之魂",
+    "profile": "我的"
   },
   "onboarding": {
     "selectLanguage": "選擇語言",
@@ -198,7 +199,7 @@
     "wisdom": "悟性",
     "feed": "餵食",
     "play": "玩耍",
-    "meditate": "修煉",
+    "meditate": "冥想",
     "todayQuota": "今日互動",
     "quotaUsed": "今日免費互動次數已用完，升級會員解鎖更多互動！",
     "quotaMax": "今日互動次數已達上限",
@@ -223,7 +224,8 @@
     "goodNight": "主人晚安！",
     "defaultMsg1": "主人早安～今日景門在南方，適合社交活動，記得穿亮色系！",
     "defaultMsg2": "午安～下午開會建議坐東南方位置，有開門加持。",
-    "defaultMsg3": "今天辛苦了！晚上適合靜坐冥想，杜門在北方，有利修練。"
+    "defaultMsg3": "今天辛苦了！晚上適合靜坐冥想，杜門在北方，有利修練。",
+    "evoStage": "進化階段"
   },
   "narrator": {
     "greetNight": "夜深了主人",
@@ -348,5 +350,52 @@
     "predictionDesc": "重要事件預測推播",
     "ultimateEvo": "終極進化",
     "ultimateEvoDesc": "靈寵第三次進化"
+  },
+  "chat": {
+    "feedResponse": "好好吃～謝謝主人！{{petName}}元氣滿滿！",
+    "playResponse": "好開心！和主人一起玩最快樂了～",
+    "meditateResponse": "嗯...感受到靈氣在流動...{{petName}}悟性提升了！",
+    "levelUp": "✨ {{petName}}升到 Lv.{{level}} 了！感覺更強大了！",
+    "evolve": "🌟 {{petName}}進化了！第{{evolution}}階段形態！"
+  },
+  "upgrade": {
+    "petVoice": "主人，今天的次數用完了...升級的話，我能幫你做更多喔！",
+    "laterBtn": "明天再來",
+    "upgradeBtn": "立即升級",
+    "memberF1": "· 靈眼/靈心/靈魂 5次/日",
+    "memberF2": "· 靈寵等級上限 Lv.20",
+    "memberF3": "· AI 深度解讀（Sonnet）",
+    "supremeF1": "· 全功能無限使用",
+    "supremeF2": "· 靈寵等級無上限",
+    "supremeF3": "· 專屬進化 + 皮膚"
+  },
+  "actionBar": {
+    "eye": "靈眼",
+    "heart": "靈心",
+    "soul": "靈魂"
+  },
+  "profile": {
+    "title": "我的",
+    "supreme": "靈犀至尊",
+    "member": "靈犀會員",
+    "free": "免費版",
+    "guest": "訪客",
+    "language": "語言設定",
+    "destinyData": "命盤資料",
+    "bazi": "八字",
+    "ziweiMain": "紫微主星",
+    "zodiac": "西洋星座",
+    "solarTermPet": "節氣靈寵",
+    "other": "其他",
+    "notifications": "推播通知",
+    "privacy": "隱私政策",
+    "terms": "服務條款",
+    "about": "關於靈犀",
+    "logout": "登出",
+    "logoutConfirm": "確定要登出嗎？",
+    "restorePurchases": "恢復購買",
+    "restoreSuccess": "恢復購買成功",
+    "restoreFailed": "恢復購買失敗",
+    "upgradeCta": "升級會員解鎖更多功能"
   }
 }

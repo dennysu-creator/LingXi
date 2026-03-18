@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import express, { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { query } from '../config/database';
 import { verifyWebhookSignature, handleWebhookEvent } from '../services/revenuecat';
@@ -7,9 +7,9 @@ const router = Router();
 
 // ─── POST /webhook/revenuecat ───
 // No auth required - webhook signature verification instead
-router.post('/webhook/revenuecat', async (req: Request, res: Response): Promise<void> => {
+router.post('/webhook/revenuecat', express.raw({ type: 'application/json' }), async (req: Request, res: Response): Promise<void> => {
   try {
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = typeof req.body === 'string' ? req.body : Buffer.isBuffer(req.body) ? req.body.toString('utf8') : JSON.stringify(req.body);
     const signature = req.headers['x-revenuecat-signature'] as string | undefined;
 
     const isValid = verifyWebhookSignature(rawBody, signature);
@@ -19,7 +19,8 @@ router.post('/webhook/revenuecat', async (req: Request, res: Response): Promise<
       return;
     }
 
-    await handleWebhookEvent(req.body);
+    const parsedBody = Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString('utf8')) : req.body;
+    await handleWebhookEvent(parsedBody);
 
     res.status(200).json({ received: true });
   } catch (err) {

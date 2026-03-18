@@ -33,6 +33,10 @@ export function verifyWebhookSignature(
     .update(rawBody)
     .digest('hex');
 
+  if (signatureHeader.length !== expectedSignature.length) {
+    return false;
+  }
+
   return crypto.timingSafeEqual(
     Buffer.from(signatureHeader),
     Buffer.from(expectedSignature)
@@ -61,7 +65,7 @@ export async function handleWebhookEvent(body: RevenueCatWebhookBody): Promise<v
       const planType = mapEntitlementToPlanType(event.entitlement_ids || []);
       await query(
         `UPDATE users SET plan_type = $1, revenuecat_id = $2, updated_at = NOW()
-         WHERE id = $3 OR revenuecat_id = $2`,
+         WHERE revenuecat_id = $2 OR id = $3`,
         [planType, appUserId, appUserId]
       );
       console.log(`User ${appUserId} plan updated to: ${planType}`);

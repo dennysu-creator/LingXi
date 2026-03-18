@@ -4,7 +4,6 @@
 // 含變卦機制、五類問事解讀
 // ═══════════════════════════════════════
 
-import { EIGHT_TRIGRAMS } from '@/config/constants';
 import type { FortuneLevel } from './divination-engine';
 
 // ─── 型別定義 ───
@@ -963,7 +962,7 @@ export function getCategoryLabel(category: DivinationCategory): string {
  */
 export function getCategoryEmoji(category: DivinationCategory): string {
   const emojis: Record<DivinationCategory, string> = {
-    career: '💼', love: '💕', family: '🏠', health: '🩺', study: '📚',
+    career: '💼', love: '💕', family: '🏠', health: '❤️‍🩹', study: '📖',
   };
   return emojis[category];
 }

@@ -34,7 +34,7 @@ exports.faceReading = functions
 
     try {
       const response = await client.messages.create({
-        model: 'claude-sonnet-4-5-20250514',  // 付費用戶用 Sonnet
+        model: 'claude-sonnet-4-20250514',  // 付費用戶用 Sonnet
         max_tokens: 1024,
         system: [
           {
@@ -110,7 +110,7 @@ exports.fengshuiAnalysis = functions
 
     try {
       const response = await client.messages.create({
-        model: 'claude-sonnet-4-5-20250514',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 512,
         system: [
           {

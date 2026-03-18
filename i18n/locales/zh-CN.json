@@ -11,7 +11,8 @@
     "heart": "灵宠之心",
     "pearl": "灵珠威能",
     "body": "灵宠之身",
-    "soul": "灵宠之魂"
+    "soul": "灵宠之魂",
+    "profile": "我的"
   },
   "onboarding": {
     "selectLanguage": "选择语言",
@@ -198,7 +199,7 @@
     "wisdom": "悟性",
     "feed": "喂食",
     "play": "玩耍",
-    "meditate": "修炼",
+    "meditate": "冥想",
     "todayQuota": "今日互动",
     "quotaUsed": "今日免费互动次数已用完，升级会员解锁更多互动！",
     "quotaMax": "今日互动次数已达上限",
@@ -223,7 +224,8 @@
     "goodNight": "主人晚安！",
     "defaultMsg1": "主人早安～今日景门在南方，适合社交活动，记得穿亮色系！",
     "defaultMsg2": "午安～下午开会建议坐东南方位置，有开门加持。",
-    "defaultMsg3": "今天辛苦了！晚上适合静坐冥想，杜门在北方，有利修炼。"
+    "defaultMsg3": "今天辛苦了！晚上适合静坐冥想，杜门在北方，有利修炼。",
+    "evoStage": "进化阶段"
   },
   "narrator": {
     "greetNight": "夜深了主人",
@@ -348,5 +350,52 @@
     "predictionDesc": "重要事件预测推送",
     "ultimateEvo": "终极进化",
     "ultimateEvoDesc": "灵宠第三次进化"
+  },
+  "chat": {
+    "feedResponse": "好好吃～谢谢主人！{{petName}}元气满满！",
+    "playResponse": "好开心！和主人一起玩最快乐了～",
+    "meditateResponse": "嗯...感受到灵气在流动...{{petName}}悟性提升了！",
+    "levelUp": "✨ {{petName}}升到 Lv.{{level}} 了！感觉更强大了！",
+    "evolve": "🌟 {{petName}}进化了！第{{evolution}}阶段形态！"
+  },
+  "upgrade": {
+    "petVoice": "主人，今天的次数用完了...升级的话，我能帮你做更多哦！",
+    "laterBtn": "明天再来",
+    "upgradeBtn": "立即升级",
+    "memberF1": "· 灵眼/灵心/灵魂 5次/日",
+    "memberF2": "· 灵宠等级上限 Lv.20",
+    "memberF3": "· AI 深度解读（Sonnet）",
+    "supremeF1": "· 全功能无限使用",
+    "supremeF2": "· 灵宠等级无上限",
+    "supremeF3": "· 专属进化 + 皮肤"
+  },
+  "actionBar": {
+    "eye": "灵眼",
+    "heart": "灵心",
+    "soul": "灵魂"
+  },
+  "profile": {
+    "title": "我的",
+    "supreme": "灵犀至尊",
+    "member": "灵犀会员",
+    "free": "免费版",
+    "guest": "访客",
+    "language": "语言设置",
+    "destinyData": "命盘资料",
+    "bazi": "八字",
+    "ziweiMain": "紫微主星",
+    "zodiac": "西洋星座",
+    "solarTermPet": "节气灵宠",
+    "other": "其他",
+    "notifications": "推送通知",
+    "privacy": "隐私政策",
+    "terms": "服务条款",
+    "about": "关于灵犀",
+    "logout": "退出登录",
+    "logoutConfirm": "确定要退出登录吗？",
+    "restorePurchases": "恢复购买",
+    "restoreSuccess": "恢复购买成功",
+    "restoreFailed": "恢复购买失败",
+    "upgradeCta": "升级会员解锁更多功能"
   }
 }

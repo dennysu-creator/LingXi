@@ -69,13 +69,17 @@ export function generateToken(payload: JwtPayload): string {
   return jwt.sign(payload, secret, options);
 }
 
+function getRefreshSecret(): string {
+  return process.env.JWT_REFRESH_SECRET || getJwtSecret() + '_refresh';
+}
+
 export function generateRefreshToken(payload: JwtPayload): string {
-  const secret = getJwtSecret();
+  const secret = getRefreshSecret();
   const options: jwt.SignOptions = { expiresIn: '30d' as unknown as jwt.SignOptions['expiresIn'] };
-  return jwt.sign(payload, secret + '_refresh', options);
+  return jwt.sign(payload, secret, options);
 }
 
 export function verifyRefreshToken(token: string): JwtPayload {
-  const secret = getJwtSecret();
-  return jwt.verify(token, secret + '_refresh') as JwtPayload;
+  const secret = getRefreshSecret();
+  return jwt.verify(token, secret) as JwtPayload;
 }

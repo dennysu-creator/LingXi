@@ -122,14 +122,18 @@ export async function apiRequest<T = any>(
       const newToken = await refreshAccessToken();
       if (newToken) {
         requestHeaders['Authorization'] = `Bearer ${newToken}`;
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), timeout);
         const retryRes = await fetch(`${API_BASE}${path}`, {
           method,
           headers: requestHeaders,
           body: body ? JSON.stringify(body) : undefined,
+          signal: retryController.signal,
         });
+        clearTimeout(retryTimeoutId);
         if (!retryRes.ok) {
           const errData = await retryRes.json().catch(() => ({}));
-          throw new ApiError(errData.message || '請求失敗', retryRes.status, errData.code);
+          throw new ApiError(errData.error || errData.message || '請求失敗', retryRes.status, errData.code);
         }
         return retryRes.json();
       }
@@ -138,7 +142,7 @@ export async function apiRequest<T = any>(
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new ApiError(errData.message || '請求失敗', res.status, errData.code);
+      throw new ApiError(errData.error || errData.message || '請求失敗', res.status, errData.code);
     }
 
     // 204 No Content

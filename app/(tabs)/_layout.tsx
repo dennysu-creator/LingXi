@@ -1,12 +1,11 @@
 // ═══════════════════════════════════════
-// 底部 Tab 導航佈局（3 Tab：首頁/靈寵/我的）
+// 底部 Tab 導航佈局（2 Tab：靈寵 / 我的）
 // ═══════════════════════════════════════
 
 import { Tabs } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors } from '@/config/theme';
-import { usePetStore } from '@/stores/pet-store';
 
 function TabIcon({ emoji, label, focused }: { emoji: string; label: string; focused: boolean }) {
   return (
@@ -57,10 +56,10 @@ function CenterPetIcon({ emoji, label, focused }: { emoji: string; label: string
 
 export default function TabLayout() {
   const { t } = useTranslation();
-  const petEmoji = usePetStore(s => s.emoji) || '🐉';
 
   return (
     <Tabs
+      initialRouteName="pet"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -73,14 +72,6 @@ export default function TabLayout() {
         tabBarShowLabel: false,
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon emoji={petEmoji} label={t('tabs.home')} focused={focused} />
-          ),
-        }}
-      />
       <Tabs.Screen
         name="pet"
         options={{
@@ -97,10 +88,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* 隱藏舊 Tab（檔案仍保留作為備份但不顯示在 Tab Bar） */}
-      <Tabs.Screen name="eye" options={{ href: null }} />
-      <Tabs.Screen name="heart" options={{ href: null }} />
-      <Tabs.Screen name="pearl" options={{ href: null }} />
     </Tabs>
   );
 }

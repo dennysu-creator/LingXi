@@ -14,6 +14,7 @@ import { MaShanZheng_400Regular } from '@expo-google-fonts/ma-shan-zheng';
 import * as SplashScreen from 'expo-splash-screen';
 import { useUserStore } from '@/stores/user-store';
 import { useAuthStore } from '@/stores/auth-store';
+import { setTokens } from '@/services/api-client';
 import { initSubscriptionService, identifyUser } from '@/services/subscription-service';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import '@/i18n'; // 初始化多語言系統
@@ -30,6 +31,9 @@ export default function RootLayout() {
 
   const [authChecked, setAuthChecked] = useState(false);
 
+  // DEV_SKIP_AUTH: 設為 true 可跳過登入（但 AI 功能需要真實 token）
+  const DEV_SKIP_AUTH = false;
+
   const isOnboarded = useUserStore(s => s.isOnboarded);
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const authUser = useAuthStore(s => s.user);
@@ -42,7 +46,12 @@ export default function RootLayout() {
   useEffect(() => {
     async function init() {
       try {
-        await checkAuth();
+        if (!DEV_SKIP_AUTH) {
+          await checkAuth();
+        } else {
+          // DEV: set mock token so API calls don't throw "未登入"
+          await setTokens('dev-mock-token');
+        }
         await initSubscriptionService();
       } catch {
         // 認證檢查失敗 → 當作未登入
@@ -74,7 +83,7 @@ export default function RootLayout() {
     const inAuth = segments[0] === 'auth';
     const inOnboarding = segments[0] === 'onboarding';
 
-    if (!isAuthenticated) {
+    if (!DEV_SKIP_AUTH && !isAuthenticated) {
       // 未登入 → 導向認證頁
       if (!inAuth) {
         router.replace('/auth');
@@ -86,8 +95,8 @@ export default function RootLayout() {
       }
     } else {
       // 已登入且已完成 onboarding → 導向首頁
-      if (inAuth || inOnboarding) {
-        router.replace('/(tabs)');
+      if (inAuth) {
+        router.replace('/(tabs)/pet');
       }
     }
   }, [fontsLoaded, authChecked, isAuthenticated, isOnboarded, segments, router]);
@@ -104,6 +113,7 @@ export default function RootLayout() {
           animation: 'fade',
         }}
       >
+        <Stack.Screen name="index" />
         <Stack.Screen name="auth" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />

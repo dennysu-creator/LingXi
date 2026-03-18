@@ -11,7 +11,8 @@
     "heart": "霊獣の心",
     "pearl": "霊珠の力",
     "body": "霊獣の体",
-    "soul": "霊獣の魂"
+    "soul": "霊獣の魂",
+    "profile": "マイページ"
   },
   "onboarding": {
     "selectLanguage": "言語を選択",
@@ -198,7 +199,7 @@
     "wisdom": "悟性",
     "feed": "餌やり",
     "play": "遊ぶ",
-    "meditate": "修練",
+    "meditate": "瞑想",
     "todayQuota": "本日のインタラクション",
     "quotaUsed": "本日の無料インタラクション回数を使い切りました。会員にアップグレードしてさらに多くのインタラクションを解放しましょう！",
     "quotaMax": "本日のインタラクション回数が上限に達しました",
@@ -223,7 +224,8 @@
     "goodNight": "ご主人様、おやすみなさい！",
     "defaultMsg1": "ご主人様、おはようございます～今日は景門が南にあり、社交に適しています。明るい色を着てくださいね！",
     "defaultMsg2": "こんにちは～午後の会議は東南の席がおすすめです。開門の加護があります。",
-    "defaultMsg3": "今日もお疲れ様でした！夜は瞑想に最適です。杜門が北にあり、修練に有利です。"
+    "defaultMsg3": "今日もお疲れ様でした！夜は瞑想に最適です。杜門が北にあり、修練に有利です。",
+    "evoStage": "進化段階"
   },
   "narrator": {
     "greetNight": "夜遅くなりましたね、ご主人様",
@@ -348,5 +350,52 @@
     "predictionDesc": "重要イベント予測通知",
     "ultimateEvo": "究極進化",
     "ultimateEvoDesc": "霊獣の三度目の進化"
+  },
+  "chat": {
+    "feedResponse": "おいしい～ご主人様ありがとう！{{petName}}は元気いっぱい！",
+    "playResponse": "楽しい！ご主人様と遊ぶのが一番好き～",
+    "meditateResponse": "うーん...霊気の流れを感じる...{{petName}}の悟性が上がった！",
+    "levelUp": "✨ {{petName}}がLv.{{level}}に上がった！もっと強くなった気がする！",
+    "evolve": "🌟 {{petName}}が進化した！第{{evolution}}段階の姿に！"
+  },
+  "upgrade": {
+    "petVoice": "ご主人様、今日の回数を使い切っちゃった...アップグレードすればもっとお手伝いできるよ！",
+    "laterBtn": "明日また来る",
+    "upgradeBtn": "今すぐアップグレード",
+    "memberF1": "· 霊眼/霊心/霊魂 1日5回",
+    "memberF2": "· 霊獣レベル上限 Lv.20",
+    "memberF3": "· AI 深層解読（Sonnet）",
+    "supremeF1": "· 全機能無制限",
+    "supremeF2": "· 霊獣レベル上限なし",
+    "supremeF3": "· 専属進化 + スキン"
+  },
+  "actionBar": {
+    "eye": "霊眼",
+    "heart": "霊心",
+    "soul": "霊魂"
+  },
+  "profile": {
+    "title": "マイページ",
+    "supreme": "霊犀至尊",
+    "member": "霊犀会員",
+    "free": "無料版",
+    "guest": "ゲスト",
+    "language": "言語設定",
+    "destinyData": "命盤データ",
+    "bazi": "八字",
+    "ziweiMain": "紫微主星",
+    "zodiac": "西洋星座",
+    "solarTermPet": "節気霊獣",
+    "other": "その他",
+    "notifications": "プッシュ通知",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "about": "霊犀について",
+    "logout": "ログアウト",
+    "logoutConfirm": "ログアウトしますか？",
+    "restorePurchases": "購入を復元",
+    "restoreSuccess": "購入の復元に成功しました",
+    "restoreFailed": "購入の復元に失敗しました",
+    "upgradeCta": "アップグレードして機能を解放"
   }
 }

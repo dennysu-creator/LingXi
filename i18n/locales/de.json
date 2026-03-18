@@ -11,7 +11,8 @@
     "heart": "Geisterherz",
     "pearl": "Geisterperle",
     "body": "Körper des Tieres",
-    "soul": "Seele des Tieres"
+    "soul": "Seele des Tieres",
+    "profile": "Profil"
   },
   "onboarding": {
     "selectLanguage": "Sprache wählen",
@@ -223,7 +224,8 @@
     "goodNight": "Gute Nacht, Meister!",
     "defaultMsg1": "Guten Morgen, Meister~ Heute ist das Aussichtstor im Süden, gut für soziale Aktivitäten!",
     "defaultMsg2": "Guten Tag~ Für Meetings setz dich Richtung Südosten, dort wirkt das offene Tor.",
-    "defaultMsg3": "Gut gemacht heute! Abendmeditation ist ideal, das Blocktor ist im Norden."
+    "defaultMsg3": "Gut gemacht heute! Abendmeditation ist ideal, das Blocktor ist im Norden.",
+    "evoStage": "Evolutionsstufe"
   },
   "narrator": {
     "greetNight": "Es ist spät, Meister",
@@ -348,5 +350,52 @@
     "predictionDesc": "Wichtige Ereignisvorhersagen",
     "ultimateEvo": "Ultimative Evolution",
     "ultimateEvoDesc": "Dritte Evolution des Geistertiers"
+  },
+  "chat": {
+    "feedResponse": "Lecker~ Danke, Meister! {{petName}} ist voller Energie!",
+    "playResponse": "So viel Spaß! Mit dem Meister zu spielen ist das Beste~",
+    "meditateResponse": "Hmm... Ich spüre die spirituelle Energie fließen... {{petName}}s Weisheit ist gewachsen!",
+    "levelUp": "✨ {{petName}} hat Lv.{{level}} erreicht! Stärker als je zuvor!",
+    "evolve": "🌟 {{petName}} hat sich entwickelt! Stufe {{evolution}}!"
+  },
+  "upgrade": {
+    "petVoice": "Meister, die heutigen Nutzungen sind aufgebraucht... Upgrade, damit ich mehr für dich tun kann!",
+    "laterBtn": "Morgen wiederkommen",
+    "upgradeBtn": "Jetzt upgraden",
+    "memberF1": "· Geisterauge/-herz/-seele 5x/Tag",
+    "memberF2": "· Tierlevel-Limit Lv.20",
+    "memberF3": "· AI-Tiefenanalyse (Sonnet)",
+    "supremeF1": "· Alle Funktionen unbegrenzt",
+    "supremeF2": "· Kein Level-Limit",
+    "supremeF3": "· Exklusive Evolution + Skins"
+  },
+  "actionBar": {
+    "eye": "Auge",
+    "heart": "Herz",
+    "soul": "Seele"
+  },
+  "profile": {
+    "title": "Profil",
+    "supreme": "Ling Xi Supreme",
+    "member": "Ling Xi Mitglied",
+    "free": "Kostenlos",
+    "guest": "Gast",
+    "language": "Sprache",
+    "destinyData": "Schicksalsdaten",
+    "bazi": "BaZi",
+    "ziweiMain": "Zi Wei Hauptstern",
+    "zodiac": "Sternzeichen",
+    "solarTermPet": "Sonnenwende-Tier",
+    "other": "Sonstiges",
+    "notifications": "Benachrichtigungen",
+    "privacy": "Datenschutzrichtlinie",
+    "terms": "Nutzungsbedingungen",
+    "about": "Über Ling Xi",
+    "logout": "Abmelden",
+    "logoutConfirm": "Möchten Sie sich wirklich abmelden?",
+    "restorePurchases": "Kauf wiederherstellen",
+    "restoreSuccess": "Kauf erfolgreich wiederhergestellt",
+    "restoreFailed": "Wiederherstellung fehlgeschlagen",
+    "upgradeCta": "Upgraden für mehr Funktionen"
   }
 }

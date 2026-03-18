@@ -13,6 +13,8 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useUserStore, type CalendarType } from '@/stores/user-store';
 import { usePetStore } from '@/stores/pet-store';
+import { useAuthStore } from '@/stores/auth-store';
+import { api } from '@/services/api-client';
 // determinePetElement 已棄用，改用節氣配對
 import { Colors, Fonts, Spacing } from '@/config/theme';
 import { SHICHEN } from '@/config/constants';
@@ -56,6 +58,7 @@ export default function OnboardingScreen() {
 
   const setOnboarding = useUserStore(s => s.setOnboarding);
   const initPet = usePetStore(s => s.initPet);
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
   const languages = Object.entries(SUPPORTED_LANGUAGES).map(([code, info]) => ({
     code: code as SupportedLanguage,
@@ -103,10 +106,30 @@ export default function OnboardingScreen() {
     // 依出生月日配對節氣靈寵
     initPet(m, d);
 
+    if (isAuthenticated) {
+      const petSnapshot = usePetStore.getState();
+      void api.put('/user/profile', {
+        name: userName.trim(),
+        birthYear: y,
+        birthMonth: m,
+        birthDay: d,
+        birthHour: hourValue,
+        calendarType,
+        gender,
+        language: i18n.language,
+        destinyData: {
+          onboarded: true,
+          petId: petSnapshot.petId,
+          petName: petSnapshot.name,
+          syncedAt: new Date().toISOString(),
+        },
+      }).catch(() => {});
+    }
+
     setStep(4);
   };
 
-  const goHome = () => router.replace('/(tabs)');
+  const goHome = () => router.replace('/(tabs)/pet');
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

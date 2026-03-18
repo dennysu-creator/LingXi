@@ -44,7 +44,7 @@ const INAUSPICIOUS_GATES = ['死門', '傷門', '驚門', '杜門'];
  * - 或自行根據《奇門遁甲統宗》實現
  */
 export function generateQimenChart(date: Date = new Date()): QimenChart {
-  const shichen = getCurrentShichen();
+  const shichen = getCurrentShichen(date);
   const dayOfYear = getDayOfYear(date);
   const hourIndex = getShichenIndex(date.getHours());
 

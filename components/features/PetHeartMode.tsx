@@ -3,16 +3,26 @@
 // ═══════════════════════════════════════
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, Pressable, Alert, Modal, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
-import { Magnetometer } from 'expo-sensors';
+import { FEATURE_PANEL, EFFECTS, getPetImage } from '@/assets/images';
+
+// Magnetometer is native-only; guard for web
+let Magnetometer: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    Magnetometer = require('expo-sensors').Magnetometer;
+  } catch { /* not available */ }
+}
 import { Colors, Fonts, Spacing } from '@/config/theme';
+import { ApiError } from '@/services/api-client';
 import { useUserStore } from '@/stores/user-store';
 import { usePetStore } from '@/stores/pet-store';
 import { generateQimenChart } from '@/services/qimen-engine';
 import { getCurrentShichen } from '@/services/bazi-engine';
 import { analyzeFengShui, type FengShuiResult } from '@/services/claude-api';
+import { formatCoordinate } from '@/services/date-utils';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
 
 const DIRECTIONS = ['北', '東北', '東', '東南', '南', '西南', '西', '西北'] as const;
@@ -25,10 +35,13 @@ const DIR_I18N: Record<string, string> = {
 };
 
 interface PetHeartModeProps {
+  visible?: boolean;
+  onClose?: () => void;
+  onResult?: (text: string, data: any) => void;
   onQuotaExhausted: () => void;
 }
 
-export default function PetHeartMode({ onQuotaExhausted }: PetHeartModeProps) {
+export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhausted }: PetHeartModeProps) {
   const { t } = useTranslation();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -42,12 +55,14 @@ export default function PetHeartMode({ onQuotaExhausted }: PetHeartModeProps) {
   const useFeature = useUserStore(s => s.useFeature);
 
   const petName = usePetStore(s => s.name) || '靈寵';
+  const petId = usePetStore(s => s.petId) || '';
   const petEmoji = usePetStore(s => s.emoji) || '🐉';
   const petCreature = usePetStore(s => s.creature) || '水龍';
   const petElement = usePetStore(s => s.element) || '水';
   const petLevel = usePetStore(s => s.level);
 
   const petInfo: PetInfo = { name: petName, type: petCreature, element: petElement, emoji: petEmoji, level: petLevel };
+  const petAvatarImg = getPetImage(petId, 'avatar');
 
   const shichen = useMemo(() => getCurrentShichen(), []);
   const chart = useMemo(() => generateQimenChart(new Date()), []);
@@ -75,8 +90,9 @@ export default function PetHeartMode({ onQuotaExhausted }: PetHeartModeProps) {
 
   const tDir = (d: string) => DIR_I18N[d] ? t(DIR_I18N[d]) : d;
 
-  // 取得 GPS 位置
+  // 取得 GPS 位置 — 只在 visible 時啟動
   useEffect(() => {
+    if (visible === false) return;
     let mounted = true;
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -102,21 +118,22 @@ export default function PetHeartMode({ onQuotaExhausted }: PetHeartModeProps) {
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [visible]);
 
-  // 磁力計羅盤
+  // 磁力計羅盤 — 只在 visible 時訂閱（native only）
   useEffect(() => {
-    const sub = Magnetometer.addListener(data => {
+    if (visible === false || !Magnetometer) return;
+    const sub = Magnetometer.addListener((data: { x: number; y: number }) => {
       const { x, y } = data;
       const angle = Math.atan2(y, x) * (180 / Math.PI);
       setHeading((angle + 360) % 360);
     });
     Magnetometer.setUpdateInterval(200);
     return () => sub.remove();
-  }, []);
+  }, [visible]);
 
   const startAnalysis = useCallback(async () => {
-    const canUse = useFeature('body', petLevel);
+    const canUse = useFeature('heart', petLevel);
     if (!canUse) {
       onQuotaExhausted();
       return;
@@ -143,215 +160,250 @@ export default function PetHeartMode({ onQuotaExhausted }: PetHeartModeProps) {
       );
       setAiResult(data);
       setShowResult(true);
-    } catch {
-      Alert.alert(t('heart.analysisFailed', { defaultValue: '分析失敗，請重試' }));
+
+      // Send result to parent (chat bubble)
+      if (onResult) {
+        const resultText = data.location_analysis || narration.spokenText;
+        onResult(resultText, {
+          ...data,
+          palaces: chart.palaces,
+          luckyDirections: luckyDirs,
+          dangerDirections: dangerDirs,
+        });
+        setTimeout(() => { onClose?.(); setShowResult(false); setAiResult(null); }, 300);
+        return;
+      }
+    } catch (err) {
+      let msg = t('heart.analysisFailed', { defaultValue: '分析失敗，請重試' });
+      if (err instanceof ApiError) {
+        if (err.status === 401) msg = '請先登入';
+        else if (err.status === 408) msg = '請求逾時，請重試';
+        else if (err.status === 0) msg = '網路連線失敗';
+        else msg = err.message || msg;
+      }
+      Alert.alert(msg);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [useFeature, petLevel, onQuotaExhausted, location, heading, locationName, bazi, t]);
+  }, [useFeature, petLevel, onQuotaExhausted, onResult, onClose, location, heading, locationName, bazi, t, narration, chart, luckyDirs, dangerDirs]);
 
   const coordText = location
-    ? `${location.lat.toFixed(3)}°N ${location.lng.toFixed(3)}°E`
+    ? `${formatCoordinate(location.lat, 'N', 'S')} ${formatCoordinate(location.lng, 'E', 'W')}`
     : t('heart.locating', { defaultValue: '定位中...' });
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+  const content = (
+    <View style={styles.outerContainer}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {/* Close button when in modal */}
+        {onClose && (
+          <Pressable style={styles.closeBtn} onPress={() => { onClose(); setShowResult(false); setAiResult(null); }}>
+            <Text style={styles.closeBtnText}>✕</Text>
+          </Pressable>
+        )}
 
-      {/* ═══ GPS 狀態 ═══ */}
-      <View style={styles.gpsCard}>
-        <View style={styles.gpsHeader}>
-          <View style={[styles.gpsDot, !location && { backgroundColor: Colors.textDarkest }]} />
-          <Text style={styles.gpsText}>
-            {location ? t('heart.gpsActive') : locationError ? t('heart.gpsError', { defaultValue: 'GPS 無法使用' }) : t('heart.locating', { defaultValue: '定位中...' })}
-          </Text>
-        </View>
-        <Text style={styles.gpsCoord}>{coordText}</Text>
-      </View>
-
-      {locationName !== '' && (
-        <Text style={styles.locationName}>{locationName}</Text>
-      )}
-
-      {/* ═══ 靈寵感應提示 ═══ */}
-      <View style={styles.petSenseCard}>
-        <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
-        <Text style={styles.petSenseText}>
-          {t('heart.petSensing', { petName })}
-        </Text>
-      </View>
-
-      {/* ═══ 羅盤 ═══ */}
-      <View style={styles.compassCard}>
-        <View style={[styles.compass, { transform: [{ rotate: `${-heading}deg` }] }]}>
-          <View style={styles.compassRing} />
-
-          {DIRECTIONS.map((dir, i) => {
-            const isLucky = luckyDirs.includes(dir);
-            const isDanger = dangerDirs.includes(dir);
-            const angle = DIR_ANGLES[i];
-            const radius = 65;
-            const rad = (angle - 90) * (Math.PI / 180);
-            const x = radius * Math.cos(rad);
-            const y = radius * Math.sin(rad);
-
-            return (
-              <View
-                key={dir}
-                style={[
-                  styles.dirLabel,
-                  { transform: [{ translateX: x }, { translateY: y }] },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.dirText,
-                    isLucky && styles.dirLucky,
-                    isDanger && styles.dirDanger,
-                  ]}
-                >
-                  {tDir(dir)}
-                </Text>
-                {isLucky && <Text style={styles.dirDot}>●</Text>}
-              </View>
-            );
-          })}
-
-          <View style={styles.needle} />
-          <View style={styles.needleCenter} />
-        </View>
-
-        <Text style={styles.compassNote}>
-          {t('heart.compassTitle')} · {shichen.name} · {Math.round(heading)}°
-        </Text>
-      </View>
-
-      {/* ═══ 吉凶方位 ═══ */}
-      <View style={styles.dirSummary}>
-        <View style={styles.dirBox}>
-          <Text style={styles.dirBoxTitle}>{t('heart.luckyDir')}</Text>
-          {luckyDirs.length > 0 ? (
-            <Text style={styles.dirBoxLucky}>{luckyDirs.map(d => tDir(d)).join(', ')}</Text>
-          ) : (
-            <Text style={styles.dirBoxText}>{t('heart.calculating')}</Text>
-          )}
-        </View>
-        <View style={styles.dirBox}>
-          <Text style={styles.dirBoxTitle}>{t('heart.dangerDir')}</Text>
-          {dangerDirs.length > 0 ? (
-            <Text style={styles.dirBoxDanger}>{dangerDirs.slice(0, 2).map(d => tDir(d)).join(', ')}</Text>
-          ) : (
-            <Text style={styles.dirBoxText}>{t('heart.calculating')}</Text>
-          )}
-        </View>
-      </View>
-
-      {/* ═══ 分析按鈕 ═══ */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.analyzeButton,
-          isAnalyzing && styles.analyzeButtonLoading,
-          pressed && { opacity: 0.7 },
-        ]}
-        onPress={startAnalysis}
-        disabled={isAnalyzing}
-      >
-        <Text style={styles.analyzeText}>
-          {isAnalyzing ? `🔄 ${t('heart.analyzing')}` : `🧭 ${t('heart.analyzeButton')}`}
-        </Text>
-      </Pressable>
-
-      {/* ═══ 分析結果 ═══ */}
-      {showResult && (
-        <View>
-          <View style={styles.petReadingCard}>
-            <View style={styles.petReadingHeader}>
-              <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
-              <Text style={styles.petReadingLabel}>{t('heart.locationAnalysis')}</Text>
-            </View>
-            <Text style={styles.petReadingText}>
-              {aiResult?.location_analysis || narration.spokenText}
+        {/* ═══ GPS + 靈寵感應 (merged single row) ═══ */}
+        <View style={styles.gpsCard}>
+          <View style={styles.gpsHeader}>
+            <View style={[styles.gpsDot, !location && { backgroundColor: Colors.textDarkest }]} />
+            <Text style={styles.gpsText}>
+              {location ? coordText : locationError ? t('heart.gpsError', { defaultValue: 'GPS 無法使用' }) : t('heart.locating', { defaultValue: '定位中...' })}
             </Text>
+            {locationName !== '' && <Text style={styles.locationNameInline}>{locationName}</Text>}
+          </View>
+          <View style={styles.petSenseInline}>
+            {petAvatarImg ? (
+              <Image source={petAvatarImg} style={styles.petSenseAvatar} resizeMode="cover" />
+            ) : (
+              <Text style={{ fontSize: 16 }}>{petEmoji}</Text>
+            )}
+            <Text style={styles.petSenseTextSmall}>{t('heart.petSensing', { petName })}</Text>
+          </View>
+        </View>
+
+        {/* ═══ 羅盤 — AI art compass ═══ */}
+        <View style={styles.compassCard}>
+          <View style={styles.compassContainer}>
+            {/* Rotating compass body (background + direction labels) */}
+            <View style={[styles.compass, { transform: [{ rotate: `${-heading}deg` }] }]}>
+              <Image source={FEATURE_PANEL.heart.compassBg} style={styles.compassBgImage} resizeMode="contain" />
+
+              {DIRECTIONS.map((dir, i) => {
+                const isLucky = luckyDirs.includes(dir);
+                const isDanger = dangerDirs.includes(dir);
+                const angle = DIR_ANGLES[i];
+                const radius = 70;
+                const rad = (angle - 90) * (Math.PI / 180);
+                const x = radius * Math.cos(rad);
+                const y = radius * Math.sin(rad);
+
+                return (
+                  <View
+                    key={dir}
+                    style={[
+                      styles.dirLabel,
+                      { transform: [{ translateX: x }, { translateY: y }] },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dirText,
+                        isLucky && styles.dirLucky,
+                        isDanger && styles.dirDanger,
+                      ]}
+                    >
+                      {tDir(dir)}
+                    </Text>
+                    {isLucky && <Text style={styles.dirDot}>●</Text>}
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Needle overlays compass center, does NOT rotate with compass */}
+            <Image source={EFFECTS.compassNeedle} style={styles.needleImage} resizeMode="contain" />
           </View>
 
-          {aiResult?.tips && aiResult.tips.length > 0 && (
-            <View style={styles.tipsCard}>
-              <Text style={styles.sectionLabel}>{t('heart.tips')}</Text>
-              {aiResult.tips.map((tip, i) => (
-                <View key={i} style={styles.tipItem}>
-                  <Text style={styles.tipIcon}>{tip.icon}</Text>
-                  <Text style={styles.tipText}>{tip.text}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {aiResult?.seat_advice && (
-            <View style={styles.resultCard}>
-              <Text style={styles.sectionLabel}>{t('heart.seatAdvice', { defaultValue: '座位建議' })}</Text>
-              <Text style={styles.resultText}>{aiResult.seat_advice}</Text>
-            </View>
-          )}
-
-          <Text style={styles.noteText}>{t('heart.note')}</Text>
+          <Text style={styles.compassNote}>
+            {t('heart.compassTitle')} · {shichen.name} · {Math.round(heading)}°
+          </Text>
         </View>
-      )}
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+        {/* ═══ 吉凶方位 ═══ */}
+        <View style={styles.dirSummary}>
+          <View style={styles.dirBox}>
+            <Text style={styles.dirBoxTitle}>{t('heart.luckyDir')}</Text>
+            {luckyDirs.length > 0 ? (
+              <Text style={styles.dirBoxLucky}>{luckyDirs.map(d => tDir(d)).join(', ')}</Text>
+            ) : (
+              <Text style={styles.dirBoxText}>{t('heart.calculating')}</Text>
+            )}
+          </View>
+          <View style={styles.dirBox}>
+            <Text style={styles.dirBoxTitle}>{t('heart.dangerDir')}</Text>
+            {dangerDirs.length > 0 ? (
+              <Text style={styles.dirBoxDanger}>{dangerDirs.slice(0, 2).map(d => tDir(d)).join(', ')}</Text>
+            ) : (
+              <Text style={styles.dirBoxText}>{t('heart.calculating')}</Text>
+            )}
+          </View>
+        </View>
+
+        {/* ═══ 分析結果 ═══ */}
+        {showResult && (
+          <View>
+            <View style={styles.petReadingCard}>
+              <View style={styles.petReadingHeader}>
+                {petAvatarImg ? (
+                  <Image source={petAvatarImg} style={styles.petReadingAvatar} resizeMode="cover" />
+                ) : (
+                  <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
+                )}
+                <Text style={styles.petReadingLabel}>{t('heart.locationAnalysis')}</Text>
+              </View>
+              <Text style={styles.petReadingText}>
+                {aiResult?.location_analysis || narration.spokenText}
+              </Text>
+            </View>
+
+            {aiResult?.tips && aiResult.tips.length > 0 && (
+              <View style={styles.tipsCard}>
+                <Text style={styles.sectionLabel}>{t('heart.tips')}</Text>
+                {aiResult.tips.map((tip, i) => (
+                  <View key={i} style={styles.tipItem}>
+                    <Text style={styles.tipIcon}>{tip.icon}</Text>
+                    <Text style={styles.tipText}>{tip.text}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {aiResult?.seat_advice && (
+              <View style={styles.resultCard}>
+                <Text style={styles.sectionLabel}>{t('heart.seatAdvice', { defaultValue: '座位建議' })}</Text>
+                <Text style={styles.resultText}>{aiResult.seat_advice}</Text>
+              </View>
+            )}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* ═══ Fixed bottom analyze button ═══ */}
+      <View style={styles.bottomBar}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.analyzeButton,
+            isAnalyzing && styles.analyzeButtonLoading,
+            pressed && { opacity: 0.85 },
+          ]}
+          onPress={startAnalysis}
+          disabled={isAnalyzing}
+        >
+          {!isAnalyzing && <Image source={FEATURE_PANEL.heart.btnAnalyze} style={styles.analyzeBtnIcon} resizeMode="contain" />}
+          <Text style={styles.analyzeText}>
+            {isAnalyzing ? t('heart.analyzing') : t('heart.analyzeButton')}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
+
+  if (visible !== undefined) {
+    return (
+      <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+        {content}
+      </Modal>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
+  outerContainer: { flex: 1 },
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.lg, paddingBottom: 100 },
-
-  petSenseCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 12, borderRadius: 12,
-    backgroundColor: 'rgba(100,180,255,0.06)',
-    borderWidth: 1, borderColor: 'rgba(100,180,255,0.1)',
-    marginBottom: 16,
-  },
-  petSenseText: { fontSize: 13, color: Colors.pet, flex: 1, fontFamily: Fonts.serif },
+  content: { padding: Spacing.lg, paddingBottom: 8 },
+  bottomBar: { paddingHorizontal: Spacing.lg, paddingBottom: 8, backgroundColor: Colors.background },
 
   gpsCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 12, borderRadius: 12,
+    padding: 10, borderRadius: 12,
     backgroundColor: 'rgba(100,200,120,0.06)',
     borderWidth: 1, borderColor: 'rgba(100,200,120,0.12)',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  gpsHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  gpsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.fengshui },
-  gpsText: { fontSize: 12, color: Colors.fengshui },
-  gpsCoord: { fontSize: 10, color: Colors.textDarkest },
-  locationName: { fontSize: 11, color: Colors.textMuted, textAlign: 'right', marginBottom: 16 },
+  gpsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  gpsDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.fengshui },
+  gpsText: { fontSize: 11, color: Colors.fengshui },
+  locationNameInline: { fontSize: 11, color: Colors.textMuted, marginLeft: 'auto' },
+  petSenseInline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  petSenseTextSmall: { fontSize: 11, color: Colors.pet, fontFamily: Fonts.serif },
 
-  compassCard: { alignItems: 'center', marginBottom: 20 },
-  compass: {
-    width: 180, height: 180,
+  compassCard: { alignItems: 'center', marginBottom: 12 },
+  compassContainer: {
+    width: 200, height: 200,
     alignItems: 'center', justifyContent: 'center',
     position: 'relative',
+    overflow: 'hidden',
   },
-  compassRing: {
-    position: 'absolute', width: 170, height: 170, borderRadius: 85,
-    borderWidth: 2, borderColor: 'rgba(232,197,71,0.2)',
-  },
-  dirLabel: { position: 'absolute', alignItems: 'center' },
-  dirText: { fontSize: 11, color: Colors.textDark, fontWeight: '600' },
-  dirLucky: { fontSize: 13, color: Colors.primary, fontWeight: '700' },
-  dirDanger: { color: Colors.danger },
-  dirDot: { fontSize: 6, color: Colors.primary, marginTop: -2 },
-  needle: {
-    width: 3, height: 50, borderRadius: 2,
-    backgroundColor: Colors.primary,
-    position: 'absolute', top: 40,
-  },
-  needleCenter: {
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: Colors.primary,
+  compass: {
+    width: 200, height: 200,
+    alignItems: 'center', justifyContent: 'center',
     position: 'absolute',
   },
+  compassBgImage: {
+    position: 'absolute', width: 180, height: 180, borderRadius: 90,
+  },
+  dirLabel: { position: 'absolute', alignItems: 'center' },
+  dirText: { fontSize: 12, color: Colors.textDark, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  dirLucky: { fontSize: 14, color: Colors.primary, fontWeight: '700' },
+  dirDanger: { color: Colors.danger },
+  dirDot: { fontSize: 6, color: Colors.primary, marginTop: -2 },
+  needleImage: {
+    width: 24, height: 64,
+    position: 'absolute',
+  },
+  petSenseAvatar: { width: 28, height: 28, borderRadius: 14 },
+  petReadingAvatar: { width: 36, height: 36, borderRadius: 18 },
+  analyzeBtnIcon: { width: 36, height: 36 },
   compassNote: { fontSize: 10, color: Colors.textDarkest, marginTop: 8 },
 
   dirSummary: { flexDirection: 'row', gap: 10, marginBottom: 16 },
@@ -367,13 +419,13 @@ const styles = StyleSheet.create({
   dirBoxDanger: { fontSize: 15, color: Colors.danger, fontFamily: Fonts.serifBold },
 
   analyzeButton: {
-    padding: 16, borderRadius: 14, alignItems: 'center',
-    backgroundColor: 'rgba(100,200,120,0.08)',
-    borderWidth: 1, borderColor: 'rgba(100,200,120,0.2)',
-    marginBottom: 20,
+    flexDirection: 'row', gap: 10,
+    padding: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(74,222,128,0.12)',
+    borderWidth: 1.5, borderColor: 'rgba(74,222,128,0.3)',
   },
   analyzeButtonLoading: { opacity: 0.6 },
-  analyzeText: { fontSize: 15, color: Colors.fengshui, fontWeight: '600', letterSpacing: 1 },
+  analyzeText: { fontSize: 16, color: '#4ADE80', fontWeight: '700', letterSpacing: 1 },
 
   petReadingCard: {
     padding: 16, borderRadius: 16,
@@ -405,4 +457,11 @@ const styles = StyleSheet.create({
   tipText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 20, flex: 1 },
 
   noteText: { fontSize: 11, color: Colors.textDarkest, textAlign: 'center', fontStyle: 'italic' },
+
+  closeBtn: {
+    alignSelf: 'flex-end', width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+  },
+  closeBtnText: { fontSize: 18, color: Colors.textSecondary },
 });

@@ -45,7 +45,7 @@ export default function AuthScreen() {
     if (isNewUser) {
       router.replace('/onboarding');
     } else {
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/pet');
     }
   }, []);
 

@@ -35,8 +35,8 @@ export default function WheelPicker({
   const paddedItems = ['', '', ...items, '', ''];
 
   useEffect(() => {
-    // 初始滾動到選中位置
-    if (flatListRef.current && selectedIndex >= 0) {
+    // 滾動到選中位置（初始 & 外部變更時）
+    if (flatListRef.current && selectedIndex >= 0 && !isScrolling.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToOffset({
           offset: selectedIndex * ITEM_HEIGHT,
@@ -44,7 +44,7 @@ export default function WheelPicker({
         });
       }, 100);
     }
-  }, []);
+  }, [selectedIndex]);
 
   const handleMomentumEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetY = event.nativeEvent.contentOffset.y;

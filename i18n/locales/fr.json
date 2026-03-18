@@ -11,7 +11,8 @@
     "heart": "Cœur Spirituel",
     "pearl": "Perle Spirituelle",
     "body": "Corps de l'Animal",
-    "soul": "Âme de l'Animal"
+    "soul": "Âme de l'Animal",
+    "profile": "Profil"
   },
   "onboarding": {
     "selectLanguage": "Choisir la langue",
@@ -223,7 +224,8 @@
     "goodNight": "Bonne nuit, Maître !",
     "defaultMsg1": "Bonjour Maître~ Aujourd'hui la Porte de Vue est au Sud, idéal pour les activités sociales !",
     "defaultMsg2": "Bon après-midi~ Pour les réunions, asseyez-vous face au Sud-est pour la bénédiction de la Porte Ouverte.",
-    "defaultMsg3": "Bien joué aujourd'hui ! La méditation du soir est idéale, la Porte Bloquée est au Nord."
+    "defaultMsg3": "Bien joué aujourd'hui ! La méditation du soir est idéale, la Porte Bloquée est au Nord.",
+    "evoStage": "Stade d'évolution"
   },
   "narrator": {
     "greetNight": "Il est tard, Maître",
@@ -348,5 +350,52 @@
     "predictionDesc": "Prédictions d'événements importants",
     "ultimateEvo": "Évolution Ultime",
     "ultimateEvoDesc": "Troisième évolution de l'animal spirituel"
+  },
+  "chat": {
+    "feedResponse": "Miam~ Merci, Maître ! {{petName}} est plein d'énergie !",
+    "playResponse": "Trop amusant ! Jouer avec Maître c'est le meilleur~",
+    "meditateResponse": "Hmm... Je sens l'énergie spirituelle couler... La sagesse de {{petName}} a grandi !",
+    "levelUp": "✨ {{petName}} a atteint Lv.{{level}} ! Plus fort que jamais !",
+    "evolve": "🌟 {{petName}} a évolué ! Forme de stade {{evolution}} !"
+  },
+  "upgrade": {
+    "petVoice": "Maître, les utilisations d'aujourd'hui sont épuisées... Améliorez pour que je puisse faire plus pour vous !",
+    "laterBtn": "Revenir demain",
+    "upgradeBtn": "Améliorer maintenant",
+    "memberF1": "· Œil/Cœur/Âme 5 fois/jour",
+    "memberF2": "· Niveau max de l'animal Lv.20",
+    "memberF3": "· Analyse approfondie IA (Sonnet)",
+    "supremeF1": "· Toutes fonctions illimitées",
+    "supremeF2": "· Pas de limite de niveau",
+    "supremeF3": "· Évolution exclusive + skins"
+  },
+  "actionBar": {
+    "eye": "Œil",
+    "heart": "Cœur",
+    "soul": "Âme"
+  },
+  "profile": {
+    "title": "Profil",
+    "supreme": "Ling Xi Suprême",
+    "member": "Membre Ling Xi",
+    "free": "Gratuit",
+    "guest": "Invité",
+    "language": "Langue",
+    "destinyData": "Données du destin",
+    "bazi": "BaZi",
+    "ziweiMain": "Étoile principale Zi Wei",
+    "zodiac": "Signe du zodiaque",
+    "solarTermPet": "Animal du terme solaire",
+    "other": "Autres",
+    "notifications": "Notifications",
+    "privacy": "Politique de confidentialité",
+    "terms": "Conditions d'utilisation",
+    "about": "À propos de Ling Xi",
+    "logout": "Déconnexion",
+    "logoutConfirm": "Voulez-vous vraiment vous déconnecter ?",
+    "restorePurchases": "Restaurer les achats",
+    "restoreSuccess": "Achats restaurés avec succès",
+    "restoreFailed": "Échec de la restauration",
+    "upgradeCta": "Améliorez pour débloquer plus de fonctionnalités"
   }
 }

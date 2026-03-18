@@ -2,10 +2,11 @@
 // 靈魂模式 — 六十四卦占卜（嵌入靈寵中心 Tab）
 // ═══════════════════════════════════════
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  ScrollView, StyleSheet, Vibration, Pressable,
+  View, Text, Image, TextInput, TouchableOpacity,
+  ScrollView, StyleSheet, Vibration, Pressable, Modal, Platform,
+  Animated, Easing,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Fonts, Spacing } from '@/config/theme';
@@ -18,6 +19,7 @@ import {
   type HexagramResult,
   type DivinationCategory,
 } from '@/services/hexagram-engine';
+import { CATEGORY_IMAGES, FEATURE_PANEL, PET_FRAME, getPetImage } from '@/assets/images';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
 
 type Phase = 'idle' | 'shaking' | 'result';
@@ -25,10 +27,13 @@ type Phase = 'idle' | 'shaking' | 'result';
 const CATEGORIES: DivinationCategory[] = ['career', 'love', 'family', 'health', 'study'];
 
 interface PetPearlModeProps {
+  visible?: boolean;
+  onClose?: () => void;
+  onResult?: (text: string, data: any) => void;
   onQuotaExhausted: () => void;
 }
 
-export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
+export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhausted }: PetPearlModeProps) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>('idle');
   const [question, setQuestion] = useState('');
@@ -36,6 +41,7 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
   const [result, setResult] = useState<HexagramResult | null>(null);
 
   const petName = usePetStore(s => s.name) || '靈寵';
+  const petId = usePetStore(s => s.petId) || '';
   const petEmoji = usePetStore(s => s.emoji) || '🐉';
   const petType = usePetStore(s => s.creature) || '水龍';
   const petElement = usePetStore(s => s.element) || '水';
@@ -44,6 +50,29 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
   const useFeature = useUserStore(s => s.useFeature);
 
   const petInfo: PetInfo = { name: petName, type: petType, element: petElement, emoji: petEmoji, level: petLevel };
+  const petAvatarImg = getPetImage(petId, 'avatar');
+
+  // Spinning animation for bagua ring during shaking phase
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (phase === 'shaking') {
+      spinAnim.setValue(0);
+      Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ).start();
+    } else {
+      spinAnim.stopAnimation();
+    }
+  }, [phase]);
+  const spinInterpolate = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   const startDivination = () => {
     if (!selectedCategory) return;
@@ -55,11 +84,33 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
     }
 
     setPhase('shaking');
-    Vibration.vibrate([0, 80, 60, 80, 60, 80, 60, 150]);
+    if (Platform.OS !== 'web') {
+      Vibration.vibrate([0, 80, 60, 80, 60, 80, 60, 150]);
+    }
 
     setTimeout(() => {
       const hexResult = performHexagramDivination(selectedCategory, question || undefined);
       setResult(hexResult);
+
+      // Send result to parent (chat bubble)
+      if (onResult) {
+        const interp = hexResult.hexagram.interpretations[hexResult.category];
+        const narr = generateLocalPetNarration({
+          feature: 'divination',
+          pet: petInfo,
+          data: { level: hexResult.hexagram.fortuneLevel, directAnswer: interp.guidance },
+        });
+        onResult(narr.spokenText, {
+          hexagram: hexResult.hexagram,
+          category: hexResult.category,
+          changedHexagram: hexResult.changedHexagram,
+          changingLines: hexResult.changingLines,
+          interpretation: interp,
+        });
+        setTimeout(() => { onClose?.(); reset(); }, 300);
+        return;
+      }
+
       setPhase('result');
     }, 1500);
   };
@@ -71,14 +122,24 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
     setSelectedCategory(null);
   };
 
-  return (
+  const content = (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Close button when in modal */}
+      {onClose && (
+        <Pressable style={styles.closeBtn} onPress={() => { onClose(); reset(); }}>
+          <Text style={styles.closeBtnText}>✕</Text>
+        </Pressable>
+      )}
 
       {/* ═══ 閒置：選擇類別 + 問題 + 啟動 ═══ */}
       {phase === 'idle' && (
         <View>
           <View style={styles.petHintCard}>
-            <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
+            {petAvatarImg ? (
+              <Image source={petAvatarImg} style={styles.petHintAvatar} resizeMode="cover" />
+            ) : (
+              <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
+            )}
             <Text style={styles.petHintText}>
               {t('pearl.petHint', { name: petName })}
             </Text>
@@ -86,24 +147,43 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
 
           <Text style={styles.sectionLabel}>{t('pearl.selectCategory')}</Text>
           <View style={styles.categoryGrid}>
-            {CATEGORIES.map(cat => (
-              <Pressable
-                key={cat}
-                style={[
-                  styles.categoryBtn,
-                  selectedCategory === cat && styles.categoryBtnActive,
-                ]}
-                onPress={() => setSelectedCategory(cat)}
-              >
-                <Text style={styles.categoryEmoji}>{getCategoryEmoji(cat)}</Text>
-                <Text style={[
-                  styles.categoryLabel,
-                  selectedCategory === cat && styles.categoryLabelActive,
-                ]}>
-                  {t(`pearl.cat_${cat}`)}
-                </Text>
-              </Pressable>
-            ))}
+            {CATEGORIES.map((cat, idx) => {
+              const isSelected = selectedCategory === cat;
+              const isLastOdd = CATEGORIES.length % 2 === 1 && idx === CATEGORIES.length - 1;
+              return (
+                <View
+                  key={cat}
+                  style={[
+                    styles.categoryCardWrapper,
+                    isLastOdd && styles.categoryCardCentered,
+                  ]}
+                >
+                  <Pressable
+                    style={[
+                      styles.categoryCard,
+                      isSelected && styles.categoryCardActive,
+                    ]}
+                    onPress={() => setSelectedCategory(cat)}
+                  >
+                    {CATEGORY_IMAGES[cat] ? (
+                      <Image
+                        source={CATEGORY_IMAGES[cat]}
+                        style={[styles.categoryImage, isSelected && styles.categoryImageActive]}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <Text style={styles.categoryEmoji}>{getCategoryEmoji(cat)}</Text>
+                    )}
+                    <Text style={[
+                      styles.categoryLabel,
+                      isSelected && styles.categoryLabelActive,
+                    ]}>
+                      {t(`pearl.cat_${cat}`)}
+                    </Text>
+                  </Pressable>
+                </View>
+              );
+            })}
           </View>
 
           <Text style={styles.sectionLabel}>{t('pearl.inputQuestion')}</Text>
@@ -124,8 +204,11 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
             ]}
             onPress={startDivination}
             disabled={!selectedCategory}
+            activeOpacity={0.7}
           >
-            <Text style={styles.startEmoji}>🏮</Text>
+            <View style={styles.startIconWrapper}>
+              <Image source={FEATURE_PANEL.pearl.btnDivinate} style={styles.startIcon} resizeMode="contain" />
+            </View>
             <Text style={styles.startText}>{t('pearl.startSoul')}</Text>
           </TouchableOpacity>
         </View>
@@ -134,12 +217,23 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
       {/* ═══ 搖卦中 ═══ */}
       {phase === 'shaking' && (
         <View style={styles.centerBox}>
-          <Text style={styles.shakingSymbol}>☰☷☳☴☵☲☶☱</Text>
+          <Animated.Image
+            source={PET_FRAME.baguaRing}
+            style={[
+              styles.baguaRingImage,
+              { transform: [{ rotate: spinInterpolate }] },
+            ]}
+            resizeMode="contain"
+          />
           <Text style={styles.shakingText}>{t('pearl.shaking')}</Text>
           <View style={styles.petNarrateBox}>
-            <Text style={{ fontSize: 20 }}>{petEmoji}</Text>
+            {petAvatarImg ? (
+              <Image source={petAvatarImg} style={styles.petNarrateAvatar} resizeMode="cover" />
+            ) : (
+              <Text style={{ fontSize: 20 }}>{petEmoji}</Text>
+            )}
             <Text style={styles.petNarrateText}>
-              {t('pearl.petChanneling', { name: petName })}
+              {t('pearl.petChanneling', { petName })}
             </Text>
           </View>
         </View>
@@ -222,7 +316,11 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
 
             <View style={styles.petReadingCard}>
               <View style={styles.petReadingHeader}>
-                <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
+                {petAvatarImg ? (
+                  <Image source={petAvatarImg} style={styles.petReadingAvatar} resizeMode="cover" />
+                ) : (
+                  <Text style={{ fontSize: 24 }}>{petEmoji}</Text>
+                )}
                 <Text style={styles.petReadingLabel}>{t('pearl.petInterpretation')}</Text>
               </View>
               <Text style={styles.petReadingText}>{narration.spokenText}</Text>
@@ -249,12 +347,23 @@ export default function PetPearlMode({ onQuotaExhausted }: PetPearlModeProps) {
 
     </ScrollView>
   );
+
+  if (visible !== undefined) {
+    return (
+      <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+        {content}
+      </Modal>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, paddingBottom: 100 },
 
+  // ── Pet hint card (idle top) ──
   petHintCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     padding: 12, borderRadius: 12,
@@ -262,26 +371,46 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(100,180,255,0.1)',
     marginBottom: 20,
   },
+  petHintAvatar: { width: 40, height: 40, borderRadius: 20 },
   petHintText: { fontSize: 13, color: Colors.pet, flex: 1, fontFamily: Fonts.serif },
 
+  // ── Category grid (2-column, last one centered) ──
   sectionLabel: { fontSize: 12, color: Colors.textDark, letterSpacing: 2, marginBottom: 10 },
   categoryGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20,
+    flexDirection: 'row', flexWrap: 'wrap',
+    marginHorizontal: -6, marginBottom: 20,
   },
-  categoryBtn: {
-    flex: 1, minWidth: 90, paddingVertical: 14, paddingHorizontal: 8,
-    borderRadius: 14, alignItems: 'center',
+  categoryCardWrapper: {
+    width: '50%', paddingHorizontal: 6, marginBottom: 12,
+  },
+  categoryCardCentered: {
+    width: '50%',
+    marginLeft: '25%',
+  },
+  categoryCard: {
+    paddingVertical: 14, paddingHorizontal: 8,
+    borderRadius: 16, alignItems: 'center',
     backgroundColor: 'rgba(232,197,71,0.04)',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.1)',
+    borderWidth: 1.5, borderColor: 'rgba(232,197,71,0.10)',
   },
-  categoryBtnActive: {
-    backgroundColor: 'rgba(232,197,71,0.12)',
-    borderColor: 'rgba(232,197,71,0.4)',
+  categoryCardActive: {
+    backgroundColor: 'rgba(232,197,71,0.10)',
+    borderColor: '#e8c547',
+    shadowColor: '#e8c547',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  categoryEmoji: { fontSize: 22, marginBottom: 4 },
-  categoryLabel: { fontSize: 12, color: Colors.textMuted },
-  categoryLabelActive: { color: Colors.primary, fontWeight: '600' },
+  categoryImage: { width: 64, height: 64, marginBottom: 6 },
+  categoryImageActive: {
+    transform: [{ scale: 1.08 }],
+  },
+  categoryEmoji: { fontSize: 32, marginBottom: 6 },
+  categoryLabel: { fontSize: 13, color: Colors.textMuted, fontFamily: Fonts.serif },
+  categoryLabelActive: { color: Colors.primary, fontWeight: '700' },
 
+  // ── Question input ──
   input: {
     padding: 14, borderRadius: 12,
     backgroundColor: 'rgba(232,197,71,0.04)',
@@ -292,18 +421,32 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
+  // ── Start (divinate) button — mystical purple ──
   startButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, padding: 18, borderRadius: 16,
-    backgroundColor: 'rgba(232,197,71,0.12)',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.3)',
+    gap: 12, paddingVertical: 16, paddingHorizontal: 24, borderRadius: 20,
+    backgroundColor: 'rgba(167,139,250,0.15)',
+    borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.4)',
+    shadowColor: '#a78bfa',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   startButtonDisabled: { opacity: 0.3 },
-  startEmoji: { fontSize: 28 },
-  startText: { fontSize: 18, color: Colors.primary, fontFamily: Fonts.serifBold, letterSpacing: 4 },
+  startIconWrapper: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(167,139,250,0.20)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  startIcon: { width: 36, height: 36 },
+  startText: {
+    fontSize: 17, color: '#c4b0fa', fontFamily: Fonts.serifBold, letterSpacing: 3,
+  },
 
-  centerBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80 },
-  shakingSymbol: { fontSize: 28, color: Colors.primary, letterSpacing: 8, marginBottom: 16, opacity: 0.6 },
+  // ── Shaking phase ──
+  centerBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+  baguaRingImage: { width: 120, height: 120, marginBottom: 20, opacity: 0.85 },
   shakingText: { fontSize: 16, color: Colors.textSecondary, fontFamily: Fonts.serif, marginBottom: 12 },
   petNarrateBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -311,24 +454,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(100,180,255,0.06)',
     marginTop: 8,
   },
+  petNarrateAvatar: { width: 32, height: 32, borderRadius: 16 },
   petNarrateText: { fontSize: 12, color: Colors.pet, fontFamily: Fonts.serif },
 
+  // ── Result phase ──
   hexagramCard: {
-    padding: 24, borderRadius: 20,
+    padding: 16, borderRadius: 16,
     backgroundColor: 'rgba(232,197,71,0.03)',
     borderWidth: 1, borderColor: 'rgba(232,197,71,0.12)',
     alignItems: 'center',
     marginBottom: 14,
   },
-  hexagramSymbol: { fontSize: 64, marginBottom: 8 },
-  hexagramTitle: { fontSize: 20, color: Colors.primary, fontFamily: Fonts.serifBold, letterSpacing: 4, marginBottom: 16 },
+  hexagramSymbol: { fontSize: 48, marginBottom: 6 },
+  hexagramTitle: { fontSize: 18, color: Colors.primary, fontFamily: Fonts.serifBold, letterSpacing: 3, marginBottom: 12 },
 
   oracleBox: {
     paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12,
     backgroundColor: 'rgba(232,197,71,0.06)',
     marginBottom: 12,
   },
-  oracleText: { fontSize: 18, color: Colors.primary, fontFamily: Fonts.serif, letterSpacing: 4, textAlign: 'center' },
+  oracleText: { fontSize: 16, color: Colors.primary, fontFamily: Fonts.serif, letterSpacing: 3, textAlign: 'center' },
 
   mysticalLine: {
     fontSize: 14, color: Colors.textMuted, fontFamily: Fonts.serif,
@@ -377,6 +522,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   petReadingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  petReadingAvatar: { width: 36, height: 36, borderRadius: 18 },
   petReadingLabel: { fontSize: 12, color: Colors.pet, fontWeight: '600', letterSpacing: 2 },
   petReadingText: { fontSize: 14, color: '#a0b8d0', lineHeight: 24, fontFamily: Fonts.serif },
 
@@ -402,4 +548,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(232,197,71,0.25)',
   },
   redrawText: { fontSize: 14, color: Colors.primary, fontWeight: '600' },
+
+  closeBtn: {
+    alignSelf: 'flex-end', width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+  },
+  closeBtnText: { fontSize: 18, color: Colors.textSecondary },
 });

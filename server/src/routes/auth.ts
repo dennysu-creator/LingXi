@@ -42,6 +42,7 @@ router.post('/apple', async (req: Request, res: Response): Promise<void> => {
     let userId: string;
     let userName: string;
     let planType: string;
+    let isNewUser = false;
 
     if (existingUser.rows.length > 0) {
       const user = existingUser.rows[0]!;
@@ -51,14 +52,15 @@ router.post('/apple', async (req: Request, res: Response): Promise<void> => {
 
       await query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
     } else {
+      isNewUser = true;
       const displayName =
         fullName?.givenName && fullName?.familyName
           ? `${fullName.familyName}${fullName.givenName}`
           : fullName?.givenName || '靈犀用戶';
 
       const insertResult = await query(
-        `INSERT INTO users (email, apple_id, name, birth_year, birth_month, birth_day, plan_type)
-         VALUES ($1, $2, $3, 1990, 1, 1, 'free')
+        `INSERT INTO users (email, apple_id, name, birth_year, birth_month, birth_day, destiny_data, plan_type)
+         VALUES ($1, $2, $3, 1990, 1, 1, '{"onboarded": false}'::jsonb, 'free')
          ON CONFLICT (apple_id) DO UPDATE SET updated_at = NOW()
          RETURNING id, name, plan_type`,
         [email, appleId, displayName]
@@ -77,6 +79,7 @@ router.post('/apple', async (req: Request, res: Response): Promise<void> => {
     res.json({
       accessToken,
       refreshToken,
+      isNewUser,
       user: { id: userId, email, name: userName, planType },
     });
   } catch (err) {
@@ -108,8 +111,21 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({ error: 'Invalid email format' });
+      return;
+    }
+
     if (password.length < 8) {
       res.status(400).json({ error: 'Password must be at least 8 characters' });
+      return;
+    }
+
+    // Birth data range validation
+    if (birthMonth < 1 || birthMonth > 12 || birthDay < 1 || birthDay > 31 || birthYear < 1900 || birthYear > new Date().getFullYear()) {
+      res.status(400).json({ error: 'Invalid birth date values' });
       return;
     }
 
@@ -122,8 +138,8 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const result = await query(
-      `INSERT INTO users (email, password_hash, name, birth_year, birth_month, birth_day, birth_hour, gender, plan_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'free')
+      `INSERT INTO users (email, password_hash, name, birth_year, birth_month, birth_day, birth_hour, gender, destiny_data, plan_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '{"onboarded": false}'::jsonb, 'free')
        RETURNING id, plan_type`,
       [email, passwordHash, name, birthYear, birthMonth, birthDay, birthHour ?? 11, gender ?? 'male']
     );

@@ -3,14 +3,9 @@
 // ═══════════════════════════════════════
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSpiritPetByDate, type SpiritPet } from '@/config/constants';
-
-export interface PetMessage {
-  id: string;
-  message: string;
-  time: string;
-  mood: string;
-}
 
 // ─── 等級解鎖功能 ───
 export const LEVEL_UNLOCKS = {
@@ -41,17 +36,14 @@ export function getNextUnlock(level: number): { level: number; feature: string; 
 // ─── 等級上限（依方案） ───
 type PlanType = 'free' | 'member' | 'supreme';
 
-const LEVEL_CAPS: Record<PlanType, number> = {
-  free: 10,
-  member: 20,
-  supreme: 999, // 無限
-};
+// __DEV__ 模式下全部解鎖無限制
+const LEVEL_CAPS: Record<PlanType, number> = __DEV__
+  ? { free: 999, member: 999, supreme: 999 }
+  : { free: 10, member: 20, supreme: 999 };
 
-const EVOLUTION_CAPS: Record<PlanType, number> = {
-  free: 1,
-  member: 2,
-  supreme: 5,
-};
+const EVOLUTION_CAPS: Record<PlanType, number> = __DEV__
+  ? { free: 5, member: 5, supreme: 5 }
+  : { free: 1, member: 2, supreme: 5 };
 
 interface PetState {
   // 靈寵基本資料
@@ -75,22 +67,41 @@ interface PetState {
   wisdom: number;      // 悟性 0-100
   mood: 'happy' | 'excited' | 'sleepy' | 'worried' | 'energetic';
 
-  // 訊息紀錄
-  messages: PetMessage[];
-
   // Actions
   initPet: (month: number, day: number) => void;
   feed: (planType?: PlanType) => void;
   play: (planType?: PlanType) => void;
   meditate: (planType?: PlanType) => void;
-  addMessage: (message: PetMessage) => void;
   addExp: (amount: number, planType?: PlanType) => void;
   canLevelUp: (planType: PlanType) => boolean;
   getLevelCap: (planType: PlanType) => number;
+  resetState: () => void;
+}
+
+function getInitialPetState() {
+  return {
+    petId: '',
+    name: '',
+    creature: '',
+    element: '',
+    solarTerm: '',
+    season: '',
+    zodiac: '',
+    personality: '',
+    emoji: '',
+    level: 1,
+    exp: 0,
+    expToNext: 100,
+    evolution: 1,
+    power: 50,
+    affinity: 50,
+    wisdom: 50,
+    mood: 'happy' as const,
+  };
 }
 
 /**
- * 嘗試升級（帶等級上限檢查）
+ * 嘗試升級（帶等級上限檢查，支援連續升級）
  */
 function tryLevelUp(
   state: { level: number; exp: number; expToNext: number; evolution: number },
@@ -103,40 +114,36 @@ function tryLevelUp(
   const evoCap = EVOLUTION_CAPS[planType];
 
   if (state.level >= levelCap) {
-    // 已達等級上限，經驗值卡在上限
     return { level: state.level, exp: state.expToNext - 1, expToNext: state.expToNext, evolution: state.evolution };
   }
 
-  const newLevel = state.level + 1;
-  const newEvo = newLevel % 10 === 0 ? Math.min(state.evolution + 1, evoCap) : state.evolution;
+  // 連續升級：處理溢出 EXP
+  let level = state.level;
+  let exp = newExp;
+  let expToNext = state.expToNext;
+  let evolution = state.evolution;
 
-  return {
-    level: newLevel,
-    exp: newExp - state.expToNext,
-    expToNext: Math.floor(state.expToNext * 1.3),
-    evolution: newEvo,
-  };
+  while (exp >= expToNext && level < levelCap) {
+    level += 1;
+    exp -= expToNext;
+    expToNext = Math.floor(expToNext * 1.3);
+    if (level % 10 === 0) {
+      evolution = Math.min(evolution + 1, evoCap);
+    }
+  }
+
+  // 若升級後又超過上限，卡住
+  if (level >= levelCap) {
+    exp = Math.min(exp, expToNext - 1);
+  }
+
+  return { level, exp, expToNext, evolution };
 }
 
-export const usePetStore = create<PetState>((set, get) => ({
-  petId: '',
-  name: '',
-  creature: '',
-  element: '',
-  solarTerm: '',
-  season: '',
-  zodiac: '',
-  personality: '',
-  emoji: '',
-  level: 1,
-  exp: 0,
-  expToNext: 100,
-  evolution: 1,
-  power: 50,
-  affinity: 50,
-  wisdom: 50,
-  mood: 'happy',
-  messages: [],
+export const usePetStore = create<PetState>()(
+  persist(
+    (set, get) => ({
+  ...getInitialPetState(),
 
   initPet: (month, day) => {
     const pet = getSpiritPetByDate(month, day);
@@ -207,12 +214,6 @@ export const usePetStore = create<PetState>((set, get) => ({
     }
   },
 
-  addMessage: (message) => {
-    set((state) => ({
-      messages: [message, ...state.messages].slice(0, 50),
-    }));
-  },
-
   addExp: (amount, planType = 'free') => {
     const state = get();
     const newExp = state.exp + amount;
@@ -233,4 +234,14 @@ export const usePetStore = create<PetState>((set, get) => ({
   getLevelCap: (planType) => {
     return LEVEL_CAPS[planType];
   },
-}));
+
+  resetState: () => {
+    set(getInitialPetState());
+  },
+}),
+    {
+      name: 'lingxi-pet-store',
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
+);

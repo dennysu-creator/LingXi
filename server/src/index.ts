@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -15,15 +16,29 @@ import subscriptionRoutes from './routes/subscription';
 const app = express();
 const PORT = parseInt(process.env.PORT || '8080', 10);
 
+// Cloud Run runs behind a load balancer — trust proxy for rate-limiting
+app.set('trust proxy', 1);
+
+// ═══════════════════════════════════════
+// Process Error Handlers
+// ═══════════════════════════════════════
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
 // ═══════════════════════════════════════
 // Global Middleware
 // ═══════════════════════════════════════
 
 app.use(helmet());
 
+// Static files (after helmet so security headers apply)
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? false : '*'),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     maxAge: 86400,
@@ -117,9 +132,9 @@ app.use(
 
     res.status(500).json({
       error:
-        process.env.NODE_ENV === 'production'
-          ? 'Internal server error'
-          : err.message,
+        process.env.NODE_ENV === 'development'
+          ? err.message
+          : 'Internal server error',
     });
   }
 );
@@ -128,10 +143,19 @@ app.use(
 // Server Start
 // ═══════════════════════════════════════
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`LingXi API server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+});
+
+// Graceful shutdown for Cloud Run SIGTERM
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
 });
 
 export default app;

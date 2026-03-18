@@ -4,8 +4,7 @@
 // ═══════════════════════════════════════
 
 import i18n from '@/i18n';
-import type { SupportedLanguage } from '@/i18n';
-import { wrapSystemPrompt, getPetSpeechStyle } from './i18n-prompts';
+import { wrapSystemPrompt } from './i18n-prompts';
 
 export interface PetNarration {
   spokenText: string;

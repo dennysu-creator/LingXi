@@ -9,7 +9,6 @@ import {
   STEM_ELEMENT,
   BRANCH_ELEMENT,
   BRANCH_ZODIAC,
-  FIVE_ELEMENTS,
   SHICHEN,
 } from '@/config/constants';
 
@@ -114,8 +113,8 @@ function calculateFiveElements(
 /**
  * 取得當前時辰
  */
-export function getCurrentShichen(): typeof SHICHEN[number] {
-  const hour = new Date().getHours();
+export function getCurrentShichen(date?: Date): typeof SHICHEN[number] {
+  const hour = (date || new Date()).getHours();
   if (hour === 23 || hour === 0) return SHICHEN[0];
   return SHICHEN[Math.floor((hour + 1) / 2)];
 }

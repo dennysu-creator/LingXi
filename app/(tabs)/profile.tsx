@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════
 
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, Platform, Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Fonts, Spacing } from '@/config/theme';
 import { useUserStore } from '@/stores/user-store';
@@ -11,10 +11,12 @@ import { usePetStore } from '@/stores/pet-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { restorePurchases } from '@/services/subscription-service';
 import LanguageSelector from '@/components/LanguageSelector';
+import UpgradeModal from '@/components/UpgradeModal';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const [isRestoring, setIsRestoring] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const logout = useAuthStore(s => s.logout);
 
   const userName = useUserStore(s => s.userName);
@@ -39,6 +41,47 @@ export default function ProfileScreen() {
   const baziText = bazi
     ? `${bazi.year.stem}${bazi.year.branch} ${bazi.month.stem}${bazi.month.branch} ${bazi.day.stem}${bazi.day.branch} ${bazi.hour.stem}${bazi.hour.branch}`
     : '—';
+  const webBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || '';
+
+  const showMessage = (message: string) => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.alert(message);
+      return;
+    }
+    Alert.alert(message);
+  };
+
+  const confirmLogout = () => {
+    const message = t('profile.logoutConfirm', { defaultValue: '確定要登出嗎？' });
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.confirm(message)) {
+        void logout();
+      }
+      return;
+    }
+
+    Alert.alert(
+      message,
+      '',
+      [
+        { text: t('common.cancel', { defaultValue: '取消' }), style: 'cancel' },
+        { text: t('profile.logout'), style: 'destructive', onPress: () => logout() },
+      ]
+    );
+  };
+
+  const openPolicyPage = async (path: 'privacy-policy.html' | 'terms-of-service.html') => {
+    if (!webBaseUrl) {
+      showMessage(t('common.error', { defaultValue: '發生錯誤' }));
+      return;
+    }
+
+    try {
+      await Linking.openURL(`${webBaseUrl}/${path}`);
+    } catch {
+      showMessage(t('common.error', { defaultValue: '發生錯誤' }));
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -62,8 +105,8 @@ export default function ProfileScreen() {
 
       {/* ═══ 訂閱狀態 ═══ */}
       {planType === 'free' && (
-        <Pressable style={styles.upgradeCard}>
-          <Text style={styles.upgradeText}>⭐ {t('profile.upgradeCta')}</Text>
+        <Pressable style={styles.upgradeCard} onPress={() => setShowUpgrade(true)}>
+          <Text style={styles.upgradeText}>⭐ {t('profile.upgradeCta', { defaultValue: '升級會員解鎖更多功能' })}</Text>
         </Pressable>
       )}
 
@@ -103,19 +146,25 @@ export default function ProfileScreen() {
       {/* ═══ 其他 ═══ */}
       <Text style={styles.sectionLabel}>{t('profile.other')}</Text>
       <View style={styles.sectionCard}>
-        <Pressable style={styles.menuItem}>
+        <Pressable
+          style={styles.menuItem}
+          onPress={() => showMessage(t('profile.notifications', { defaultValue: '推播通知' }))}
+        >
           <Text style={styles.menuText}>{t('profile.notifications')}</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
-        <Pressable style={styles.menuItem}>
+        <Pressable style={styles.menuItem} onPress={() => openPolicyPage('privacy-policy.html')}>
           <Text style={styles.menuText}>{t('profile.privacy')}</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
-        <Pressable style={styles.menuItem}>
+        <Pressable style={styles.menuItem} onPress={() => openPolicyPage('terms-of-service.html')}>
           <Text style={styles.menuText}>{t('profile.terms')}</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
-        <Pressable style={styles.menuItem}>
+        <Pressable
+          style={styles.menuItem}
+          onPress={() => showMessage(`${t('app.name', { defaultValue: '靈犀' })} v1.0.0`)}
+        >
           <Text style={styles.menuText}>{t('profile.about')}</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
@@ -124,11 +173,11 @@ export default function ProfileScreen() {
           onPress={async () => {
             setIsRestoring(true);
             try {
-              const planType = await restorePurchases();
-              useUserStore.getState().setPremium(planType);
-              Alert.alert(t('profile.restoreSuccess', { defaultValue: '恢復購買成功' }));
+              const restoredPlan = await restorePurchases();
+              useAuthStore.getState().updatePlan(restoredPlan);
+              showMessage(t('profile.restoreSuccess', { defaultValue: '恢復購買成功' }));
             } catch {
-              Alert.alert(t('profile.restoreFailed', { defaultValue: '恢復購買失敗' }));
+              showMessage(t('profile.restoreFailed', { defaultValue: '恢復購買失敗' }));
             } finally {
               setIsRestoring(false);
             }
@@ -141,22 +190,15 @@ export default function ProfileScreen() {
         </Pressable>
         <Pressable
           style={[styles.menuItem, { borderBottomWidth: 0 }]}
-          onPress={() => {
-            Alert.alert(
-              t('profile.logoutConfirm', { defaultValue: '確定要登出嗎？' }),
-              '',
-              [
-                { text: t('common.cancel', { defaultValue: '取消' }), style: 'cancel' },
-                { text: t('profile.logout'), style: 'destructive', onPress: () => logout() },
-              ]
-            );
-          }}
+          onPress={confirmLogout}
         >
           <Text style={[styles.menuText, { color: Colors.danger }]}>{t('profile.logout')}</Text>
         </Pressable>
       </View>
 
       <View style={{ height: 40 }} />
+
+      <UpgradeModal visible={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </ScrollView>
   );
 }

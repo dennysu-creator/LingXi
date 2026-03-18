@@ -2,14 +2,25 @@
 // 訂閱服務（RevenueCat SDK 串接）
 // ═══════════════════════════════════════
 
-import Purchases, {
-  type PurchasesPackage,
-  type CustomerInfo,
-  LOG_LEVEL,
-} from 'react-native-purchases';
 import { Platform } from 'react-native';
 import type { PlanType } from '@/stores/user-store';
-import api from '@/services/api-client';
+
+// ─── Native-only: react-native-purchases（Web 不支援） ───
+let Purchases: any = null;
+let LOG_LEVEL: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const mod = require('react-native-purchases');
+    Purchases = mod.default;
+    LOG_LEVEL = mod.LOG_LEVEL;
+  } catch {
+    // Not available (e.g. Expo Go)
+  }
+}
+
+type PurchasesPackage = any;
+type CustomerInfo = any;
 
 // ─── 方案定義 ───
 
@@ -73,7 +84,7 @@ function mapEntitlementToPlanType(customerInfo: CustomerInfo): PlanType {
 let isInitialized = false;
 
 export async function initSubscriptionService(): Promise<void> {
-  if (isInitialized) return;
+  if (isInitialized || Platform.OS === 'web' || !Purchases) return;
 
   const apiKey = Platform.OS === 'ios'
     ? process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY
@@ -84,9 +95,14 @@ export async function initSubscriptionService(): Promise<void> {
     return;
   }
 
-  Purchases.setLogLevel(LOG_LEVEL.WARN);
-  await Purchases.configure({ apiKey });
-  isInitialized = true;
+  try {
+    Purchases.setLogLevel(LOG_LEVEL.WARN);
+    await Purchases.configure({ apiKey });
+    isInitialized = true;
+  } catch (err) {
+    // RevenueCat 在 Expo Go 中不可用，跳過初始化
+    console.warn('[SubscriptionService] RevenueCat init failed (expected in Expo Go):', (err as Error).message);
+  }
 }
 
 /**
@@ -118,7 +134,7 @@ export async function purchasePlan(planId: string): Promise<PlanType | null> {
   try {
     const offerings = await Purchases.getOfferings();
     const packages = offerings.current?.availablePackages || [];
-    const pkg = packages.find(p => p.product.identifier === planId);
+    const pkg = packages.find((p: any) => p.product.identifier === planId);
 
     if (!pkg) {
       console.error(`[SubscriptionService] Package not found: ${planId}`);
@@ -127,13 +143,6 @@ export async function purchasePlan(planId: string): Promise<PlanType | null> {
 
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     const planType = mapEntitlementToPlanType(customerInfo);
-
-    // 同步到後端
-    try {
-      await api.post('/api/subscription/sync', { planType });
-    } catch {
-      // 後端同步失敗不影響前端購買結果
-    }
 
     return planType;
   } catch (err: any) {
@@ -149,15 +158,7 @@ export async function restorePurchases(): Promise<PlanType> {
   if (!isInitialized) return 'free';
 
   const customerInfo = await Purchases.restorePurchases();
-  const planType = mapEntitlementToPlanType(customerInfo);
-
-  try {
-    await api.post('/api/subscription/sync', { planType });
-  } catch {
-    // ignore
-  }
-
-  return planType;
+  return mapEntitlementToPlanType(customerInfo);
 }
 
 /**

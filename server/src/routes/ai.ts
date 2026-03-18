@@ -11,29 +11,32 @@ router.use(authenticate);
 // Model Constants
 // ═══════════════════════════════════════
 
-const MODEL_HAIKU = 'claude-haiku-4-5-20241022';
-const MODEL_SONNET = 'claude-sonnet-4-5-20250514';
+const MODEL_HAIKU = 'claude-haiku-4-5-20251001';
+const MODEL_SONNET = 'claude-sonnet-4-20250514';
+const MODEL_OPUS = 'claude-opus-4-20250514';
 
 // ═══════════════════════════════════════
 // Daily Usage Limits
 // ═══════════════════════════════════════
 
+// NOTE: 內部測試期間全部方案不設限 (-1 = unlimited)
+// 上線前需恢復原始限制: free=1, member=5
 const USAGE_LIMITS: Record<string, Record<string, number>> = {
   free: {
-    'face-reading': 1,
-    'feng-shui': 1,
-    fortune: 1,
-    outfit: 1,
-    divination: 1,
-    'pet-message': 3,
+    'face-reading': -1,
+    'feng-shui': -1,
+    fortune: -1,
+    outfit: -1,
+    divination: -1,
+    'pet-message': -1,
   },
   member: {
-    'face-reading': 5,
-    'feng-shui': 5,
-    fortune: 5,
-    outfit: 5,
-    divination: 5,
-    'pet-message': 20,
+    'face-reading': -1,
+    'feng-shui': -1,
+    fortune: -1,
+    outfit: -1,
+    divination: -1,
+    'pet-message': -1,
   },
   supreme: {
     'face-reading': -1,
@@ -45,7 +48,7 @@ const USAGE_LIMITS: Record<string, Record<string, number>> = {
   },
 };
 
-async function checkAndIncrementUsage(
+async function checkUsageAllowed(
   userId: string,
   planType: string,
   feature: string
@@ -54,13 +57,6 @@ async function checkAndIncrementUsage(
   const limit = limits[feature] ?? 1;
 
   if (limit === -1) {
-    await query(
-      `INSERT INTO daily_usage (user_id, usage_date, feature, count)
-       VALUES ($1, CURRENT_DATE, $2, 1)
-       ON CONFLICT (user_id, usage_date, feature)
-       DO UPDATE SET count = daily_usage.count + 1`,
-      [userId, feature]
-    );
     return { allowed: true, remaining: -1 };
   }
 
@@ -76,6 +72,13 @@ async function checkAndIncrementUsage(
     return { allowed: false, remaining: 0 };
   }
 
+  return { allowed: true, remaining: limit - currentCount };
+}
+
+async function incrementUsage(
+  userId: string,
+  feature: string
+): Promise<void> {
   await query(
     `INSERT INTO daily_usage (user_id, usage_date, feature, count)
      VALUES ($1, CURRENT_DATE, $2, 1)
@@ -83,12 +86,12 @@ async function checkAndIncrementUsage(
      DO UPDATE SET count = daily_usage.count + 1`,
     [userId, feature]
   );
-
-  return { allowed: true, remaining: limit - currentCount - 1 };
 }
 
-function selectModel(planType: string, freeModel: string, paidModel: string): string {
-  return planType === 'free' ? freeModel : paidModel;
+function selectModel(planType: string): string {
+  if (planType === 'supreme') return MODEL_OPUS;
+  if (planType === 'member') return MODEL_SONNET;
+  return MODEL_HAIKU;
 }
 
 async function saveMessage(
@@ -387,7 +390,7 @@ router.post('/face-reading', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const usage = await checkAndIncrementUsage(userId, planType, 'face-reading');
+    const usage = await checkUsageAllowed(userId, planType, 'face-reading');
     if (!usage.allowed) {
       res.status(429).json({
         error: 'Daily usage limit reached for face reading',
@@ -396,6 +399,8 @@ router.post('/face-reading', async (req: Request, res: Response): Promise<void> 
       });
       return;
     }
+
+    const model = selectModel(planType);
 
     const userPrompt = `請分析這張面部照片。
 
@@ -406,7 +411,7 @@ router.post('/face-reading', async (req: Request, res: Response): Promise<void> 
 請提供完整的面相分析結果，以 JSON 格式回覆。`;
 
     const rawResponse = await callClaudeVision(
-      MODEL_SONNET,
+      model,
       FACE_READING_SYSTEM,
       userPrompt,
       imageBase64
@@ -414,10 +419,13 @@ router.post('/face-reading', async (req: Request, res: Response): Promise<void> 
 
     const parsed = parseClaudeJson(rawResponse);
 
+    // Increment usage only after successful AI call
+    await incrementUsage(userId, 'face-reading');
     await saveMessage(userId, 'user', '[Face Reading Request]', 'face-reading', { bazi, date });
     await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'face-reading');
 
-    res.json({ data: parsed, remaining: usage.remaining });
+    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
+    res.json({ data: parsed, remaining });
   } catch (err) {
     console.error('Face reading error:', err);
     const message = err instanceof Error ? err.message : 'Face reading failed';
@@ -444,7 +452,7 @@ router.post('/feng-shui', async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const usage = await checkAndIncrementUsage(userId, planType, 'feng-shui');
+    const usage = await checkUsageAllowed(userId, planType, 'feng-shui');
     if (!usage.allowed) {
       res.status(429).json({
         error: 'Daily usage limit reached for feng shui',
@@ -454,7 +462,7 @@ router.post('/feng-shui', async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const model = selectModel(planType, MODEL_HAIKU, MODEL_SONNET);
+    const model = selectModel(planType);
 
     const userPrompt = `請分析以下位置的風水：
 
@@ -469,10 +477,12 @@ GPS 座標：${latitude}, ${longitude}
     const rawResponse = await callClaude(model, FENGSHUI_SYSTEM, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
 
+    await incrementUsage(userId, 'feng-shui');
     await saveMessage(userId, 'user', userPrompt, 'feng-shui');
     await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'feng-shui');
 
-    res.json({ data: parsed, remaining: usage.remaining });
+    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
+    res.json({ data: parsed, remaining });
   } catch (err) {
     console.error('Feng shui error:', err);
     const message = err instanceof Error ? err.message : 'Feng shui analysis failed';
@@ -495,7 +505,7 @@ router.post('/fortune', async (req: Request, res: Response): Promise<void> => {
       unified?: boolean;
     };
 
-    const usage = await checkAndIncrementUsage(userId, planType, 'fortune');
+    const usage = await checkUsageAllowed(userId, planType, 'fortune');
     if (!usage.allowed) {
       res.status(429).json({
         error: 'Daily usage limit reached for fortune',
@@ -505,7 +515,7 @@ router.post('/fortune', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const model = selectModel(planType, MODEL_HAIKU, MODEL_SONNET);
+    const model = selectModel(planType);
     const systemPrompt = unified ? UNIFIED_FORTUNE_SYSTEM : DAILY_FORTUNE_SYSTEM;
 
     const userPrompt = unified
@@ -530,10 +540,12 @@ router.post('/fortune', async (req: Request, res: Response): Promise<void> => {
     const rawResponse = await callClaude(model, systemPrompt, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
 
+    await incrementUsage(userId, 'fortune');
     await saveMessage(userId, 'user', '[Fortune Request]', 'fortune', { date, unified });
     await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'fortune');
 
-    res.json({ data: parsed, remaining: usage.remaining });
+    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
+    res.json({ data: parsed, remaining });
   } catch (err) {
     console.error('Fortune error:', err);
     const message = err instanceof Error ? err.message : 'Fortune analysis failed';
@@ -553,7 +565,7 @@ router.post('/outfit', async (req: Request, res: Response): Promise<void> => {
       faceAnalysis?: string;
     };
 
-    const usage = await checkAndIncrementUsage(userId, planType, 'outfit');
+    const usage = await checkUsageAllowed(userId, planType, 'outfit');
     if (!usage.allowed) {
       res.status(429).json({
         error: 'Daily usage limit reached for outfit advice',
@@ -562,6 +574,8 @@ router.post('/outfit', async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
+
+    const model = selectModel(planType);
 
     const userPrompt = `請提供今日穿搭建議。
 
@@ -572,13 +586,15 @@ router.post('/outfit', async (req: Request, res: Response): Promise<void> => {
 
 請以 JSON 格式回覆穿搭建議。`;
 
-    const rawResponse = await callClaude(MODEL_HAIKU, OUTFIT_SYSTEM, userPrompt);
+    const rawResponse = await callClaude(model, OUTFIT_SYSTEM, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
 
+    await incrementUsage(userId, 'outfit');
     await saveMessage(userId, 'user', '[Outfit Request]', 'outfit');
     await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'outfit');
 
-    res.json({ data: parsed, remaining: usage.remaining });
+    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
+    res.json({ data: parsed, remaining });
   } catch (err) {
     console.error('Outfit error:', err);
     const message = err instanceof Error ? err.message : 'Outfit advice failed';
@@ -627,7 +643,7 @@ router.post('/divination', async (req: Request, res: Response): Promise<void> =>
       astrology?: string;
     };
 
-    const usage = await checkAndIncrementUsage(userId, planType, 'divination');
+    const usage = await checkUsageAllowed(userId, planType, 'divination');
     if (!usage.allowed) {
       res.status(429).json({
         error: 'Daily usage limit reached for divination',
@@ -637,7 +653,7 @@ router.post('/divination', async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const model = selectModel(planType, MODEL_HAIKU, MODEL_SONNET);
+    const model = selectModel(planType);
     let systemPrompt: string;
     let userPrompt: string;
 
@@ -680,13 +696,15 @@ ${poem || '未提供'}
     const rawResponse = await callClaude(model, systemPrompt, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
 
+    await incrementUsage(userId, 'divination');
     await saveMessage(userId, 'user', `[Divination: ${type}]`, 'divination', {
       type,
       question,
     });
     await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'divination');
 
-    res.json({ data: parsed, remaining: usage.remaining });
+    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
+    res.json({ data: parsed, remaining });
   } catch (err) {
     console.error('Divination error:', err);
     const message = err instanceof Error ? err.message : 'Divination failed';
@@ -713,7 +731,7 @@ router.post('/pet-message', async (req: Request, res: Response): Promise<void> =
         messageType?: string;
       };
 
-    const usage = await checkAndIncrementUsage(userId, planType, 'pet-message');
+    const usage = await checkUsageAllowed(userId, planType, 'pet-message');
     if (!usage.allowed) {
       res.status(429).json({
         error: 'Daily usage limit reached for pet messages',
@@ -722,6 +740,8 @@ router.post('/pet-message', async (req: Request, res: Response): Promise<void> =
       });
       return;
     }
+
+    const model = selectModel(planType);
 
     const userPrompt = `靈寵資訊：
 - 名字：${petName || '小靈'}
@@ -740,12 +760,14 @@ router.post('/pet-message', async (req: Request, res: Response): Promise<void> =
 
 請以 JSON 格式回覆靈寵訊息。`;
 
-    const rawResponse = await callClaude(MODEL_HAIKU, PET_MESSAGE_SYSTEM, userPrompt);
+    const rawResponse = await callClaude(model, PET_MESSAGE_SYSTEM, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
 
+    await incrementUsage(userId, 'pet-message');
     await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'pet-message');
 
-    res.json({ data: parsed, remaining: usage.remaining });
+    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
+    res.json({ data: parsed, remaining });
   } catch (err) {
     console.error('Pet message error:', err);
     const message = err instanceof Error ? err.message : 'Pet message generation failed';
