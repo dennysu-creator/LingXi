@@ -70,7 +70,15 @@ export function generateToken(payload: JwtPayload): string {
 }
 
 function getRefreshSecret(): string {
-  return process.env.JWT_REFRESH_SECRET || getJwtSecret() + '_refresh';
+  const secret = process.env.JWT_REFRESH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_REFRESH_SECRET environment variable is required in production');
+    }
+    // Dev fallback only — never use in production
+    return getJwtSecret() + '_refresh_dev';
+  }
+  return secret;
 }
 
 export function generateRefreshToken(payload: JwtPayload): string {

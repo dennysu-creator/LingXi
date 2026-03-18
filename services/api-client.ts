@@ -140,6 +140,12 @@ export async function apiRequest<T = any>(
       throw new ApiError('登入已過期，請重新登入', 401, 'TOKEN_EXPIRED');
     }
 
+    // 5xx server error — retry (handles Cloud Run cold starts)
+    if (res.status >= 500 && retries > 0) {
+      await new Promise(r => setTimeout(r, 1000));
+      return apiRequest<T>(path, { ...options, retries: retries - 1 });
+    }
+
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new ApiError(errData.error || errData.message || '請求失敗', res.status, errData.code);

@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, Image, TextInput, TouchableOpacity,
+  View, Text, Image, TextInput,
   ScrollView, StyleSheet, Vibration, Pressable, Modal, Platform,
   Animated, Easing,
 } from 'react-native';
@@ -197,20 +197,19 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
             maxLength={100}
           />
 
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.startButton,
               !selectedCategory && styles.startButtonDisabled,
             ]}
             onPress={startDivination}
             disabled={!selectedCategory}
-            activeOpacity={0.7}
           >
             <View style={styles.startIconWrapper}>
               <Image source={FEATURE_PANEL.pearl.btnDivinate} style={styles.startIcon} resizeMode="contain" />
             </View>
             <Text style={styles.startText}>{t('pearl.startSoul')}</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
 
@@ -334,12 +333,12 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
             ) : null}
 
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.shareButton}>
+              <Pressable style={styles.shareButton}>
                 <Text style={styles.shareText}>{t('pearl.share')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.redrawButton} onPress={reset}>
+              </Pressable>
+              <Pressable style={styles.redrawButton} onPress={reset}>
                 <Text style={styles.redrawText}>{t('pearl.drawAgain')}</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         );

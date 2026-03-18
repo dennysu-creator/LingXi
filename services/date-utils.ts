@@ -1,3 +1,12 @@
+/**
+ * Day-of-year (1-366) for seeded-random fortune calculations.
+ * Shared by unified-fortune-engine and qimen-engine.
+ */
+export function getDayOfYear(date: Date): number {
+  const start = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date.getTime() - start.getTime()) / 86400000);
+}
+
 export function getLocalDateKey(dateLike: Date | string): string {
   const date = typeof dateLike === 'string' ? new Date(dateLike) : dateLike;
   if (Number.isNaN(date.getTime())) return '';

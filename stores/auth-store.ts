@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, ApiError, setTokens, clearTokens, getToken } from '@/services/api-client';
-import type { PlanType } from '@/stores/user-store';
+import type { PlanType } from '@/types/shared';
 import { useUserStore } from '@/stores/user-store';
 import { usePetStore } from '@/stores/pet-store';
 import { useChatStore } from '@/stores/chat-store';
@@ -124,8 +124,8 @@ export const useAuthStore = create<AuthState>()(
       });
 
       return { isNewUser: data.isNewUser };
-    } catch (err: any) {
-      const message = err?.message || '登入失敗';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '登入失敗';
       set({ isLoading: false, error: message });
       throw err;
     }
@@ -155,8 +155,8 @@ export const useAuthStore = create<AuthState>()(
       });
 
       return { isNewUser: true };
-    } catch (err: any) {
-      const message = err?.message || '註冊失敗';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '註冊失敗';
       set({ isLoading: false, error: message });
       throw err;
     }
@@ -194,8 +194,8 @@ export const useAuthStore = create<AuthState>()(
       });
 
       return { isNewUser: data.isNewUser };
-    } catch (err: any) {
-      let message = err?.message || 'Apple 登入失敗';
+    } catch (err: unknown) {
+      let message = err instanceof Error ? err.message : 'Apple 登入失敗';
       // Expo Go 的 Bundle ID 與正式版不同，Apple Sign-In 會失敗
       if (message.includes('audience') || message.includes('jwt')) {
         message = 'Apple 登入在 Expo Go 中不可用，請使用 Email 登入，或使用開發版本測試';

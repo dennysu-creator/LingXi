@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════
 
 import { useState } from 'react';
-import { View, Text, Modal, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, Pressable, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Fonts } from '@/config/theme';
 import { purchasePlan, SUBSCRIPTION_PLANS } from '@/services/subscription-service';
@@ -30,8 +30,9 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
         useAuthStore.getState().updatePlan(result);
         onClose();
       }
-    } catch {
-      // silently fail — RevenueCat shows its own error UI
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '購買失敗';
+      Alert.alert(t('upgrade.purchaseFailed', { defaultValue: '購買失敗' }), msg);
     } finally {
       setIsPurchasing(false);
     }

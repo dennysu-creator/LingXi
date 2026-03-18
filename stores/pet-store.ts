@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSpiritPetByDate, type SpiritPet } from '@/config/constants';
+import type { PlanType } from '@/types/shared';
 
 // ─── 等級解鎖功能 ───
 export const LEVEL_UNLOCKS = {
@@ -34,7 +35,6 @@ export function getNextUnlock(level: number): { level: number; feature: string; 
 }
 
 // ─── 等級上限（依方案） ───
-type PlanType = 'free' | 'member' | 'supreme';
 
 // __DEV__ 模式下全部解鎖無限制
 const LEVEL_CAPS: Record<PlanType, number> = __DEV__
@@ -126,7 +126,7 @@ function tryLevelUp(
   while (exp >= expToNext && level < levelCap) {
     level += 1;
     exp -= expToNext;
-    expToNext = Math.floor(expToNext * 1.3);
+    expToNext = Math.floor(100 * Math.pow(1.15, level - 1));
     if (level % 10 === 0) {
       evolution = Math.min(evolution + 1, evoCap);
     }

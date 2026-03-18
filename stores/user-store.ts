@@ -8,10 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculateBazi, type BaziResult } from '@/services/bazi-engine';
 import { calculateZiweiChart, type ZiweiChart } from '@/services/ziwei-engine';
 import { calculateAstrology, type AstrologyResult } from '@/services/astrology-engine';
+import type { CalendarType, FeatureType, PlanType } from '@/types/shared';
 
-export type CalendarType = 'solar' | 'lunar';
-export type FeatureType = 'heart' | 'eye' | 'soul';
-export type PlanType = 'free' | 'member' | 'supreme';
+// Re-export for backward compatibility
+export type { CalendarType, FeatureType, PlanType } from '@/types/shared';
 
 interface DestinyData {
   onboarded?: boolean;

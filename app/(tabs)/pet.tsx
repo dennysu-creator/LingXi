@@ -12,7 +12,7 @@ import { Colors } from '@/config/theme';
 import { LOGO, EFFECTS } from '@/assets/images';
 import { usePetStore } from '@/stores/pet-store';
 import { useUserStore } from '@/stores/user-store';
-import { useChatStore } from '@/stores/chat-store';
+import { useChatStore, type FortuneData } from '@/stores/chat-store';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
 import { calculateUnifiedFortune, type UnifiedFortuneResult } from '@/services/unified-fortune-engine';
 import { getCurrentShichen } from '@/services/bazi-engine';
@@ -81,7 +81,7 @@ export default function PetScreen() {
     const today = getLocalDateKey(new Date());
     const slot = getTimeSlot();
     const alreadyGenerated = messages.some(
-      m => m.type === 'fortune' && getLocalDateKey(m.time) === today && m.data?.slot === slot
+      m => m.type === 'fortune' && getLocalDateKey(m.time) === today && (m.data as FortuneData | undefined)?.slot === slot
     );
 
     if (alreadyGenerated) {

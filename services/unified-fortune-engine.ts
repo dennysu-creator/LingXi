@@ -9,6 +9,7 @@ import type { BaziResult } from './bazi-engine';
 import type { ZiweiChart } from './ziwei-engine';
 import type { QimenChart } from './qimen-engine';
 import type { AstrologyResult } from './astrology-engine';
+import { getDayOfYear } from './date-utils';
 
 // ─── 型別定義 ───
 
@@ -310,11 +311,6 @@ export function getUnifiedFortuneDescription(result: UnifiedFortuneResult): stri
 }
 
 // ─── 工具函式 ───
-
-function getDayOfYear(date: Date): number {
-  const start = new Date(date.getFullYear(), 0, 0);
-  return Math.floor((date.getTime() - start.getTime()) / 86400000);
-}
 
 function seededRandom(seed: number, min: number, max: number): number {
   const s = ((seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;

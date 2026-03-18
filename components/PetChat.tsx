@@ -2,7 +2,7 @@
 // 靈寵對話列表 — 可捲動的聊天歷史
 // ═══════════════════════════════════════
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { Colors, Fonts } from '@/config/theme';
 import { useChatStore, type ChatMessage } from '@/stores/chat-store';
@@ -47,7 +47,7 @@ export default function PetChat({ petEmoji, petName, isLoading }: PetChatProps) 
   const messages = useChatStore((s) => s.messages);
   const flatListRef = useRef<FlatList>(null);
 
-  const listItems = buildListItems(messages);
+  const listItems = useMemo(() => buildListItems(messages), [messages]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

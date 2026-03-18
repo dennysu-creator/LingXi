@@ -73,7 +73,7 @@ function calculateLevelUp(
 
     expToNext = Math.floor(100 * Math.pow(1.15, level - 1));
 
-    if (level % 10 === 0 && evolution < 4) {
+    if (level % 10 === 0 && evolution < 5) {
       evolution += 1;
     }
   }
@@ -100,11 +100,24 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// ─── POST /pet/feed ───
-router.post('/feed', async (req: Request, res: Response): Promise<void> => {
+// ─── Nurture action config & shared handler ───
+interface NurtureConfig {
+  action: string;
+  expGain: number;
+  stat: 'power' | 'affinity' | 'wisdom';
+  statBoost: number;
+  mood: string;
+}
+
+const NURTURE_ACTIONS: Record<string, NurtureConfig> = {
+  feed:     { action: 'feed',     expGain: 50, stat: 'power',    statBoost: 5, mood: 'happy'   },
+  play:     { action: 'play',     expGain: 30, stat: 'affinity', statBoost: 5, mood: 'excited' },
+  meditate: { action: 'meditate', expGain: 20, stat: 'wisdom',   statBoost: 5, mood: 'calm'    },
+};
+
+async function handleNurture(config: NurtureConfig, req: Request, res: Response): Promise<void> {
   try {
     const userId = req.user!.userId;
-    const EXP_GAIN = 50;
 
     const petResult = await query('SELECT * FROM pets WHERE user_id = $1', [userId]);
     if (petResult.rows.length === 0) {
@@ -118,115 +131,44 @@ router.post('/feed', async (req: Request, res: Response): Promise<void> => {
       pet.exp,
       pet.exp_to_next,
       pet.evolution,
-      EXP_GAIN
+      config.expGain
     );
 
-    const newPower = Math.min(100, pet.power + 5);
+    const newStatValue = Math.min(100, pet[config.stat] + config.statBoost);
 
     const updateResult = await query(
       `UPDATE pets SET level = $1, exp = $2, exp_to_next = $3, evolution = $4,
-       power = $5, mood = 'happy', updated_at = NOW()
-       WHERE user_id = $6
+       ${config.stat} = $5, mood = $6, updated_at = NOW()
+       WHERE user_id = $7
        RETURNING *`,
-      [level, exp, expToNext, evolution, newPower, userId]
+      [level, exp, expToNext, evolution, newStatValue, config.mood, userId]
     );
 
     res.json({
       ...formatPetResponse(updateResult.rows[0] as PetRow),
-      expGained: EXP_GAIN,
+      expGained: config.expGain,
       leveledUp,
-      action: 'feed',
+      action: config.action,
     });
   } catch (err) {
-    console.error('Feed pet error:', err);
-    res.status(500).json({ error: 'Failed to feed pet' });
+    console.error(`${config.action} pet error:`, err);
+    res.status(500).json({ error: `Failed to ${config.action} pet` });
   }
+}
+
+// ─── POST /pet/feed ───
+router.post('/feed', async (req: Request, res: Response): Promise<void> => {
+  await handleNurture(NURTURE_ACTIONS['feed']!, req, res);
 });
 
 // ─── POST /pet/play ───
 router.post('/play', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const EXP_GAIN = 30;
-
-    const petResult = await query('SELECT * FROM pets WHERE user_id = $1', [userId]);
-    if (petResult.rows.length === 0) {
-      res.status(404).json({ error: 'Pet not found' });
-      return;
-    }
-
-    const pet = petResult.rows[0] as PetRow;
-    const { level, exp, expToNext, evolution, leveledUp } = calculateLevelUp(
-      pet.level,
-      pet.exp,
-      pet.exp_to_next,
-      pet.evolution,
-      EXP_GAIN
-    );
-
-    const newAffinity = Math.min(100, pet.affinity + 5);
-
-    const updateResult = await query(
-      `UPDATE pets SET level = $1, exp = $2, exp_to_next = $3, evolution = $4,
-       affinity = $5, mood = 'excited', updated_at = NOW()
-       WHERE user_id = $6
-       RETURNING *`,
-      [level, exp, expToNext, evolution, newAffinity, userId]
-    );
-
-    res.json({
-      ...formatPetResponse(updateResult.rows[0] as PetRow),
-      expGained: EXP_GAIN,
-      leveledUp,
-      action: 'play',
-    });
-  } catch (err) {
-    console.error('Play with pet error:', err);
-    res.status(500).json({ error: 'Failed to play with pet' });
-  }
+  await handleNurture(NURTURE_ACTIONS['play']!, req, res);
 });
 
 // ─── POST /pet/meditate ───
 router.post('/meditate', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const EXP_GAIN = 20;
-
-    const petResult = await query('SELECT * FROM pets WHERE user_id = $1', [userId]);
-    if (petResult.rows.length === 0) {
-      res.status(404).json({ error: 'Pet not found' });
-      return;
-    }
-
-    const pet = petResult.rows[0] as PetRow;
-    const { level, exp, expToNext, evolution, leveledUp } = calculateLevelUp(
-      pet.level,
-      pet.exp,
-      pet.exp_to_next,
-      pet.evolution,
-      EXP_GAIN
-    );
-
-    const newWisdom = Math.min(100, pet.wisdom + 5);
-
-    const updateResult = await query(
-      `UPDATE pets SET level = $1, exp = $2, exp_to_next = $3, evolution = $4,
-       wisdom = $5, mood = 'calm', updated_at = NOW()
-       WHERE user_id = $6
-       RETURNING *`,
-      [level, exp, expToNext, evolution, newWisdom, userId]
-    );
-
-    res.json({
-      ...formatPetResponse(updateResult.rows[0] as PetRow),
-      expGained: EXP_GAIN,
-      leveledUp,
-      action: 'meditate',
-    });
-  } catch (err) {
-    console.error('Meditate with pet error:', err);
-    res.status(500).json({ error: 'Failed to meditate with pet' });
-  }
+  await handleNurture(NURTURE_ACTIONS['meditate']!, req, res);
 });
 
 export default router;

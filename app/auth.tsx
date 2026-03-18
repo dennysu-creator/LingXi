@@ -89,9 +89,9 @@ export default function AuthScreen() {
 
       const result = await loginWithApple(credential.identityToken);
       navigateAfterAuth(result.isNewUser);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // 用戶取消 Apple Sign-In 不視為錯誤
-      if (err?.code === 'ERR_REQUEST_CANCELED') return;
+      if (err instanceof Error && 'code' in err && (err as Error & { code: string }).code === 'ERR_REQUEST_CANCELED') return;
       // 其他錯誤已由 store 處理
     }
   }, [loginWithApple, clearError, navigateAfterAuth]);

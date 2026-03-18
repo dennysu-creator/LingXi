@@ -5,6 +5,7 @@
 
 import { EIGHT_GATES, NINE_STARS, NINE_PALACES } from '@/config/constants';
 import { getCurrentShichen } from './bazi-engine';
+import { getDayOfYear } from './date-utils';
 
 export interface QimenPalace {
   position: number;
@@ -110,12 +111,6 @@ export function getQimenDescription(chart: QimenChart): string {
 }
 
 // ─── 工具函式 ───
-
-function getDayOfYear(date: Date): number {
-  const start = new Date(date.getFullYear(), 0, 0);
-  const diff = date.getTime() - start.getTime();
-  return Math.floor(diff / 86400000);
-}
 
 function getShichenIndex(hour: number): number {
   if (hour === 23 || hour === 0) return 0;

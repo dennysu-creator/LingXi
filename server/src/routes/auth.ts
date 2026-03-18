@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import appleSignin from 'apple-signin-auth';
 import { query } from '../config/database';
 import {
+  authenticate,
   generateToken,
   generateRefreshToken,
   verifyRefreshToken,
@@ -250,6 +251,14 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
     console.error('Token refresh error:', err);
     res.status(401).json({ error: 'Invalid or expired refresh token' });
   }
+});
+
+// ─── POST /auth/logout ───
+// TODO: A proper implementation would add the refresh token to a blacklist table
+// (e.g., `token_blacklist`) and check it in the /auth/refresh endpoint to reject
+// revoked tokens. For now, the client simply discards its stored tokens.
+router.post('/logout', authenticate, async (_req: Request, res: Response): Promise<void> => {
+  res.json({ message: 'Logged out' });
 });
 
 export default router;

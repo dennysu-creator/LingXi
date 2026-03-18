@@ -5,7 +5,7 @@
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Fonts, Spacing } from '@/config/theme';
-import type { ChatMessage } from '@/stores/chat-store';
+import type { ChatMessage, FortuneData, FaceData, FengshuiData, DivinationData, PetActionData, LevelUpData, EvolveData } from '@/stores/chat-store';
 import { getPetImage, CHAT_BUBBLE } from '@/assets/images';
 import { usePetStore } from '@/stores/pet-store';
 
@@ -25,10 +25,10 @@ function ScoreBar({ label, value, maxValue = 100 }: { label: string; value: numb
 }
 
 // ─── 3x3 Compass grid ───
-function CompassGrid({ data }: { data: any }) {
+function CompassGrid({ data }: { data: FengshuiData }) {
   if (!data?.palaces) return null;
   const DIR_ORDER = ['西北', '北', '東北', '西', '中', '東', '西南', '南', '東南'];
-  const palaceMap: Record<string, any> = {};
+  const palaceMap: Record<string, { direction: string; isAuspicious: boolean; gate?: string }> = {};
   for (const p of data.palaces) {
     palaceMap[p.direction] = p;
   }
@@ -51,7 +51,7 @@ function CompassGrid({ data }: { data: any }) {
 }
 
 // ─── Hexagram symbol ───
-function HexagramBlock({ data }: { data: any }) {
+function HexagramBlock({ data }: { data: DivinationData }) {
   if (!data?.hexagram) return null;
   const h = data.hexagram;
   return (
@@ -71,7 +71,7 @@ function HexagramBlock({ data }: { data: any }) {
 }
 
 // ─── EXP badge ───
-function ExpBadge({ type, data }: { type: string; data: any }) {
+function ExpBadge({ type, data }: { type: string; data?: PetActionData }) {
   const expMap: Record<string, number> = { feed: 50, play: 30, meditate: 20 };
   const exp = data?.exp || expMap[type] || 0;
   return (
@@ -82,7 +82,7 @@ function ExpBadge({ type, data }: { type: string; data: any }) {
 }
 
 // ─── Level-up / Evolve badge ───
-function CelebrationBadge({ type, data }: { type: string; data: any }) {
+function CelebrationBadge({ type, data }: { type: string; data?: LevelUpData & EvolveData }) {
   const isEvolve = type === 'evolve';
   return (
     <View style={[s.celebBadge, isEvolve && s.celebBadgeEvolve]}>
@@ -163,55 +163,67 @@ export default function PetBubble({ message, petEmoji, petName }: PetBubbleProps
         )}
 
         {/* Embedded data by type */}
-        {message.type === 'fortune' && message.data?.scores && (
-          <View style={s.dataSection}>
-            <ScoreBar label={t('home.wealth')} value={message.data.scores.wealth} />
-            <ScoreBar label={t('home.love')} value={message.data.scores.love} />
-            <ScoreBar label={t('home.career')} value={message.data.scores.career} />
-            <ScoreBar label={t('home.health')} value={message.data.scores.health} />
-            <ScoreBar label={t('home.study')} value={message.data.scores.study} />
-            {message.data.luckyDirection && (
-              <View style={s.luckyRow}>
-                <Text style={s.luckyItem}>🧭 {message.data.luckyDirection}</Text>
-                {message.data.luckyColor && <Text style={s.luckyItem}>🎨 {message.data.luckyColor}</Text>}
-                {message.data.luckyNumber && <Text style={s.luckyItem}>🔢 {message.data.luckyNumber}</Text>}
-              </View>
-            )}
-          </View>
-        )}
+        {message.type === 'fortune' && (() => {
+          const d = message.data as FortuneData | undefined;
+          return d?.scores ? (
+            <View style={s.dataSection}>
+              <ScoreBar label={t('home.wealth')} value={d.scores.wealth} />
+              <ScoreBar label={t('home.love')} value={d.scores.love} />
+              <ScoreBar label={t('home.career')} value={d.scores.career} />
+              <ScoreBar label={t('home.health')} value={d.scores.health} />
+              <ScoreBar label={t('home.study')} value={d.scores.study} />
+              {d.luckyDirection && (
+                <View style={s.luckyRow}>
+                  <Text style={s.luckyItem}>🧭 {d.luckyDirection}</Text>
+                  {d.luckyColor && <Text style={s.luckyItem}>🎨 {d.luckyColor}</Text>}
+                  {d.luckyNumber && <Text style={s.luckyItem}>🔢 {d.luckyNumber}</Text>}
+                </View>
+              )}
+            </View>
+          ) : null;
+        })()}
 
-        {message.type === 'face' && message.data?.features && (
-          <View style={s.dataSection}>
-            {Object.entries(message.data.features as Record<string, { score: number }>).map(([key, val]) => (
-              <ScoreBar key={key} label={t(`eye.${key}`)} value={val.score} />
-            ))}
-            {message.data.lucky_item && (
-              <View style={s.luckyRow}>
-                <Text style={s.luckyItem}>{message.data.lucky_item.emoji} {message.data.lucky_item.name}</Text>
-              </View>
-            )}
-          </View>
-        )}
+        {message.type === 'face' && (() => {
+          const d = message.data as FaceData | undefined;
+          return d?.features ? (
+            <View style={s.dataSection}>
+              {Object.entries(d.features).map(([key, val]) => (
+                <ScoreBar key={key} label={t(`eye.${key}`)} value={val.score} />
+              ))}
+              {d.lucky_item && (
+                <View style={s.luckyRow}>
+                  <Text style={s.luckyItem}>{d.lucky_item.emoji} {d.lucky_item.name}</Text>
+                </View>
+              )}
+            </View>
+          ) : null;
+        })()}
 
-        {message.type === 'fengshui' && message.data && (
-          <View style={s.dataSection}>
-            <CompassGrid data={message.data} />
-            {message.data.luckyDirections && (
-              <View style={s.luckyRow}>
-                <Text style={s.luckyItem}>✦ {message.data.luckyDirections.join(', ')}</Text>
-              </View>
-            )}
-          </View>
-        )}
+        {message.type === 'fengshui' && (() => {
+          const d = message.data as FengshuiData | undefined;
+          return d ? (
+            <View style={s.dataSection}>
+              <CompassGrid data={d} />
+              {d.luckyDirections && (
+                <View style={s.luckyRow}>
+                  <Text style={s.luckyItem}>✦ {d.luckyDirections.join(', ')}</Text>
+                </View>
+              )}
+            </View>
+          ) : null;
+        })()}
 
-        {message.type === 'divination' && message.data && (
-          <View style={s.dataSection}>
-            <HexagramBlock data={message.data} />
-          </View>
-        )}
+        {message.type === 'divination' && (() => {
+          const d = message.data as DivinationData | undefined;
+          return d ? (
+            <View style={s.dataSection}>
+              <HexagramBlock data={d} />
+            </View>
+          ) : null;
+        })()}
 
-        {isNurture && <ExpBadge type={message.type} data={message.data} />}
-        {isCeleb && <CelebrationBadge type={message.type} data={message.data} />}
+        {isNurture && <ExpBadge type={message.type} data={message.data as PetActionData | undefined} />}
+        {isCeleb && <CelebrationBadge type={message.type} data={message.data as (LevelUpData & EvolveData) | undefined} />}
       </View>
     </View>
   );

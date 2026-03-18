@@ -145,8 +145,8 @@ export async function purchasePlan(planId: string): Promise<PlanType | null> {
     const planType = mapEntitlementToPlanType(customerInfo);
 
     return planType;
-  } catch (err: any) {
-    if (err.userCancelled) return null;
+  } catch (err: unknown) {
+    if (typeof err === 'object' && err !== null && 'userCancelled' in err && (err as Record<string, unknown>).userCancelled) return null;
     throw err;
   }
 }
