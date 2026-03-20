@@ -5,7 +5,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lingxi-api-XXXXX.run.app';
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lingxi-api-440150253440.asia-east1.run.app';
+
 
 const TOKEN_KEY = 'lingxi_jwt_token';
 const REFRESH_KEY = 'lingxi_refresh_token';

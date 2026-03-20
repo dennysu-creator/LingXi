@@ -15,18 +15,18 @@ interface PetChatProps {
   isLoading?: boolean;
 }
 
-// Date separator — shown between messages on different days
 function DateSeparator({ dateStr }: { dateStr: string }) {
   return (
     <View style={s.dateSep}>
       <View style={s.dateLine} />
-      <Text style={s.dateText}>{dateStr}</Text>
+      <View style={s.datePill}>
+        <Text style={s.dateText}>{dateStr}</Text>
+      </View>
       <View style={s.dateLine} />
     </View>
   );
 }
 
-// Build list with date separators inserted
 type ListItem = { type: 'date'; key: string; dateStr: string } | { type: 'msg'; key: string; msg: ChatMessage };
 
 function buildListItems(messages: ChatMessage[]): ListItem[] {
@@ -49,7 +49,6 @@ export default function PetChat({ petEmoji, petName, isLoading }: PetChatProps) 
 
   const listItems = useMemo(() => buildListItems(messages), [messages]);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -82,6 +81,7 @@ export default function PetChat({ petEmoji, petName, isLoading }: PetChatProps) 
       />
       {isLoading && (
         <View style={s.loadingBox}>
+          <View style={s.loadingDot} />
           <Text style={s.loadingEmoji}>{petEmoji}</Text>
           <ActivityIndicator size="small" color={Colors.primary} />
           <Text style={s.loadingText}>...</Text>
@@ -93,19 +93,60 @@ export default function PetChat({ petEmoji, petName, isLoading }: PetChatProps) 
 
 const s = StyleSheet.create({
   container: { flex: 1 },
-  listContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
 
+  // ─── Date separator ───
   dateSep: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 14,
   },
-  dateLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
-  dateText: { fontSize: 10, color: Colors.textDarkest, letterSpacing: 1 },
+  dateLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(232,197,71,0.08)',
+  },
+  datePill: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: 'rgba(232,197,71,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.08)',
+  },
+  dateText: {
+    fontSize: 13,
+    color: Colors.textDark,
+    letterSpacing: 1,
+    fontFamily: Fonts.serif,
+  },
 
+  // ─── Loading ───
   loadingBox: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 20, paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(232,197,71,0.05)',
   },
-  loadingEmoji: { fontSize: 16 },
-  loadingText: { fontSize: 14, color: Colors.textDark, fontFamily: Fonts.serif },
+  loadingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    opacity: 0.4,
+  },
+  loadingEmoji: { fontSize: 20 },
+  loadingText: {
+    fontSize: 14,
+    color: Colors.textDark,
+    fontFamily: Fonts.serif,
+  },
 });

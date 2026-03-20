@@ -3,19 +3,28 @@
 // ═══════════════════════════════════════
 
 import { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, Animated, Easing } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { Colors, Fonts, Spacing } from '@/config/theme';
+import { View, Text, Image, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { Colors, Fonts, scale } from '@/config/theme';
+
+const { width: SCREEN_W } = Dimensions.get('window');
 import { usePetStore } from '@/stores/pet-store';
 import { getPetImage, PET_FRAME, FEATURE_FRAME, FEATURE_AURA } from '@/assets/images';
 
 export type ActiveFeature = 'eye' | 'heart' | 'pearl' | null;
 
-// Feature accent colours for fallback border / glow
 const FEATURE_COLOR: Record<string, string> = {
-  eye:   '#e8c547',
-  heart: '#64c880',
-  pearl: '#a78bfa',
+  eye:   '#FFC107',
+  heart: '#4ADE80',
+  pearl: '#A78BFA',
+};
+
+// 五行對應色
+const ELEMENT_COLORS: Record<string, string> = {
+  金: Colors.metal,
+  木: Colors.wood,
+  水: Colors.water,
+  火: Colors.fire,
+  土: Colors.earth,
 };
 
 interface PetAvatarProps {
@@ -24,72 +33,53 @@ interface PetAvatarProps {
 }
 
 export default function PetAvatar({ activeFeature, compact = false }: PetAvatarProps) {
-  const { t } = useTranslation();
-
   const emoji = usePetStore(s => s.emoji) || '🐉';
   const petId = usePetStore(s => s.petId) || '';
   const name = usePetStore(s => s.name) || '靈寵';
   const level = usePetStore(s => s.level);
-  const exp = usePetStore(s => s.exp);
-  const expToNext = usePetStore(s => s.expToNext);
-  const evolution = usePetStore(s => s.evolution);
   const element = usePetStore(s => s.element) || '';
 
   const avatarImage = getPetImage(petId, 'avatar');
+  const elementColor = ELEMENT_COLORS[element] || Colors.primary;
 
-  const expPct = expToNext > 0 ? Math.round((exp / expToNext) * 100) : 0;
-
-  // ─── Floating animation (translateY) ───
+  // ─── Floating animation ───
   const floatAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: -6,
-          duration: 1500,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: 1500,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
+        Animated.timing(floatAnim, { toValue: -6, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
     animation.start();
     return () => animation.stop();
   }, [floatAnim]);
 
-  // ─── Pulse animation — active feature border pulsing ───
+  // ─── Pulse animation ───
   const pulseAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    if (!activeFeature) {
-      pulseAnim.setValue(1);
-      return;
-    }
+    if (!activeFeature) { pulseAnim.setValue(1); return; }
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.04, duration: 800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.05, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
     animation.start();
     return () => animation.stop();
   }, [activeFeature, pulseAnim]);
 
-  const accentColor = activeFeature ? FEATURE_COLOR[activeFeature] : null;
-
-  // Determine which frame image to use
   const frameSource = activeFeature ? FEATURE_FRAME[activeFeature] : PET_FRAME.normal;
 
-  // ─── Compact mode: smaller sizes when feature panel is active ───
-  const assemblySize = compact ? ASSEMBLY_SIZE_COMPACT : ASSEMBLY_SIZE;
-  const avatarFrameSize = compact ? AVATAR_FRAME_COMPACT : AVATAR_FRAME;
-  const avatarImgSize = compact ? AVATAR_SIZE_COMPACT : AVATAR_SIZE;
-  // Frame must stay WITHIN assembly bounds to avoid overflow
-  const frameSize = compact ? (activeFeature ? 96 : 88) : (activeFeature ? 192 : 176);
+  // ─── Sizes ───
+  // Normal mode: pet fills ~85% of screen width
+  const fullSize = SCREEN_W * 0.85;
+  const assemblySize = compact ? scale(130) : fullSize;
+  const avatarImgSize = compact ? scale(80) : fullSize * 0.67;
+  const avatarFrameSize = compact ? scale(90) : fullSize * 0.75;
+  const frameSize = compact
+    ? (activeFeature ? scale(126) : scale(110))
+    : (activeFeature ? fullSize * 0.95 : fullSize * 0.88);
 
   return (
     <View style={[s.container, compact && s.containerCompact]}>
@@ -101,195 +91,187 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
           { transform: [{ translateY: floatAnim }, { scale: pulseAnim }] },
         ]}
       >
-        {/* Layer 0 — Feature aura glow behind everything */}
+        {/* Layer 0 — Feature aura glow */}
         {activeFeature && (
           <Image
             source={FEATURE_AURA[activeFeature]}
-            style={[s.auraImage, { width: assemblySize, height: assemblySize, top: 0, left: 0 }]}
+            style={[s.auraImage, { width: assemblySize, height: assemblySize }]}
             resizeMode="contain"
           />
         )}
 
-        {/* Layer 1 — Pet avatar image (or emoji fallback) */}
-        <View style={[s.avatarClip, { width: avatarFrameSize, height: avatarFrameSize, borderRadius: avatarFrameSize / 2 }]}>
+        {/* Layer 1 — Avatar image or emoji */}
+        <View
+          style={[
+            s.avatarClip,
+            {
+              width: avatarFrameSize,
+              height: avatarFrameSize,
+              borderRadius: avatarFrameSize / 2,
+            },
+            activeFeature && {
+              borderColor: `${FEATURE_COLOR[activeFeature]}40`,
+              shadowColor: FEATURE_COLOR[activeFeature],
+              shadowOpacity: 0.4,
+              shadowRadius: 12,
+            },
+          ]}
+        >
           {avatarImage ? (
-            <Image source={avatarImage} style={{ width: avatarImgSize, height: avatarImgSize, borderRadius: avatarImgSize / 2 }} resizeMode="cover" />
+            <Image
+              source={avatarImage}
+              style={{ width: avatarImgSize, height: avatarImgSize, borderRadius: avatarImgSize / 2 }}
+              resizeMode="cover"
+            />
           ) : (
             <View style={[s.emojiFallback, { width: avatarImgSize, height: avatarImgSize, borderRadius: avatarImgSize / 2 }]}>
-              <Text style={[s.emojiText, compact && { fontSize: 28 }]}>{emoji}</Text>
+              <Text style={[s.emojiText, compact && { fontSize: 24 }]}>{emoji}</Text>
             </View>
           )}
         </View>
 
-        {/* Layer 2 — Frame overlay on top of avatar */}
+        {/* Layer 2 — Frame overlay */}
         <Image
           source={frameSource}
           style={[
             s.frameImage,
             { width: frameSize, height: frameSize },
-            // centre the frame over the avatar
-            {
-              position: 'absolute',
-              top: (assemblySize - frameSize) / 2,
-              left: (assemblySize - frameSize) / 2,
-            },
+            { position: 'absolute', top: (assemblySize - frameSize) / 2, left: (assemblySize - frameSize) / 2 },
           ]}
           resizeMode="contain"
         />
 
-        {/* Layer 3 — Eye symbol floating above avatar (only when eye active) */}
+        {/* Layer 3 — Eye symbol */}
         {activeFeature === 'eye' && (
           <Image
             source={PET_FRAME.eyeSymbol}
-            style={[s.eyeSymbol, compact && { width: 16, height: 16, top: 2 }]}
+            style={[s.eyeSymbol, compact && { width: 24, height: 24, top: 2 }]}
             resizeMode="contain"
           />
         )}
       </Animated.View>
 
-      {/* Float shadow below avatar — hidden in compact mode */}
+      {/* Float shadow */}
       {!compact && (
-        <Image
-          source={PET_FRAME.floatShadow}
-          style={s.floatShadow}
-          resizeMode="contain"
-        />
+        <Image source={PET_FRAME.floatShadow} style={s.floatShadow} resizeMode="contain" />
       )}
 
-      {/* Info row — always visible */}
+      {/* ─── Info row ─── */}
       <View style={s.infoRow}>
-        <Text style={[s.name, compact && { fontSize: 12 }]}>{name}</Text>
-        <Text style={[s.levelText, compact && { fontSize: 10 }]}>{t('pet.level')}{level}</Text>
-        {element !== '' && <Text style={s.elementBadge}>· {element}系</Text>}
+        <Text style={[s.name, compact && { fontSize: 13 }]}>{name}</Text>
+        <View style={s.levelPill}>
+          <Text style={[s.levelText, compact && { fontSize: 9 }]}>Lv.{level}</Text>
+        </View>
+        {element !== '' && (
+          <View style={[s.elementBadge, { backgroundColor: `${elementColor}15`, borderColor: `${elementColor}30` }]}>
+            <Text style={[s.elementText, { color: elementColor }]}>{element}系</Text>
+          </View>
+        )}
       </View>
 
-      {/* EXP bar + stars — hide when compact or feature active to save vertical space */}
-      {!compact && !activeFeature && (
-        <>
-          <View style={s.expBar}>
-            <View style={s.expTrack}>
-              <View style={[s.expFill, { width: `${expPct}%` }]} />
-            </View>
-            <Text style={s.expText}>{exp}/{expToNext}</Text>
-          </View>
-          <View style={s.starsRow}>
-            {[1, 2, 3, 4, 5].map(i => (
-              <Text key={i} style={[s.star, i > evolution && { opacity: 0.15 }]}>★</Text>
-            ))}
-          </View>
-          <Text style={s.evoLabel}>{t('pet.evoStage', { defaultValue: '進化階段' })} {evolution}/5</Text>
-        </>
-      )}
     </View>
   );
 }
 
-// ─── Layout constants ───
-const ASSEMBLY_SIZE = 200;   // bounding box for the layered avatar area
-const AVATAR_SIZE = 120;     // pet image
-const AVATAR_FRAME = 140;    // clipping circle
-
-// Compact mode constants (when feature panel is active)
-const ASSEMBLY_SIZE_COMPACT = 100;
-const AVATAR_SIZE_COMPACT = 60;
-const AVATAR_FRAME_COMPACT = 70;
-
 const s = StyleSheet.create({
   container: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 20,
-    overflow: 'hidden',
   },
   containerCompact: {
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: 12,
   },
 
-  // The bounding box that holds all layered images (aura, avatar, frame, symbol)
-  // width/height set inline to support compact mode
   avatarAssembly: {
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
 
-  // Feature aura — large glow behind everything, centred
-  // width/height/top/left set inline to support compact mode
   auraImage: {
     position: 'absolute',
   },
 
-  // Circular clip for the pet image
-  // width/height/borderRadius set inline to support compact mode
   avatarClip: {
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(232,197,71,0.06)',
+    backgroundColor: 'rgba(232,197,71,0.08)',
+    borderWidth: 2,
+    borderColor: 'rgba(232,197,71,0.20)',
+    // Default golden glow
+    shadowColor: '#e8c547',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  avatarImage: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-  },
+
   emojiFallback: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(232,197,71,0.06)',
+    backgroundColor: 'rgba(232,197,71,0.04)',
   },
   emojiText: {
-    fontSize: 56,
+    fontSize: 100,
   },
 
-  // Frame overlay (positioned absolute, sized per frame type)
-  frameImage: {
-    // width/height/top/left set inline
-  },
+  frameImage: {},
 
-  // Eye symbol floating above avatar when eye feature active
   eyeSymbol: {
     position: 'absolute',
-    width: 28,
-    height: 28,
+    width: 40,
+    height: 40,
     top: 4,
     alignSelf: 'center',
   },
 
-  // Shadow below the floating avatar
   floatShadow: {
-    width: 100,
-    height: 20,
+    width: 180,
+    height: 24,
     marginTop: -6,
-    opacity: 0.4,
+    opacity: 0.35,
+    marginBottom: 2,
+  },
+
+  // ─── Info Row ───
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
     marginBottom: 4,
   },
-
-  infoRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginBottom: 6,
+  name: {
+    fontSize: 28,
+    color: Colors.primary,
+    fontFamily: Fonts.brush,
+    letterSpacing: 3,
   },
-  name: { fontSize: 14, color: Colors.primary, fontFamily: Fonts.serifBold },
-  levelText: { fontSize: 12, color: Colors.textSecondary },
+  levelPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(232,197,71,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.18)',
+  },
+  levelText: {
+    fontSize: 13,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
   elementBadge: {
-    fontSize: 10, color: Colors.textDark,
-    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
-    backgroundColor: 'rgba(232,197,71,0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
     overflow: 'hidden',
   },
-
-  expBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    width: '70%', marginBottom: 4,
+  elementText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
-  expTrack: {
-    flex: 1, height: 4, borderRadius: 2,
-    backgroundColor: 'rgba(232,197,71,0.1)', overflow: 'hidden',
-  },
-  expFill: { height: '100%', borderRadius: 2, backgroundColor: Colors.primary },
-  expText: { fontSize: 9, color: Colors.textDarkest, width: 50 },
 
-  starsRow: { flexDirection: 'row', gap: 2 },
-  star: { fontSize: 12, color: Colors.primary },
-  evoLabel: { fontSize: 9, color: Colors.textDarkest, marginTop: 2 },
 });

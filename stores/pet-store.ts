@@ -36,14 +36,11 @@ export function getNextUnlock(level: number): { level: number; feature: string; 
 
 // ─── 等級上限（依方案） ───
 
-// __DEV__ 模式下全部解鎖無限制
-const LEVEL_CAPS: Record<PlanType, number> = __DEV__
-  ? { free: 999, member: 999, supreme: 999 }
-  : { free: 10, member: 20, supreme: 999 };
+// TODO: 上線前恢復正式限制 → free: 10, member: 20, supreme: 999
+const LEVEL_CAPS: Record<PlanType, number> = { free: 999, member: 999, supreme: 999 };
 
-const EVOLUTION_CAPS: Record<PlanType, number> = __DEV__
-  ? { free: 5, member: 5, supreme: 5 }
-  : { free: 1, member: 2, supreme: 5 };
+// TODO: 上線前恢復正式限制 → free: 1, member: 2, supreme: 5
+const EVOLUTION_CAPS: Record<PlanType, number> = { free: 5, member: 5, supreme: 5 };
 
 interface PetState {
   // 靈寵基本資料

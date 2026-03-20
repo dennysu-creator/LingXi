@@ -3,21 +3,28 @@
 // ═══════════════════════════════════════
 
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, Platform, Linking } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, Platform, Linking } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Colors, Fonts, Spacing } from '@/config/theme';
 import { useUserStore } from '@/stores/user-store';
 import { usePetStore } from '@/stores/pet-store';
 import { useAuthStore } from '@/stores/auth-store';
+import { useChatStore } from '@/stores/chat-store';
 import { restorePurchases } from '@/services/subscription-service';
+import { getPetImage } from '@/assets/images';
 import LanguageSelector from '@/components/LanguageSelector';
+import PetChat from '@/components/PetChat';
 import UpgradeModal from '@/components/UpgradeModal';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [isRestoring, setIsRestoring] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const logout = useAuthStore(s => s.logout);
+  const hasMessages = useChatStore(s => s.messages.length > 0);
 
   const userName = useUserStore(s => s.userName);
   const birthYear = useUserStore(s => s.birthYear);
@@ -33,6 +40,7 @@ export default function ProfileScreen() {
   const petLevel = usePetStore(s => s.level);
   const solarTerm = usePetStore(s => s.solarTerm) || '';
   const element = usePetStore(s => s.element) || '';
+  const petId = usePetStore(s => s.petId) || '01-lichun';
 
   const planLabel = planType === 'supreme' ? t('profile.supreme')
     : planType === 'member' ? t('profile.member')
@@ -85,19 +93,37 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Back button */}
+      <Pressable style={styles.backBtn} onPress={() => router.navigate('/(tabs)/pet')}>
+        <Text style={styles.backBtnText}>← {t('tabs.pet', { defaultValue: '靈寵' })}</Text>
+      </Pressable>
       <Text style={styles.title}>{t('profile.title')}</Text>
 
       {/* ═══ 使用者資訊 ═══ */}
       <View style={styles.userCard}>
-        <Text style={styles.userEmoji}>{petEmoji}</Text>
+        {(() => {
+          const petImage = getPetImage(petId, 'avatar');
+          return petImage
+            ? <Image source={petImage} style={styles.userAvatar} />
+            : <Text style={styles.userEmoji}>{petEmoji}</Text>;
+        })()}
         <View style={{ flex: 1 }}>
           <Text style={styles.userName}>{userName || t('profile.guest')}</Text>
           <Text style={styles.userSub}>
             Lv.{petLevel} {petName} · {element}{t('pet.element')} · {solarTerm}
           </Text>
         </View>
-        <View style={[styles.planBadge, planType === 'supreme' && styles.planBadgeSupreme]}>
-          <Text style={[styles.planBadgeText, planType === 'supreme' && { color: '#a78bfa' }]}>
+        <View style={[
+          styles.planBadge,
+          planType === 'member' && styles.planBadgeMember,
+          planType === 'supreme' && styles.planBadgeSupreme,
+          planType === 'free' && styles.planBadgeFree,
+        ]}>
+          <Text style={[
+            styles.planBadgeText,
+            planType === 'supreme' && { color: '#a78bfa' },
+            planType === 'free' && { color: Colors.textDark },
+          ]}>
             {planLabel}
           </Text>
         </View>
@@ -142,6 +168,31 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </View>
+
+      {/* ═══ 歷史回覆 ═══ */}
+      {hasMessages && (
+        <>
+          <Text style={styles.sectionLabel}>{t('profile.chatHistory', { defaultValue: '歷史回覆' })}</Text>
+          <Pressable
+            style={styles.sectionCard}
+            onPress={() => setShowHistory(!showHistory)}
+          >
+            <View style={styles.menuItem}>
+              <Text style={styles.menuText}>
+                {showHistory
+                  ? t('profile.hideHistory', { defaultValue: '收起對話記錄' })
+                  : t('profile.showHistory', { defaultValue: '查看對話記錄' })}
+              </Text>
+              <Text style={styles.menuArrow}>{showHistory ? '▲' : '▼'}</Text>
+            </View>
+          </Pressable>
+          {showHistory && (
+            <View style={styles.chatHistoryContainer}>
+              <PetChat petEmoji={petEmoji} petName={petName} isLoading={false} />
+            </View>
+          )}
+        </>
+      )}
 
       {/* ═══ 其他 ═══ */}
       <Text style={styles.sectionLabel}>{t('profile.other')}</Text>
@@ -205,7 +256,18 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.lg, paddingTop: 62, paddingBottom: 100 },
+  content: { padding: Spacing.lg, paddingTop: 56, paddingBottom: 100 },
+  backBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    marginBottom: 8,
+  },
+  backBtnText: {
+    fontSize: 15,
+    color: Colors.primary,
+    fontFamily: Fonts.serif,
+  },
   title: { fontFamily: Fonts.brush, fontSize: 28, color: Colors.primary, marginBottom: 16 },
 
   // User card
@@ -216,17 +278,24 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(100,180,255,0.12)',
     marginBottom: 16,
   },
+  userAvatar: { width: 70, height: 70, borderRadius: 35 },
   userEmoji: { fontSize: 36 },
-  userName: { fontSize: 18, color: Colors.primary, fontFamily: Fonts.serifBold },
-  userSub: { fontSize: 11, color: Colors.textDark, marginTop: 2 },
+  userName: { fontSize: 20, color: Colors.primary, fontFamily: Fonts.brush },
+  userSub: { fontSize: 13, color: Colors.textDark, marginTop: 2 },
   planBadge: {
     paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10,
-    backgroundColor: 'rgba(232,197,71,0.12)',
+    backgroundColor: 'rgba(232,197,71,0.15)',
+  },
+  planBadgeFree: {
+    backgroundColor: 'rgba(150,150,150,0.15)',
+  },
+  planBadgeMember: {
+    backgroundColor: 'rgba(232,197,71,0.15)',
   },
   planBadgeSupreme: {
-    backgroundColor: 'rgba(160,100,255,0.12)',
+    backgroundColor: 'rgba(167,139,250,0.15)',
   },
-  planBadgeText: { fontSize: 10, color: Colors.primary, fontWeight: '700' },
+  planBadgeText: { fontSize: 13, color: Colors.primary, fontWeight: '700' },
 
   // Upgrade CTA
   upgradeCard: {
@@ -239,7 +308,7 @@ const styles = StyleSheet.create({
 
   // Section
   sectionLabel: {
-    fontSize: 12, color: Colors.textMuted, letterSpacing: 2,
+    fontSize: 13, color: Colors.textMuted, letterSpacing: 2,
     marginBottom: 10, fontFamily: Fonts.serif,
   },
   sectionCard: {
@@ -255,8 +324,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.03)',
   },
-  dataLabel: { fontSize: 12, color: Colors.textDark },
-  dataValue: { fontSize: 13, color: Colors.textSecondary, fontFamily: Fonts.serif },
+  dataLabel: { fontSize: 13, color: Colors.textDark },
+  dataValue: { fontSize: 15, color: Colors.textSecondary, fontFamily: Fonts.serif },
 
   // Menu items
   menuItem: {
@@ -264,6 +333,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.03)',
   },
-  menuText: { fontSize: 14, color: Colors.textSecondary },
+  menuText: { fontSize: 16, color: Colors.textSecondary },
   menuArrow: { fontSize: 18, color: Colors.textDarkest },
+
+  // Chat history
+  chatHistoryContainer: {
+    height: 400,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(8,8,15,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.08)',
+    marginBottom: 20,
+  },
 });

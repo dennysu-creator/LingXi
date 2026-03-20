@@ -16,24 +16,25 @@ const MODEL_OPUS = 'claude-opus-4-20250514';
 // Daily Usage Limits
 // ═══════════════════════════════════════
 
-// NOTE: 內部測試期間全部方案不設限 (-1 = unlimited)
-// 上線前需恢復原始限制: free=1, member=5
+// TODO: 上線前恢復正式限制 — free: 1/day, member: 5/day, pet-message: free=3/member=20
+// 正式值備份: free={face-reading:1, feng-shui:1, fortune:1, outfit:1, divination:1, pet-message:3}
+//            member={face-reading:5, feng-shui:5, fortune:5, outfit:5, divination:5, pet-message:20}
 export const USAGE_LIMITS: Record<string, Record<string, number>> = {
   free: {
-    'face-reading': 1,
-    'feng-shui': 1,
-    fortune: 1,
-    outfit: 1,
-    divination: 1,
-    'pet-message': 3,
+    'face-reading': -1,
+    'feng-shui': -1,
+    fortune: -1,
+    outfit: -1,
+    divination: -1,
+    'pet-message': -1,
   },
   member: {
-    'face-reading': 5,
-    'feng-shui': 5,
-    fortune: 5,
-    outfit: 5,
-    divination: 5,
-    'pet-message': 20,
+    'face-reading': -1,
+    'feng-shui': -1,
+    fortune: -1,
+    outfit: -1,
+    divination: -1,
+    'pet-message': -1,
   },
   supreme: {
     'face-reading': -1,

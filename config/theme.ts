@@ -1,44 +1,79 @@
-// 靈犀 App 主題設定
+// 靈犀 App 主題設定 — v2 全面翻新
+
+import { Dimensions } from 'react-native';
+
+// ─── 響應式尺寸 ───
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const BASE_WIDTH = 393; // iPhone 14 Pro
+export const scale = (size: number) => (SCREEN_W / BASE_WIDTH) * size;
 
 export const Colors = {
   // 主色調 — 東方神秘金
   primary: '#e8c547',
   primaryDark: '#8b6914',
   primaryLight: '#f5e6a3',
-  primaryBg: 'rgba(232,197,71,0.04)',
-  primaryBorder: 'rgba(232,197,71,0.12)',
+  primaryBg: 'rgba(232,197,71,0.08)',
+  primaryBorder: 'rgba(232,197,71,0.18)',
 
   // 背景色
   background: '#08080f',
   surface: '#0d0d15',
   surfaceLight: '#151520',
+  surfaceElevated: '#1a1a28',
 
   // 五行色系
-  metal: '#e8e0c0',   // 金
-  wood: '#80c880',     // 木
-  water: '#64b4ff',    // 水
-  fire: '#ff6b6b',     // 火
-  earth: '#c8a060',    // 土
+  metal: '#e8e0c0',
+  wood: '#80c880',
+  water: '#64b4ff',
+  fire: '#ff6b6b',
+  earth: '#c8a060',
 
   // 功能色
-  pet: '#64b4ff',      // 靈寵藍
-  fengshui: '#64c880', // 風水綠
-  outfit: '#a78bfa',   // 穿搭紫
-  love: '#ff8ba0',     // 桃花粉
-  danger: '#c44040',   // 凶/警告
+  pet: '#64b4ff',
+  fengshui: '#64c880',
+  outfit: '#a78bfa',
+  love: '#ff8ba0',
+  danger: '#c44040',
+
+  // 功能主題色
+  eyePrimary: '#FFC107',
+  heartPrimary: '#4ADE80',
+  pearlPrimary: '#A78BFA',
 
   // 文字色
   textPrimary: '#e8c547',
-  textSecondary: '#c4b07a',
-  textMuted: '#8b7d5e',
-  textDark: '#6b6350',
-  textDarkest: '#5a5040',
+  textSecondary: '#d4c08a',
+  textMuted: '#9b8d6e',
+  textDark: '#7b7360',
+  textDarkest: '#6a6050',
+  textLight: '#e8e0d0',
 } as const;
 
 export const Fonts = {
   serif: 'NotoSerifTC_400Regular',
   serifBold: 'NotoSerifTC_700Bold',
   brush: 'MaShanZheng_400Regular',
+} as const;
+
+export const FontSize = {
+  xs: scale(10),
+  sm: scale(12),
+  md: scale(14),
+  lg: scale(16),
+  xl: scale(18),
+  xxl: scale(22),
+  title: scale(28),
+  hero: scale(36),
+  display: scale(48),
+} as const;
+
+export const IconSize = {
+  xs: scale(20),
+  sm: scale(28),
+  md: scale(40),
+  lg: scale(52),
+  xl: scale(64),
+  xxl: scale(80),
 } as const;
 
 export const Spacing = {
@@ -48,6 +83,7 @@ export const Spacing = {
   lg: 20,
   xl: 30,
   xxl: 40,
+  xxxl: 60,
 } as const;
 
 export const BorderRadius = {
@@ -55,7 +91,47 @@ export const BorderRadius = {
   md: 12,
   lg: 16,
   xl: 20,
+  xxl: 28,
   round: 50,
+} as const;
+
+// 光暈陰影預設
+export const GlowShadow = {
+  gold: {
+    shadowColor: '#e8c547',
+    shadowOffset: { width: 0, height: 0 } as const,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  goldStrong: {
+    shadowColor: '#e8c547',
+    shadowOffset: { width: 0, height: 2 } as const,
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  green: {
+    shadowColor: '#4ADE80',
+    shadowOffset: { width: 0, height: 0 } as const,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  purple: {
+    shadowColor: '#A78BFA',
+    shadowOffset: { width: 0, height: 0 } as const,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+};
+
+// 功能主題配色
+export const FeatureTheme = {
+  eye: { primary: '#FFC107', bg: 'rgba(255,193,7,0.12)', border: 'rgba(255,193,7,0.28)' },
+  heart: { primary: '#4ADE80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.28)' },
+  pearl: { primary: '#A78BFA', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.28)' },
 } as const;
 
 // 共用卡片樣式
@@ -66,3 +142,5 @@ export const CardStyle = {
   borderRadius: BorderRadius.lg,
   padding: Spacing.lg,
 } as const;
+
+export { SCREEN_W, SCREEN_H };

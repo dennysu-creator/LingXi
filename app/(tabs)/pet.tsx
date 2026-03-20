@@ -1,14 +1,14 @@
 // ═══════════════════════════════════════
-// 靈寵中心 — 對話式介面（Chat-Based）
-// StatusBar → PetAvatar → [FeaturePanel] → PetChat → ActionBar
-// 三大功能（靈眼/靈心/靈魂）以內嵌面板呈現，
-// 靈寵始終可見並產生對應特效，結果透過聊天氣泡輸出
+// 靈寵中心 — 全螢幕靈寵 + 漫畫對白泡泡
+// StatusBar(⚙️+Logo+Date+Lv) → MangaBubble → PetAvatar → ActionBar
+// 三大功能以內嵌面板呈現，歷史對話移至設定頁
 // ═══════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Image, ImageBackground, StyleSheet } from 'react-native';
+import { View, Text, Image, ImageBackground, ScrollView, Pressable, StyleSheet, Dimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '@/config/theme';
+import { Colors, Fonts, scale, FontSize } from '@/config/theme';
 import { LOGO, EFFECTS } from '@/assets/images';
 import { usePetStore } from '@/stores/pet-store';
 import { useUserStore } from '@/stores/user-store';
@@ -20,7 +20,6 @@ import { getLocalDateKey } from '@/services/date-utils';
 import { generateQimenChart } from '@/services/qimen-engine';
 
 import PetAvatar, { type ActiveFeature } from '@/components/PetAvatar';
-import PetChat from '@/components/PetChat';
 import ActionBar, { type ActionType } from '@/components/ActionBar';
 import FeaturePanel from '@/components/FeaturePanel';
 import UpgradeModal from '@/components/UpgradeModal';
@@ -45,10 +44,11 @@ function getTimeSlot(): 'morning' | 'afternoon' | 'evening' {
 export default function PetScreen() {
   const { t } = useTranslation();
 
+  const router = useRouter();
+
   // ─── State ───
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [activeFeature, setActiveFeature] = useState<ActiveFeature>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const fortuneGenRef = useRef(false);
 
   // ─── Store selectors ───
@@ -69,13 +69,13 @@ export default function PetScreen() {
 
   const addMessage = useChatStore(s => s.addMessage);
   const messages = useChatStore(s => s.messages);
+  const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
   const petInfo: PetInfo = { name: petName, type: petCreature, element: petElement, emoji: petEmoji, level: petLevel };
 
   // ─── Generate daily fortune on mount ───
   useEffect(() => {
     if (fortuneGenRef.current) return;
-    // Wait for store hydration — destiny data not yet available
     if (!bazi || !ziwei || !astrology) return;
 
     const today = getLocalDateKey(new Date());
@@ -90,16 +90,9 @@ export default function PetScreen() {
     }
     fortuneGenRef.current = true;
 
-    // Generate fortune using local engines
     try {
       const qimenChart = generateQimenChart(new Date());
-
-      const fortuneResult = calculateUnifiedFortune(
-        bazi,
-        ziwei,
-        qimenChart,
-        astrology,
-      );
+      const fortuneResult = calculateUnifiedFortune(bazi, ziwei, qimenChart, astrology);
 
       const narration = generateLocalPetNarration({
         feature: 'fortune',
@@ -127,12 +120,7 @@ export default function PetScreen() {
         },
       });
     } catch {
-      // Fallback: simple greeting
-      const narration = generateLocalPetNarration({
-        feature: 'fortune',
-        pet: petInfo,
-        data: {},
-      });
+      const narration = generateLocalPetNarration({ feature: 'fortune', pet: petInfo, data: {} });
       addMessage({ type: 'fortune', text: narration.spokenText, data: { slot } });
     }
   }, [bazi, ziwei, astrology]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -148,12 +136,10 @@ export default function PetScreen() {
       case 'eye':
       case 'heart':
       case 'pearl': {
-        // Toggle: tap again to close the same feature
         if (activeFeature === action) {
           setActiveFeature(null);
           return;
         }
-        // Check quota before opening (map 'pearl' → 'soul' for quota key)
         const quotaKey = action === 'pearl' ? 'soul' : action;
         const remaining = useUserStore.getState().getRemainingUses(quotaKey, petLevel);
         if (remaining <= 0) {
@@ -176,7 +162,6 @@ export default function PetScreen() {
     const prevLevel = usePetStore.getState().level;
     const prevEvo = usePetStore.getState().evolution;
 
-    // Execute action
     if (action === 'feed') feed(planType);
     else if (action === 'play') play(planType);
     else meditate(planType);
@@ -185,20 +170,14 @@ export default function PetScreen() {
     const newEvo = usePetStore.getState().evolution;
     const expGain = action === 'feed' ? 50 : action === 'play' ? 30 : 20;
 
-    // Pet response
     const responses: Record<string, string> = {
       feed: t('chat.feedResponse', { petName, defaultValue: `好好吃～謝謝主人！${petName}元氣滿滿！` }),
       play: t('chat.playResponse', { petName, defaultValue: `好開心！和主人一起玩最快樂了～` }),
       meditate: t('chat.meditateResponse', { petName, defaultValue: `嗯...感受到靈氣在流動...${petName}悟性提升了！` }),
     };
 
-    addMessage({
-      type: action,
-      text: responses[action],
-      data: { exp: expGain },
-    });
+    addMessage({ type: action, text: responses[action], data: { exp: expGain } });
 
-    // Level up announcement
     if (newLevel > prevLevel) {
       addMessage({
         type: 'levelup',
@@ -207,7 +186,6 @@ export default function PetScreen() {
       });
     }
 
-    // Evolution announcement
     if (newEvo > prevEvo) {
       addMessage({
         type: 'evolve',
@@ -218,59 +196,45 @@ export default function PetScreen() {
   };
 
   // ─── Feature result handlers ───
-  // Results are added to PetChat as bubbles. The feature component's
-  // internal onClose callback handles closing the panel after a brief delay.
   const handleEyeResult = useCallback((text: string, data: any) => {
     addMessage({
-      type: 'face',
-      text,
+      type: 'face', text,
       data: {
-        features: data.features,
-        overall_score: data.overall_score,
-        fortune_level: data.fortune_level,
-        lucky_item: data.lucky_item,
-        lucky_direction: data.lucky_direction,
-        lucky_number: data.lucky_number,
+        features: data.features, overall_score: data.overall_score,
+        fortune_level: data.fortune_level, lucky_item: data.lucky_item,
+        lucky_direction: data.lucky_direction, lucky_number: data.lucky_number,
+        stars: data.stars, luckyItems: data.luckyItems, mood: data.mood,
       },
     });
   }, [addMessage]);
 
   const handleHeartResult = useCallback((text: string, data: any) => {
     addMessage({
-      type: 'fengshui',
-      text,
+      type: 'fengshui', text,
       data: {
-        palaces: data.palaces,
-        luckyDirections: data.luckyDirections,
-        dangerDirections: data.dangerDirections,
-        location_analysis: data.location_analysis,
-        tips: data.tips,
-        seat_advice: data.seat_advice,
+        palaces: data.palaces, luckyDirections: data.luckyDirections,
+        dangerDirections: data.dangerDirections, location_analysis: data.location_analysis,
+        tips: data.tips, seat_advice: data.seat_advice,
+        stars: data.stars, luckyItems: data.luckyItems, mood: data.mood,
+        luckyDirection: data.luckyDirection, avoidDirection: data.avoidDirection,
       },
     });
   }, [addMessage]);
 
   const handlePearlResult = useCallback((text: string, data: any) => {
     addMessage({
-      type: 'divination',
-      text,
+      type: 'divination', text,
       data: {
-        hexagram: data.hexagram,
-        category: data.category,
-        changedHexagram: data.changedHexagram,
-        changingLines: data.changingLines,
-        interpretation: data.interpretation,
+        hexagram: data.hexagram, category: data.category,
+        changedHexagram: data.changedHexagram, changingLines: data.changingLines,
+        interpretation: data.interpretation, directAnswer: data.directAnswer,
+        stars: data.stars, luckyItems: data.luckyItems, mood: data.mood,
       },
     });
   }, [addMessage]);
 
-  const handleQuotaExhausted = useCallback(() => {
-    setShowUpgrade(true);
-  }, []);
-
-  const closeFeature = useCallback(() => {
-    setActiveFeature(null);
-  }, []);
+  const handleQuotaExhausted = useCallback(() => { setShowUpgrade(true); }, []);
+  const closeFeature = useCallback(() => { setActiveFeature(null); }, []);
 
   const lunarStr = getLunarDateStr();
 
@@ -278,35 +242,59 @@ export default function PetScreen() {
     <ImageBackground source={EFFECTS.panelBgPattern} style={styles.container} imageStyle={styles.bgPattern} resizeMode="repeat">
       {/* ═══ Status Bar ═══ */}
       <View style={styles.statusBar}>
+        <Pressable style={styles.profileBtn} onPress={() => router.navigate('/(tabs)/profile')}>
+          <Text style={styles.profileBtnIcon}>⚙️</Text>
+        </Pressable>
         <Image source={LOGO.statusBar} style={styles.appLogo} resizeMode="contain" />
-        <Text style={styles.dateText}>{lunarStr}</Text>
-        <Text style={styles.levelText}>{t('pet.level')}{petLevel} {petName} · {petElement}系</Text>
-      </View>
-
-      {/* ═══ Pet Avatar — always visible; compact when feature is active ═══ */}
-      <PetAvatar activeFeature={activeFeature} compact={!!activeFeature} />
-
-      {/* ═══ Feature Panel (takes full available space when active) ═══ */}
-      {activeFeature && (
-        <FeaturePanel
-          activeFeature={activeFeature}
-          onClose={closeFeature}
-          onEyeResult={handleEyeResult}
-          onHeartResult={handleHeartResult}
-          onPearlResult={handlePearlResult}
-          onQuotaExhausted={handleQuotaExhausted}
-        />
-      )}
-
-      {/* ═══ Chat — hidden when feature is active ═══ */}
-      {!activeFeature && (
-        <View style={styles.chatFull}>
-          <PetChat petEmoji={petEmoji} petName={petName} isLoading={isLoading} />
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateText}>{lunarStr}</Text>
         </View>
-      )}
+        <View style={styles.levelBadge}>
+          <Text style={styles.levelText}>Lv.{petLevel}</Text>
+          <View style={styles.levelDot} />
+          <Text style={styles.levelName}>{petName}</Text>
+        </View>
+      </View>
+      <View style={styles.statusLine} />
 
-      {/* ═══ Action Bar (feature buttons highlight active) ═══ */}
-      <ActionBar onAction={handleAction} activeFeature={activeFeature} />
+      {/* ═══ Main Stage: Pet ALWAYS full-screen ═══ */}
+      <View style={styles.mainStage}>
+        {/* Pet Avatar — always full screen behind everything */}
+        <View style={styles.petHeroFull}>
+          <PetAvatar activeFeature={activeFeature} compact={false} />
+        </View>
+
+        {/* Manga speech bubble — hidden when feature active */}
+        {!activeFeature && latestMessage && (
+          <View style={styles.mangaBubble}>
+            <ScrollView style={styles.mangaBubbleScroll} bounces={false} showsVerticalScrollIndicator={false}>
+              <Text style={styles.mangaBubbleText}>
+                {latestMessage.text}
+              </Text>
+            </ScrollView>
+            <View style={styles.mangaBubbleTail} />
+          </View>
+        )}
+
+        {/* Feature overlay — semi-transparent panel over bottom portion */}
+        {activeFeature && (
+          <View style={styles.featureOverlay}>
+            {/* Grab handle */}
+            <View style={styles.overlayHandle} />
+            <FeaturePanel
+              activeFeature={activeFeature}
+              onClose={closeFeature}
+              onEyeResult={handleEyeResult}
+              onHeartResult={handleHeartResult}
+              onPearlResult={handlePearlResult}
+              onQuotaExhausted={handleQuotaExhausted}
+            />
+          </View>
+        )}
+
+        {/* Floating Action Bar — always visible */}
+        <ActionBar onAction={handleAction} activeFeature={activeFeature} />
+      </View>
 
       {/* ═══ Upgrade Modal ═══ */}
       <UpgradeModal visible={showUpgrade} onClose={() => setShowUpgrade(false)} />
@@ -318,10 +306,8 @@ export default function PetScreen() {
 function getTopDimension(result: UnifiedFortuneResult): string {
   const { scores } = result;
   const dims = [
-    { key: '財運', val: scores.wealth },
-    { key: '桃花', val: scores.love },
-    { key: '事業', val: scores.career },
-    { key: '健康', val: scores.health },
+    { key: '財運', val: scores.wealth }, { key: '桃花', val: scores.love },
+    { key: '事業', val: scores.career }, { key: '健康', val: scores.health },
     { key: '學業', val: scores.study },
   ];
   dims.sort((a, b) => b.val - a.val);
@@ -336,18 +322,155 @@ function getFortuneQuote(result: UnifiedFortuneResult): string | undefined {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  bgPattern: { opacity: 0.03 },
+  bgPattern: { opacity: 0.08 },
 
+  // ─── StatusBar ───
   statusBar: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingTop: 54, paddingHorizontal: 16, paddingBottom: 8,
-    backgroundColor: 'rgba(8,8,15,0.98)',
-    borderBottomWidth: 1, borderBottomColor: 'rgba(232,197,71,0.06)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 56,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
+    backgroundColor: 'rgba(8,8,15,0.96)',
     gap: 8,
   },
-  appLogo: { width: 80, height: 28 },
-  dateText: { fontSize: 11, color: Colors.textDark, flex: 1, textAlign: 'center' },
-  levelText: { fontSize: 11, color: Colors.textMuted },
+  profileBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(232,197,71,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.15)',
+  },
+  profileBtnIcon: {
+    fontSize: 18,
+  },
+  appLogo: {
+    width: scale(120),
+    height: scale(44),
+  },
+  dateContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: FontSize.md,
+    color: Colors.textMuted,
+    fontFamily: Fonts.serif,
+    letterSpacing: 1,
+  },
+  levelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(232,197,71,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.12)',
+  },
+  levelText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  levelDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: Colors.primary,
+    opacity: 0.5,
+  },
+  levelName: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontFamily: Fonts.serif,
+  },
+  statusLine: {
+    height: 1.5,
+    backgroundColor: 'rgba(232,197,71,0.08)',
+    shadowColor: '#e8c547',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
 
-  chatFull: { flex: 1 },
+  // ─── Main Stage ───
+  mainStage: {
+    flex: 1,
+  },
+  petHeroFull: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // ─── Feature Overlay (semi-transparent, bottom portion) ───
+  featureOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: '28%',
+    backgroundColor: 'rgba(8,8,15,0.82)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
+    zIndex: 5,
+  },
+  overlayHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(232,197,71,0.25)',
+    marginTop: 10,
+    marginBottom: 4,
+  },
+
+  // ─── Manga Speech Bubble ───
+  mangaBubble: {
+    position: 'absolute',
+    top: 10,
+    left: 16,
+    right: 72,
+    maxHeight: '45%',
+    zIndex: 10,
+    backgroundColor: 'rgba(255,252,245,0.95)',
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(60,50,30,0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  mangaBubbleScroll: {
+    flexGrow: 0,
+  },
+  mangaBubbleText: {
+    fontSize: 15,
+    color: '#1a1a2e',
+    fontFamily: Fonts.serif,
+    lineHeight: 24,
+  },
+  mangaBubbleTail: {
+    position: 'absolute',
+    bottom: -11,
+    left: '30%',
+    width: 0,
+    height: 0,
+    borderLeftWidth: 11,
+    borderRightWidth: 11,
+    borderTopWidth: 11,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: 'rgba(255,252,245,0.95)',
+  },
 });

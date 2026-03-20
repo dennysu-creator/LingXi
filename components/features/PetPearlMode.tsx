@@ -21,8 +21,9 @@ import {
 } from '@/services/hexagram-engine';
 import { CATEGORY_IMAGES, FEATURE_PANEL, PET_FRAME, getPetImage } from '@/assets/images';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
+import api, { ApiError } from '@/services/api-client';
 
-type Phase = 'idle' | 'shaking' | 'result';
+type Phase = 'idle' | 'shaking' | 'analyzing' | 'result';
 
 const CATEGORIES: DivinationCategory[] = ['career', 'love', 'family', 'health', 'study'];
 
@@ -52,10 +53,10 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
   const petInfo: PetInfo = { name: petName, type: petType, element: petElement, emoji: petEmoji, level: petLevel };
   const petAvatarImg = getPetImage(petId, 'avatar');
 
-  // Spinning animation for bagua ring during shaking phase
+  // Spinning animation for bagua ring during shaking & analyzing phases
   const spinAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (phase === 'shaking') {
+    if (phase === 'shaking' || phase === 'analyzing') {
       spinAnim.setValue(0);
       Animated.loop(
         Animated.timing(spinAnim, {
@@ -88,25 +89,55 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
       Vibration.vibrate([0, 80, 60, 80, 60, 80, 60, 150]);
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const hexResult = performHexagramDivination(selectedCategory, question || undefined);
       setResult(hexResult);
 
-      // Send result to parent (chat bubble)
+      const interp = hexResult.hexagram.interpretations[hexResult.category];
+
+      // Local narration as fallback
+      const localNarr = generateLocalPetNarration({
+        feature: 'divination',
+        pet: petInfo,
+        data: { level: hexResult.hexagram.fortuneLevel, directAnswer: interp.guidance },
+      });
+
+      // Send result to parent (chat bubble) — call AI backend first
       if (onResult) {
-        const interp = hexResult.hexagram.interpretations[hexResult.category];
-        const narr = generateLocalPetNarration({
-          feature: 'divination',
-          pet: petInfo,
-          data: { level: hexResult.hexagram.fortuneLevel, directAnswer: interp.guidance },
-        });
-        onResult(narr.spokenText, {
-          hexagram: hexResult.hexagram,
+        setPhase('analyzing'); // Show "靈寵正在感應..." status
+
+        let chatText = localNarr.spokenText;
+        let chatData: any = {
           category: hexResult.category,
-          changedHexagram: hexResult.changedHexagram,
-          changingLines: hexResult.changingLines,
-          interpretation: interp,
-        });
+          hexagram: { name: hexResult.hexagram.name, symbol: hexResult.hexagram.symbol },
+        };
+
+        try {
+          const aiResponse = await api.post<{ data: any; remaining?: number }>('/ai/divination', {
+            type: 'hexagram',
+            hexagramName: hexResult.hexagram.name,
+            hexagramOracle: hexResult.hexagram.oracle,
+            category: selectedCategory,
+            question: question || undefined,
+            changedHexagram: hexResult.changedHexagram?.name,
+            changingLines: hexResult.changingLines,
+          });
+
+          const aiData = aiResponse.data;
+          // Use AI petMessage as chat text, fallback to local narration
+          chatText = aiData.petMessage || aiData.interpretation || localNarr.spokenText;
+          chatData = {
+            ...chatData,
+            stars: aiData.stars,
+            luckyItems: aiData.luckyItems,
+            directAnswer: aiData.directAnswer || interp.guidance,
+          };
+        } catch (err) {
+          // AI call failed — fall back to local narration (already set above)
+          console.warn('[PetPearlMode] AI divination failed, using local narration:', err);
+        }
+
+        onResult(chatText, chatData);
         setTimeout(() => { onClose?.(); reset(); }, 300);
         return;
       }
@@ -238,6 +269,31 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
         </View>
       )}
 
+      {/* ═══ AI 感應中 ═══ */}
+      {phase === 'analyzing' && (
+        <View style={styles.centerBox}>
+          <Animated.Image
+            source={PET_FRAME.baguaRing}
+            style={[
+              styles.baguaRingImage,
+              { transform: [{ rotate: spinInterpolate }] },
+            ]}
+            resizeMode="contain"
+          />
+          <Text style={styles.shakingText}>{t('pearl.analyzing', { defaultValue: '靈寵正在感應...' })}</Text>
+          <View style={styles.petNarrateBox}>
+            {petAvatarImg ? (
+              <Image source={petAvatarImg} style={styles.petNarrateAvatar} resizeMode="cover" />
+            ) : (
+              <Text style={{ fontSize: 20 }}>{petEmoji}</Text>
+            )}
+            <Text style={styles.petNarrateText}>
+              {t('pearl.petAnalyzing', { petName, defaultValue: `${petName} 正在解讀卦象...` })}
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* ═══ 結果 ═══ */}
       {phase === 'result' && result && (() => {
         const h = result.hexagram;
@@ -359,7 +415,7 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: 100 },
 
   // ── Pet hint card (idle top) ──
@@ -371,10 +427,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   petHintAvatar: { width: 40, height: 40, borderRadius: 20 },
-  petHintText: { fontSize: 13, color: Colors.pet, flex: 1, fontFamily: Fonts.serif },
+  petHintText: { fontSize: 14, color: Colors.pet, flex: 1, fontFamily: Fonts.serif },
 
   // ── Category grid (2-column, last one centered) ──
-  sectionLabel: { fontSize: 12, color: Colors.textDark, letterSpacing: 2, marginBottom: 10 },
+  sectionLabel: { fontSize: 14, color: Colors.textDark, letterSpacing: 2, marginBottom: 10 },
   categoryGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
     marginHorizontal: -6, marginBottom: 20,
@@ -401,11 +457,11 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  categoryImage: { width: 64, height: 64, marginBottom: 6 },
+  categoryImage: { width: 88, height: 88, marginBottom: 6 },
   categoryImageActive: {
     transform: [{ scale: 1.08 }],
   },
-  categoryEmoji: { fontSize: 32, marginBottom: 6 },
+  categoryEmoji: { fontSize: 40, marginBottom: 6 },
   categoryLabel: { fontSize: 13, color: Colors.textMuted, fontFamily: Fonts.serif },
   categoryLabelActive: { color: Colors.primary, fontWeight: '700' },
 
@@ -423,29 +479,29 @@ const styles = StyleSheet.create({
   // ── Start (divinate) button — mystical purple ──
   startButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 12, paddingVertical: 16, paddingHorizontal: 24, borderRadius: 20,
+    gap: 12, paddingVertical: 14, paddingHorizontal: 24, borderRadius: 16,
     backgroundColor: 'rgba(167,139,250,0.15)',
-    borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.4)',
-    shadowColor: '#a78bfa',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.35)',
+    shadowColor: '#A78BFA',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
   },
   startButtonDisabled: { opacity: 0.3 },
   startIconWrapper: {
-    width: 44, height: 44, borderRadius: 22,
+    width: 64, height: 64, borderRadius: 32,
     backgroundColor: 'rgba(167,139,250,0.20)',
     alignItems: 'center', justifyContent: 'center',
   },
-  startIcon: { width: 36, height: 36 },
+  startIcon: { width: 52, height: 52 },
   startText: {
     fontSize: 17, color: '#c4b0fa', fontFamily: Fonts.serifBold, letterSpacing: 3,
   },
 
   // ── Shaking phase ──
   centerBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  baguaRingImage: { width: 120, height: 120, marginBottom: 20, opacity: 0.85 },
+  baguaRingImage: { width: 180, height: 180, marginBottom: 20, opacity: 0.85 },
   shakingText: { fontSize: 16, color: Colors.textSecondary, fontFamily: Fonts.serif, marginBottom: 12 },
   petNarrateBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -453,8 +509,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(100,180,255,0.06)',
     marginTop: 8,
   },
-  petNarrateAvatar: { width: 32, height: 32, borderRadius: 16 },
-  petNarrateText: { fontSize: 12, color: Colors.pet, fontFamily: Fonts.serif },
+  petNarrateAvatar: { width: 44, height: 44, borderRadius: 22 },
+  petNarrateText: { fontSize: 14, color: Colors.pet, fontFamily: Fonts.serif },
 
   // ── Result phase ──
   hexagramCard: {
@@ -464,15 +520,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  hexagramSymbol: { fontSize: 48, marginBottom: 6 },
-  hexagramTitle: { fontSize: 18, color: Colors.primary, fontFamily: Fonts.serifBold, letterSpacing: 3, marginBottom: 12 },
+  hexagramSymbol: { fontSize: 56, marginBottom: 6 },
+  hexagramTitle: { fontSize: 20, color: Colors.primary, fontFamily: Fonts.serifBold, letterSpacing: 3, marginBottom: 12 },
 
   oracleBox: {
-    paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12,
-    backgroundColor: 'rgba(232,197,71,0.06)',
-    marginBottom: 12,
+    paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14,
+    backgroundColor: 'rgba(232,197,71,0.08)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.15)',
+    marginBottom: 14,
   },
-  oracleText: { fontSize: 16, color: Colors.primary, fontFamily: Fonts.serif, letterSpacing: 3, textAlign: 'center' },
+  oracleText: { fontSize: 18, color: Colors.primary, fontFamily: Fonts.serif, letterSpacing: 3, textAlign: 'center' },
 
   mysticalLine: {
     fontSize: 14, color: Colors.textMuted, fontFamily: Fonts.serif,
@@ -482,8 +539,8 @@ const styles = StyleSheet.create({
 
   interpBox: {
     width: '100%', padding: 16, borderRadius: 14,
-    backgroundColor: 'rgba(232,197,71,0.04)',
-    borderWidth: 1,
+    backgroundColor: 'rgba(232,197,71,0.06)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.15)',
     marginBottom: 16,
   },
   interpHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
@@ -492,15 +549,16 @@ const styles = StyleSheet.create({
   verdictBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10, marginLeft: 'auto' },
   verdictText: { fontSize: 14, fontFamily: Fonts.serifBold },
   interpGuidance: { fontSize: 15, color: Colors.textSecondary, fontFamily: Fonts.serif, lineHeight: 24, marginBottom: 8 },
-  interpTiming: { fontSize: 12, color: Colors.textDark, fontFamily: Fonts.serif },
+  interpTiming: { fontSize: 13, color: Colors.textDark, fontFamily: Fonts.serif },
 
   trigramRow: { flexDirection: 'row', width: '100%', gap: 8 },
   trigramItem: {
-    flex: 1, padding: 8, borderRadius: 10, alignItems: 'center',
-    backgroundColor: 'rgba(232,197,71,0.04)',
+    flex: 1, padding: 12, borderRadius: 10, alignItems: 'center',
+    backgroundColor: 'rgba(232,197,71,0.06)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.10)',
   },
-  trigramLabel: { fontSize: 9, color: Colors.textDark, marginBottom: 4, letterSpacing: 1 },
-  trigramValue: { fontSize: 14, color: Colors.textSecondary, fontFamily: Fonts.serifBold },
+  trigramLabel: { fontSize: 11, color: Colors.textDark, marginBottom: 4, letterSpacing: 1 },
+  trigramValue: { fontSize: 15, color: Colors.textSecondary, fontFamily: Fonts.serifBold },
 
   changedCard: {
     padding: 20, borderRadius: 16, alignItems: 'center',
@@ -508,11 +566,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(160,100,255,0.12)',
     marginBottom: 14,
   },
-  changedLabel: { fontSize: 12, color: Colors.textDark, letterSpacing: 4, marginBottom: 12 },
-  changedSymbol: { fontSize: 40, marginBottom: 6 },
+  changedLabel: { fontSize: 14, color: Colors.textDark, letterSpacing: 4, marginBottom: 12 },
+  changedSymbol: { fontSize: 48, marginBottom: 6 },
   changedName: { fontSize: 16, color: '#a78bfa', fontFamily: Fonts.serifBold, letterSpacing: 3, marginBottom: 8 },
-  changedOracle: { fontSize: 13, color: '#b0a0c8', fontFamily: Fonts.serif, textAlign: 'center', lineHeight: 20, marginBottom: 8 },
-  changedLines: { fontSize: 11, color: Colors.textDark },
+  changedOracle: { fontSize: 15, color: '#b0a0c8', fontFamily: Fonts.serif, textAlign: 'center', lineHeight: 22, marginBottom: 8 },
+  changedLines: { fontSize: 13, color: Colors.textDark },
 
   petReadingCard: {
     padding: 16, borderRadius: 16,
@@ -522,7 +580,7 @@ const styles = StyleSheet.create({
   },
   petReadingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   petReadingAvatar: { width: 36, height: 36, borderRadius: 18 },
-  petReadingLabel: { fontSize: 12, color: Colors.pet, fontWeight: '600', letterSpacing: 2 },
+  petReadingLabel: { fontSize: 14, color: Colors.pet, fontWeight: '600', letterSpacing: 2 },
   petReadingText: { fontSize: 14, color: '#a0b8d0', lineHeight: 24, fontFamily: Fonts.serif },
 
   questionRecap: {
@@ -531,7 +589,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(100,180,255,0.1)',
     marginBottom: 14,
   },
-  questionRecapLabel: { fontSize: 11, color: '#64b4ff', marginBottom: 4 },
+  questionRecapLabel: { fontSize: 13, color: '#64b4ff', marginBottom: 4 },
   questionRecapText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 20 },
 
   actionRow: { flexDirection: 'row', gap: 10 },

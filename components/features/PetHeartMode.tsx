@@ -163,9 +163,11 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
 
       // Send result to parent (chat bubble)
       if (onResult) {
-        const resultText = data.location_analysis || narration.spokenText;
+        const resultText = (data as any).petMessage || data.location_analysis || narration.spokenText;
         onResult(resultText, {
           ...data,
+          stars: (data as any).stars,
+          luckyItems: (data as any).luckyItems,
           palaces: chart.palaces,
           luckyDirections: luckyDirs,
           dangerDirections: dangerDirs,
@@ -301,11 +303,24 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
                 <Text style={styles.petReadingLabel}>{t('heart.locationAnalysis')}</Text>
               </View>
               <Text style={styles.petReadingText}>
-                {aiResult?.location_analysis || narration.spokenText}
+                {(aiResult as any)?.petMessage || aiResult?.location_analysis || narration.spokenText}
               </Text>
             </View>
 
-            {aiResult?.tips && aiResult.tips.length > 0 && (
+            {/* New format: luckyItems pills */}
+            {(aiResult as any)?.luckyItems && (aiResult as any).luckyItems.length > 0 && (
+              <View style={styles.tipsCard}>
+                {(aiResult as any).luckyItems.map((item: any, i: number) => (
+                  <View key={i} style={styles.tipItem}>
+                    <Text style={styles.tipIcon}>{item.emoji}</Text>
+                    <Text style={styles.tipText}>{item.label}：{item.value}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Old format fallback: tips array */}
+            {!(aiResult as any)?.luckyItems && aiResult?.tips && aiResult.tips.length > 0 && (
               <View style={styles.tipsCard}>
                 <Text style={styles.sectionLabel}>{t('heart.tips')}</Text>
                 {aiResult.tips.map((tip, i) => (
@@ -360,9 +375,9 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
 
 const styles = StyleSheet.create({
   outerContainer: { flex: 1 },
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: 8 },
-  bottomBar: { paddingHorizontal: Spacing.lg, paddingBottom: 8, backgroundColor: Colors.background },
+  bottomBar: { paddingHorizontal: Spacing.lg, paddingBottom: 8 },
 
   gpsCard: {
     padding: 10, borderRadius: 12,
@@ -372,10 +387,10 @@ const styles = StyleSheet.create({
   },
   gpsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   gpsDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.fengshui },
-  gpsText: { fontSize: 11, color: Colors.fengshui },
-  locationNameInline: { fontSize: 11, color: Colors.textMuted, marginLeft: 'auto' },
+  gpsText: { fontSize: 13, color: Colors.fengshui },
+  locationNameInline: { fontSize: 13, color: Colors.textMuted, marginLeft: 'auto' },
   petSenseInline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  petSenseTextSmall: { fontSize: 11, color: Colors.pet, fontFamily: Fonts.serif },
+  petSenseTextSmall: { fontSize: 13, color: Colors.pet, fontFamily: Fonts.serif },
 
   compassCard: { alignItems: 'center', marginBottom: 12 },
   compassContainer: {
@@ -393,36 +408,41 @@ const styles = StyleSheet.create({
     position: 'absolute', width: 180, height: 180, borderRadius: 90,
   },
   dirLabel: { position: 'absolute', alignItems: 'center' },
-  dirText: { fontSize: 12, color: Colors.textDark, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-  dirLucky: { fontSize: 14, color: Colors.primary, fontWeight: '700' },
+  dirText: { fontSize: 14, color: Colors.textDark, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  dirLucky: { fontSize: 16, color: Colors.primary, fontWeight: '700' },
   dirDanger: { color: Colors.danger },
   dirDot: { fontSize: 6, color: Colors.primary, marginTop: -2 },
   needleImage: {
-    width: 24, height: 64,
+    width: 32, height: 80,
     position: 'absolute',
   },
-  petSenseAvatar: { width: 28, height: 28, borderRadius: 14 },
+  petSenseAvatar: { width: 40, height: 40, borderRadius: 20 },
   petReadingAvatar: { width: 36, height: 36, borderRadius: 18 },
-  analyzeBtnIcon: { width: 36, height: 36 },
-  compassNote: { fontSize: 10, color: Colors.textDarkest, marginTop: 8 },
+  analyzeBtnIcon: { width: 48, height: 48 },
+  compassNote: { fontSize: 13, color: Colors.textDarkest, marginTop: 8 },
 
   dirSummary: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   dirBox: {
     flex: 1, padding: 14, borderRadius: 14,
-    backgroundColor: 'rgba(232,197,71,0.04)',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.1)',
+    backgroundColor: 'rgba(232,197,71,0.06)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.16)',
     alignItems: 'center',
   },
-  dirBoxTitle: { fontSize: 11, color: Colors.textDark, marginBottom: 6 },
+  dirBoxTitle: { fontSize: 13, color: Colors.textDark, marginBottom: 6, fontFamily: Fonts.serif },
   dirBoxText: { fontSize: 13, color: Colors.textMuted },
   dirBoxLucky: { fontSize: 15, color: Colors.primary, fontFamily: Fonts.serifBold },
   dirBoxDanger: { fontSize: 15, color: Colors.danger, fontFamily: Fonts.serifBold },
 
   analyzeButton: {
     flexDirection: 'row', gap: 10,
-    padding: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
+    padding: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(74,222,128,0.12)',
-    borderWidth: 1.5, borderColor: 'rgba(74,222,128,0.3)',
+    borderWidth: 1.5, borderColor: 'rgba(74,222,128,0.30)',
+    shadowColor: '#4ADE80',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   analyzeButtonLoading: { opacity: 0.6 },
   analyzeText: { fontSize: 16, color: '#4ADE80', fontWeight: '700', letterSpacing: 1 },
@@ -434,29 +454,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   petReadingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  petReadingLabel: { fontSize: 12, color: Colors.pet, fontWeight: '600', letterSpacing: 2 },
+  petReadingLabel: { fontSize: 14, color: Colors.pet, fontWeight: '600', letterSpacing: 2 },
   petReadingText: { fontSize: 14, color: '#a0b8d0', lineHeight: 24, fontFamily: Fonts.serif },
 
-  sectionLabel: { fontSize: 12, color: Colors.textMuted, letterSpacing: 2, marginBottom: 12, fontFamily: Fonts.serif },
+  sectionLabel: { fontSize: 14, color: Colors.textMuted, letterSpacing: 2, marginBottom: 12, fontFamily: Fonts.serif },
   resultCard: {
     padding: 16, borderRadius: 16,
-    backgroundColor: 'rgba(100,180,255,0.04)',
+    backgroundColor: 'rgba(100,180,255,0.08)',
     borderWidth: 1, borderColor: 'rgba(100,180,255,0.1)',
     marginBottom: 14,
   },
-  resultText: { fontSize: 13, color: '#a0b8d0', lineHeight: 24, fontFamily: Fonts.serif },
+  resultText: { fontSize: 14, color: '#a0b8d0', lineHeight: 24, fontFamily: Fonts.serif },
 
   tipsCard: {
     padding: 16, borderRadius: 16,
-    backgroundColor: 'rgba(232,197,71,0.03)',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.08)',
+    backgroundColor: 'rgba(232,197,71,0.08)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.14)',
     marginBottom: 14,
   },
   tipItem: { flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' },
   tipIcon: { fontSize: 16 },
   tipText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 20, flex: 1 },
 
-  noteText: { fontSize: 11, color: Colors.textDarkest, textAlign: 'center', fontStyle: 'italic' },
+  noteText: { fontSize: 13, color: Colors.textDarkest, textAlign: 'center', fontStyle: 'italic' },
 
   closeBtn: {
     alignSelf: 'flex-end', width: 36, height: 36, borderRadius: 18,

@@ -4,9 +4,7 @@
 // 功能結果透過 onResult → PetChat 聊天氣泡輸出
 // ═══════════════════════════════════════
 
-import { View, StyleSheet, ImageBackground } from 'react-native';
-import { Colors } from '@/config/theme';
-import { EFFECTS } from '@/assets/images';
+import { View, StyleSheet } from 'react-native';
 import type { ActiveFeature } from './PetAvatar';
 import PetEyeMode from './features/PetEyeMode';
 import PetHeartMode from './features/PetHeartMode';
@@ -32,12 +30,7 @@ export default function FeaturePanel({
   if (!activeFeature) return null;
 
   return (
-    <ImageBackground
-      source={EFFECTS.panelBgPattern}
-      resizeMode="repeat"
-      style={styles.container}
-      imageStyle={{ opacity: 0.05 }}
-    >
+    <View style={styles.container}>
       {activeFeature === 'eye' && (
         <PetEyeMode
           onClose={onClose}
@@ -59,16 +52,12 @@ export default function FeaturePanel({
           onQuotaExhausted={onQuotaExhausted}
         />
       )}
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(232,197,71,0.08)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(232,197,71,0.08)',
   },
 });

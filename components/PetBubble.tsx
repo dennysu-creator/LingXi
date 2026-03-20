@@ -1,71 +1,79 @@
 // ═══════════════════════════════════════
-// 靈寵對話氣泡 — 所有功能結果以氣泡呈現
+// 靈寵對話氣泡 — 靈寵為主角，自然敘述結果
 // ═══════════════════════════════════════
 
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { Colors, Fonts, Spacing } from '@/config/theme';
+import { Colors, Fonts } from '@/config/theme';
 import type { ChatMessage, FortuneData, FaceData, FengshuiData, DivinationData, PetActionData, LevelUpData, EvolveData } from '@/stores/chat-store';
-import { getPetImage, CHAT_BUBBLE } from '@/assets/images';
-import { usePetStore } from '@/stores/pet-store';
+import { CHAT_BUBBLE } from '@/assets/images';
 
-// ─── Score bar (fortune / face) ───
-function ScoreBar({ label, value, maxValue = 100 }: { label: string; value: number; maxValue?: number }) {
-  const pct = Math.min(100, Math.round((value / maxValue) * 100));
-  const color = pct >= 80 ? Colors.primary : pct >= 60 ? Colors.textSecondary : Colors.textMuted;
+// ─── Star Rating ───
+function StarRating({ count }: { count: number }) {
+  const clamped = Math.max(1, Math.min(5, count));
+  const stars = Array.from({ length: 5 }, (_, i) => i < clamped ? '★' : '☆');
   return (
-    <View style={s.scoreRow}>
-      <Text style={s.scoreLabel}>{label}</Text>
-      <View style={s.scoreTrack}>
-        <View style={[s.scoreFill, { width: `${pct}%`, backgroundColor: color }]} />
-      </View>
-      <Text style={[s.scoreValue, { color }]}>{value}</Text>
+    <View style={s.starRow}>
+      {stars.map((star, i) => (
+        <Text
+          key={i}
+          style={[
+            s.star,
+            star === '★' ? s.starFilled : s.starEmpty,
+          ]}
+        >
+          {star}
+        </Text>
+      ))}
     </View>
   );
 }
 
-// ─── 3x3 Compass grid ───
-function CompassGrid({ data }: { data: FengshuiData }) {
-  if (!data?.palaces) return null;
-  const DIR_ORDER = ['西北', '北', '東北', '西', '中', '東', '西南', '南', '東南'];
-  const palaceMap: Record<string, { direction: string; isAuspicious: boolean; gate?: string }> = {};
-  for (const p of data.palaces) {
-    palaceMap[p.direction] = p;
-  }
-  return (
-    <View style={s.compassGrid}>
-      {DIR_ORDER.map((dir) => {
-        const p = palaceMap[dir];
-        const isLucky = p?.isAuspicious;
-        return (
-          <View key={dir} style={[s.compassCell, isLucky && s.compassCellLucky]}>
-            <Text style={[s.compassDir, isLucky && { color: Colors.primary }]}>{dir}</Text>
-            {p?.gate && p.gate !== '—' && (
-              <Text style={s.compassGate}>{p.gate}</Text>
-            )}
-          </View>
-        );
-      })}
-    </View>
-  );
+// ─── Lucky Pills ───
+interface LuckyPill {
+  emoji: string;
+  label: string;
+  value: string;
 }
 
-// ─── Hexagram symbol ───
-function HexagramBlock({ data }: { data: DivinationData }) {
-  if (!data?.hexagram) return null;
-  const h = data.hexagram;
+function LuckyPills({ items, accentColor }: { items: LuckyPill[]; accentColor: string }) {
+  if (!items || items.length === 0) return null;
+
+  // Parse accentColor to get rgba with low opacity for background
+  const pillBg = accentColor + '14'; // ~0.08 opacity hex
+  const pillBorder = accentColor + '33'; // ~0.20 opacity hex
+
   return (
-    <View style={s.hexBlock}>
-      <Text style={s.hexSymbol}>{h.symbol}</Text>
-      <Text style={s.hexName}>{h.name}</Text>
-      {h.oracle && <Text style={s.hexOracle}>「{h.oracle}」</Text>}
-      {h.upperTrigram && (
-        <View style={s.trigramRow}>
-          <Text style={s.trigramText}>上卦 {h.upperTrigram}</Text>
-          <Text style={s.trigramText}>下卦 {h.lowerTrigram}</Text>
-          {h.element && <Text style={s.trigramText}>{h.element}</Text>}
+    <View style={s.pillsContainer}>
+      {items.map((item, i) => (
+        <View
+          key={i}
+          style={[
+            s.pill,
+            { backgroundColor: pillBg, borderColor: pillBorder },
+          ]}
+        >
+          <Text style={[s.pillText, { color: accentColor }]}>
+            {item.emoji} {item.label} {item.value}
+          </Text>
         </View>
-      )}
+      ))}
+    </View>
+  );
+}
+
+// ─── Fortune Score Bar (emoji-simplified) ───
+function FortuneBar({ emoji, label, value, color }: { emoji: string; label: string; value: number; color: string }) {
+  const pct = Math.min(100, Math.round(value));
+  return (
+    <View style={s.fortuneRow}>
+      <Text style={s.fortuneEmoji}>{emoji}</Text>
+      <Text style={s.fortuneLabel}>{label}</Text>
+      <View style={s.fortuneTrack}>
+        <View style={[s.fortuneFill, { width: `${pct}%`, backgroundColor: color }]} />
+      </View>
+      <Text style={[s.fortuneValue, { color }]}>{value}</Text>
     </View>
   );
 }
@@ -87,13 +95,99 @@ function CelebrationBadge({ type, data }: { type: string; data?: LevelUpData & E
   return (
     <View style={[s.celebBadge, isEvolve && s.celebBadgeEvolve]}>
       <Text style={s.celebEmoji}>{isEvolve ? '🌟' : '⬆️'}</Text>
-      <Text style={s.celebText}>
+      <Text style={[s.celebText, isEvolve && { color: '#A78BFA' }]}>
         {isEvolve
           ? `進化階段 ${data?.evolution || '?'}`
           : `Lv.${data?.level || '?'}`}
       </Text>
     </View>
   );
+}
+
+// ─── Helpers: compute stars & lucky pills from existing data ───
+
+function computeStars(type: string, data: any): number {
+  if (data?.stars) return data.stars;
+  switch (type) {
+    case 'face':
+      return Math.max(1, Math.min(5, Math.round((data?.overall_score || 75) / 20)));
+    case 'fengshui':
+      return 4;
+    case 'divination': {
+      const level = data?.hexagram?.fortuneLevel || data?.interpretation?.verdict || '';
+      if (level.includes('大宜') || level.includes('大吉')) return 5;
+      if (level.includes('宜') || level.includes('吉')) return 4;
+      if (level.includes('中') || level.includes('平')) return 3;
+      if (level.includes('不宜') || level.includes('凶')) return 2;
+      if (level.includes('大忌') || level.includes('大凶')) return 1;
+      return 3;
+    }
+    case 'fortune': {
+      const overall = data?.overallScore || 75;
+      return Math.max(1, Math.min(5, Math.round(overall / 20)));
+    }
+    default:
+      return 3;
+  }
+}
+
+function buildLuckyPills(type: string, data: any): LuckyPill[] {
+  if (data?.luckyItems) return data.luckyItems;
+  const pills: LuckyPill[] = [];
+
+  switch (type) {
+    case 'face': {
+      if (data?.lucky_item) {
+        pills.push({ emoji: data.lucky_item.emoji || '🍀', label: '幸運物', value: data.lucky_item.name || '' });
+      }
+      if (data?.lucky_direction) {
+        pills.push({ emoji: '📍', label: '吉方', value: data.lucky_direction });
+      }
+      if (data?.lucky_number != null) {
+        pills.push({ emoji: '🔢', label: '幸運數', value: String(data.lucky_number) });
+      }
+      break;
+    }
+    case 'fengshui': {
+      if (data?.luckyDirections?.length) {
+        pills.push({ emoji: '✦', label: '吉方', value: data.luckyDirections.join('、') });
+      }
+      if (data?.seat_advice) {
+        pills.push({ emoji: '🪑', label: '座位', value: data.seat_advice });
+      }
+      if (data?.dangerDirections?.length) {
+        pills.push({ emoji: '⚠️', label: '避開', value: data.dangerDirections.join('、') });
+      }
+      break;
+    }
+    case 'divination': {
+      const timing = data?.interpretation?.timing;
+      if (timing) {
+        pills.push({ emoji: '⏰', label: '時機', value: timing });
+      }
+      if (data?.hexagram?.element) {
+        pills.push({ emoji: '🌀', label: '五行', value: data.hexagram.element });
+      }
+      break;
+    }
+    case 'fortune': {
+      if (data?.luckyDirection) {
+        pills.push({ emoji: '🧭', label: '吉方', value: data.luckyDirection });
+      }
+      if (data?.luckyColor) {
+        pills.push({ emoji: '🎨', label: '幸運色', value: data.luckyColor });
+      }
+      if (data?.luckyNumber != null) {
+        pills.push({ emoji: '🔢', label: '幸運數', value: String(data.luckyNumber) });
+      }
+      if (data?.luckyElement) {
+        pills.push({ emoji: '🌀', label: '五行', value: data.luckyElement });
+      }
+      break;
+    }
+  }
+
+  return pills;
 }
 
 // ─── Props ───
@@ -105,9 +199,6 @@ interface PetBubbleProps {
 
 export default function PetBubble({ message, petEmoji, petName }: PetBubbleProps) {
   const { t } = useTranslation();
-  const petId = usePetStore(s => s.petId) || '';
-  const petAvatarImg = getPetImage(petId, 'avatar');
-
   const timeStr = (() => {
     try {
       const d = new Date(message.time);
@@ -119,6 +210,7 @@ export default function PetBubble({ message, petEmoji, petName }: PetBubbleProps
 
   const isNurture = ['feed', 'play', 'meditate'].includes(message.type);
   const isCeleb = ['levelup', 'evolve'].includes(message.type);
+  const isResult = ['face', 'fengshui', 'divination', 'fortune'].includes(message.type);
 
   // Result type badge image
   const resultBadge = message.type === 'face' ? CHAT_BUBBLE.resultEye
@@ -126,22 +218,24 @@ export default function PetBubble({ message, petEmoji, petName }: PetBubbleProps
     : message.type === 'divination' ? CHAT_BUBBLE.resultPearl
     : null;
 
-  // Feature-colored accent border for result messages
-  const accentColor = message.type === 'face' ? '#E8C547'
-    : message.type === 'fengshui' ? '#4CAF50'
-    : message.type === 'divination' ? '#9C6ADE'
+  // Feature accent colors
+  const accentColor = message.type === 'face' ? '#FFC107'
+    : message.type === 'fengshui' ? '#4ADE80'
+    : message.type === 'fortune' ? '#e8c547'
+    : message.type === 'divination' ? '#A78BFA'
     : null;
+
+  // Gradient top tint for result bubbles
+  const gradientTop = accentColor ? accentColor + '0A' : 'transparent'; // ~0.04 opacity
+
+  const data = message.data as any;
+  const stars = isResult ? computeStars(message.type, data) : 0;
+  const luckyPills = isResult ? buildLuckyPills(message.type, data) : [];
 
   return (
     <View style={s.container}>
-      {/* Header: pet avatar/emoji + name + time */}
+      {/* Header — compact: badge + time only */}
       <View style={s.header}>
-        {petAvatarImg ? (
-          <Image source={petAvatarImg} style={s.headerAvatar} resizeMode="cover" />
-        ) : (
-          <Text style={s.headerEmoji}>{petEmoji}</Text>
-        )}
-        <Text style={s.headerName}>{petName}</Text>
         {resultBadge && (
           <Image source={resultBadge} style={s.resultBadge} resizeMode="contain" />
         )}
@@ -153,75 +247,72 @@ export default function PetBubble({ message, petEmoji, petName }: PetBubbleProps
         s.bubble,
         accentColor ? { borderLeftWidth: 3, borderLeftColor: accentColor } : null,
       ]}>
-        {/* Corner decoration */}
-        <Image source={CHAT_BUBBLE.corner} style={s.bubbleCorner} resizeMode="contain" />
-        <Text style={s.bubbleText}>{message.text}</Text>
-
-        {/* Classic quote */}
-        {message.classicQuote && (
-          <Text style={s.classicQuote}>{message.classicQuote}</Text>
+        {/* Subtle gradient overlay for result bubbles */}
+        {isResult && (
+          <LinearGradient
+            colors={[gradientTop, 'transparent']}
+            style={s.gradientOverlay}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
         )}
 
-        {/* Embedded data by type */}
+        {/* Star Rating (result types only) */}
+        {isResult && <StarRating count={stars} />}
+
+        {/* Message text */}
+        <Text style={s.bubbleText}>{message.text}</Text>
+
+        {/* Classic quote (fortune type) */}
+        {message.classicQuote && message.type === 'fortune' && (
+          <View style={s.quoteContainer}>
+            <View style={s.quoteLine} />
+            <Text style={s.classicQuote}>{message.classicQuote}</Text>
+          </View>
+        )}
+
+        {/* Fortune score bars (simplified with emoji) */}
         {message.type === 'fortune' && (() => {
-          const d = message.data as FortuneData | undefined;
+          const d = data as FortuneData | undefined;
           return d?.scores ? (
             <View style={s.dataSection}>
-              <ScoreBar label={t('home.wealth')} value={d.scores.wealth} />
-              <ScoreBar label={t('home.love')} value={d.scores.love} />
-              <ScoreBar label={t('home.career')} value={d.scores.career} />
-              <ScoreBar label={t('home.health')} value={d.scores.health} />
-              <ScoreBar label={t('home.study')} value={d.scores.study} />
-              {d.luckyDirection && (
-                <View style={s.luckyRow}>
-                  <Text style={s.luckyItem}>🧭 {d.luckyDirection}</Text>
-                  {d.luckyColor && <Text style={s.luckyItem}>🎨 {d.luckyColor}</Text>}
-                  {d.luckyNumber && <Text style={s.luckyItem}>🔢 {d.luckyNumber}</Text>}
-                </View>
-              )}
+              <FortuneBar emoji="💰" label={t('home.wealth')} value={d.scores.wealth} color="#e8c547" />
+              <FortuneBar emoji="💕" label={t('home.love')} value={d.scores.love} color="#ff8ba0" />
+              <FortuneBar emoji="💼" label={t('home.career')} value={d.scores.career} color="#64b4ff" />
+              <FortuneBar emoji="💪" label={t('home.health')} value={d.scores.health} color="#4ADE80" />
+              <FortuneBar emoji="📚" label={t('home.study')} value={d.scores.study} color="#A78BFA" />
             </View>
           ) : null;
         })()}
 
-        {message.type === 'face' && (() => {
-          const d = message.data as FaceData | undefined;
-          return d?.features ? (
-            <View style={s.dataSection}>
-              {Object.entries(d.features).map(([key, val]) => (
-                <ScoreBar key={key} label={t(`eye.${key}`)} value={val.score} />
-              ))}
-              {d.lucky_item && (
-                <View style={s.luckyRow}>
-                  <Text style={s.luckyItem}>{d.lucky_item.emoji} {d.lucky_item.name}</Text>
-                </View>
-              )}
-            </View>
-          ) : null;
-        })()}
-
+        {/* Fengshui direction indicator (simple colored text) */}
         {message.type === 'fengshui' && (() => {
-          const d = message.data as FengshuiData | undefined;
-          return d ? (
-            <View style={s.dataSection}>
-              <CompassGrid data={d} />
-              {d.luckyDirections && (
-                <View style={s.luckyRow}>
-                  <Text style={s.luckyItem}>✦ {d.luckyDirections.join(', ')}</Text>
-                </View>
-              )}
+          const d = data as FengshuiData | undefined;
+          if (!d) return null;
+          const hasDirections = d.luckyDirections?.length || d.dangerDirections?.length;
+          if (!hasDirections) return null;
+          return (
+            <View style={s.directionSection}>
+              {d.luckyDirections?.length ? (
+                <Text style={s.directionGood}>
+                  ✦ 吉方：{d.luckyDirections.join('、')}
+                </Text>
+              ) : null}
+              {d.dangerDirections?.length ? (
+                <Text style={s.directionBad}>
+                  ⚠ 避開：{d.dangerDirections.join('、')}
+                </Text>
+              ) : null}
             </View>
-          ) : null;
+          );
         })()}
 
-        {message.type === 'divination' && (() => {
-          const d = message.data as DivinationData | undefined;
-          return d ? (
-            <View style={s.dataSection}>
-              <HexagramBlock data={d} />
-            </View>
-          ) : null;
-        })()}
+        {/* Lucky Pills (all result types) */}
+        {isResult && luckyPills.length > 0 && (
+          <LuckyPills items={luckyPills} accentColor={accentColor || '#e8c547'} />
+        )}
 
+        {/* Nurture & Celebration badges */}
         {isNurture && <ExpBadge type={message.type} data={message.data as PetActionData | undefined} />}
         {isCeleb && <CelebrationBadge type={message.type} data={message.data as (LevelUpData & EvolveData) | undefined} />}
       </View>
@@ -230,102 +321,205 @@ export default function PetBubble({ message, petEmoji, petName }: PetBubbleProps
 }
 
 const s = StyleSheet.create({
-  container: { marginBottom: 16 },
+  container: { marginBottom: 14 },
 
+  // ─── Header ───
   header: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginBottom: 4, paddingHorizontal: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+    paddingHorizontal: 4,
   },
-  headerEmoji: { fontSize: 16 },
-  headerAvatar: { width: 20, height: 20, borderRadius: 10 },
-  headerName: { fontSize: 11, color: Colors.textDark, fontFamily: Fonts.serif },
-  headerTime: { fontSize: 10, color: Colors.textDarkest, marginLeft: 'auto' },
+  headerTime: {
+    fontSize: 10,
+    color: Colors.textDarkest,
+    marginLeft: 'auto',
+  },
   resultBadge: { width: 24, height: 24 },
 
+  // ─── Bubble ───
   bubble: {
-    padding: 14, borderRadius: 16,
+    padding: 16,
+    borderRadius: 16,
     borderTopLeftRadius: 4,
-    backgroundColor: 'rgba(232,197,71,0.04)',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.1)',
+    backgroundColor: 'rgba(232,197,71,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.12)',
+    overflow: 'hidden',
   },
-  bubbleCorner: {
-    position: 'absolute', top: 0, left: 0,
-    width: 16, height: 16, opacity: 0.4,
+  gradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
   },
   bubbleText: {
-    fontSize: 14, color: Colors.textSecondary,
-    fontFamily: Fonts.serif, lineHeight: 22,
+    fontSize: 16,
+    color: Colors.textLight,
+    fontFamily: Fonts.serif,
+    lineHeight: 26,
   },
 
+  // ─── Star Rating ───
+  starRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
+    marginVertical: 8,
+  },
+  star: {
+    fontSize: 20,
+  },
+  starFilled: {
+    color: Colors.primary,
+    textShadowColor: 'rgba(232,197,71,0.50)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
+  },
+  starEmpty: {
+    color: Colors.textDarkest,
+  },
+
+  // ─── Classic quote ───
+  quoteContainer: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+  },
+  quoteLine: {
+    width: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(232,197,71,0.25)',
+  },
   classicQuote: {
-    marginTop: 8, fontSize: 12, color: Colors.textDark,
-    fontStyle: 'italic', fontFamily: Fonts.serif, lineHeight: 20,
+    flex: 1,
+    fontSize: 15,
+    color: Colors.textDark,
+    fontStyle: 'italic',
+    fontFamily: Fonts.serif,
+    lineHeight: 20,
   },
 
-  dataSection: { marginTop: 12 },
+  // ─── Data section ───
+  dataSection: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.04)',
+  },
 
-  // Score bars
-  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  scoreLabel: { fontSize: 11, color: Colors.textDark, width: 30, textAlign: 'right' },
-  scoreTrack: {
-    flex: 1, height: 4, borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.05)', overflow: 'hidden',
+  // ─── Fortune bars (emoji-simplified) ───
+  fortuneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
   },
-  scoreFill: { height: '100%', borderRadius: 2 },
-  scoreValue: { fontSize: 11, width: 24, fontWeight: '700' },
+  fortuneEmoji: {
+    fontSize: 14,
+    width: 20,
+    textAlign: 'center',
+  },
+  fortuneLabel: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    width: 28,
+    fontFamily: Fonts.serif,
+  },
+  fortuneTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
+  },
+  fortuneFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  fortuneValue: {
+    fontSize: 14,
+    width: 30,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
 
-  // Lucky items row
-  luckyRow: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
-    marginTop: 8, paddingTop: 8,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.04)',
+  // ─── Direction indicators (fengshui) ───
+  directionSection: {
+    marginTop: 12,
+    gap: 4,
   },
-  luckyItem: { fontSize: 11, color: Colors.textDark },
+  directionGood: {
+    fontSize: 15,
+    color: '#4ADE80',
+    fontFamily: Fonts.serif,
+  },
+  directionBad: {
+    fontSize: 15,
+    color: '#ff8ba0',
+    fontFamily: Fonts.serif,
+  },
 
-  // Compass grid
-  compassGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    width: '100%', gap: 2,
+  // ─── Lucky Pills ───
+  pillsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
   },
-  compassCell: {
-    width: '31.5%', aspectRatio: 1.2,
-    alignItems: 'center', justifyContent: 'center',
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.02)',
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  compassCellLucky: { backgroundColor: 'rgba(232,197,71,0.08)' },
-  compassDir: { fontSize: 10, color: Colors.textDark, fontWeight: '600' },
-  compassGate: { fontSize: 9, color: Colors.textMuted, marginTop: 2 },
+  pillText: {
+    fontSize: 13,
+    fontFamily: Fonts.serif,
+  },
 
-  // Hexagram
-  hexBlock: { alignItems: 'center', paddingVertical: 8 },
-  hexSymbol: { fontSize: 32, marginBottom: 4 },
-  hexName: { fontSize: 14, color: Colors.primary, fontFamily: Fonts.serifBold, letterSpacing: 2 },
-  hexOracle: {
-    fontSize: 13, color: Colors.textSecondary, fontFamily: Fonts.serif,
-    marginTop: 6, textAlign: 'center', letterSpacing: 2,
-  },
-  trigramRow: {
-    flexDirection: 'row', gap: 12, marginTop: 8,
-  },
-  trigramText: { fontSize: 10, color: Colors.textDark },
-
-  // EXP badge
+  // ─── EXP badge ───
   expBadge: {
-    marginTop: 8, alignSelf: 'flex-start',
-    paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10,
-    backgroundColor: 'rgba(232,197,71,0.12)',
-  },
-  expBadgeText: { fontSize: 12, color: Colors.primary, fontWeight: '700' },
-
-  // Celebration badge
-  celebBadge: {
-    marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 10,
     alignSelf: 'flex-start',
-    paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12,
-    backgroundColor: 'rgba(232,197,71,0.15)',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(232,197,71,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.20)',
   },
-  celebBadgeEvolve: { backgroundColor: 'rgba(160,100,255,0.15)' },
-  celebEmoji: { fontSize: 16 },
-  celebText: { fontSize: 13, color: Colors.primary, fontFamily: Fonts.serifBold },
+  expBadgeText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+
+  // ─── Celebration badge ───
+  celebBadge: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(232,197,71,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.25)',
+  },
+  celebBadgeEvolve: {
+    backgroundColor: 'rgba(167,139,250,0.15)',
+    borderColor: 'rgba(167,139,250,0.25)',
+  },
+  celebEmoji: { fontSize: 20 },
+  celebText: {
+    fontSize: 15,
+    color: Colors.primary,
+    fontFamily: Fonts.serifBold,
+  },
 });

@@ -47,7 +47,9 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
         <View style={s.modal}>
           {/* Pet voice header */}
           <View style={s.petVoice}>
-            <Text style={s.petEmoji}>{petEmoji}</Text>
+            <View style={s.petEmojiWrap}>
+              <Text style={s.petEmoji}>{petEmoji}</Text>
+            </View>
             <Text style={s.petText}>
               {t('upgrade.petVoice', {
                 petName,
@@ -56,7 +58,7 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
             </Text>
           </View>
 
-          {/* Member plan */}
+          {/* ─── Member plan ─── */}
           {memberPlan && (
             <Pressable
               style={({ pressed }) => [s.planCard, pressed && { opacity: 0.7 }]}
@@ -64,19 +66,27 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
               disabled={isPurchasing}
             >
               <View style={s.planHeader}>
-                <Text style={s.planName}>⭐ {t('subscription.member')}</Text>
-                <Text style={s.planPrice}>${memberPlan.priceMonthly}{t('subscription.perMonth')}</Text>
+                <View style={s.planNameRow}>
+                  <Text style={s.planIcon}>⭐</Text>
+                  <Text style={s.planName}>{t('subscription.member')}</Text>
+                </View>
+                <View style={s.priceBadge}>
+                  <Text style={s.planPrice}>${memberPlan.priceMonthly}</Text>
+                  <Text style={s.priceUnit}>{t('subscription.perMonth')}</Text>
+                </View>
               </View>
-              <Text style={s.planFeature}>{t('upgrade.memberF1', { defaultValue: '· 靈眼/靈心/靈魂 5次/日' })}</Text>
-              <Text style={s.planFeature}>{t('upgrade.memberF2', { defaultValue: '· 靈寵等級上限 Lv.20' })}</Text>
-              <Text style={s.planFeature}>{t('upgrade.memberF3', { defaultValue: '· AI 深度解讀（Sonnet）' })}</Text>
+              <View style={s.featureList}>
+                <Text style={s.planFeature}>· 靈眼/靈心/靈魂 5次/日</Text>
+                <Text style={s.planFeature}>· 靈寵等級上限 Lv.20</Text>
+                <Text style={s.planFeature}>· AI 深度解讀（Sonnet）</Text>
+              </View>
               <View style={s.upgradeBtn}>
                 <Text style={s.upgradeBtnText}>{t('upgrade.upgradeBtn', { defaultValue: '立即升級' })}</Text>
               </View>
             </Pressable>
           )}
 
-          {/* Supreme plan */}
+          {/* ─── Supreme plan ─── */}
           {supremePlan && (
             <Pressable
               style={({ pressed }) => [s.planCard, s.planCardSupreme, pressed && { opacity: 0.7 }]}
@@ -84,14 +94,22 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
               disabled={isPurchasing}
             >
               <View style={s.planHeader}>
-                <Text style={[s.planName, { color: '#a78bfa' }]}>👑 {t('subscription.supreme')}</Text>
-                <Text style={[s.planPrice, { color: '#a78bfa' }]}>${supremePlan.priceMonthly}{t('subscription.perMonth')}</Text>
+                <View style={s.planNameRow}>
+                  <Text style={s.planIcon}>👑</Text>
+                  <Text style={[s.planName, { color: '#A78BFA' }]}>{t('subscription.supreme')}</Text>
+                </View>
+                <View style={[s.priceBadge, { backgroundColor: 'rgba(167,139,250,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
+                  <Text style={[s.planPrice, { color: '#A78BFA' }]}>${supremePlan.priceMonthly}</Text>
+                  <Text style={[s.priceUnit, { color: '#A78BFA' }]}>{t('subscription.perMonth')}</Text>
+                </View>
               </View>
-              <Text style={s.planFeature}>{t('upgrade.supremeF1', { defaultValue: '· 全功能無限使用' })}</Text>
-              <Text style={s.planFeature}>{t('upgrade.supremeF2', { defaultValue: '· 靈寵等級無上限' })}</Text>
-              <Text style={s.planFeature}>{t('upgrade.supremeF3', { defaultValue: '· 專屬進化 + 皮膚' })}</Text>
-              <View style={[s.upgradeBtn, { backgroundColor: 'rgba(160,100,255,0.12)' }]}>
-                <Text style={[s.upgradeBtnText, { color: '#a78bfa' }]}>{t('upgrade.upgradeBtn', { defaultValue: '立即升級' })}</Text>
+              <View style={s.featureList}>
+                <Text style={s.planFeature}>· 全功能無限使用</Text>
+                <Text style={s.planFeature}>· 靈寵等級無上限</Text>
+                <Text style={s.planFeature}>· 專屬進化 + 皮膚</Text>
+              </View>
+              <View style={[s.upgradeBtn, { backgroundColor: 'rgba(167,139,250,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
+                <Text style={[s.upgradeBtnText, { color: '#A78BFA' }]}>{t('upgrade.upgradeBtn', { defaultValue: '立即升級' })}</Text>
               </View>
             </Pressable>
           )}
@@ -118,49 +136,137 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
 
 const s = StyleSheet.create({
   overlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
-    alignItems: 'center', justifyContent: 'center',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modal: {
-    width: '85%', padding: 24, borderRadius: 20,
+    width: '85%',
+    padding: 24,
+    borderRadius: 22,
     backgroundColor: Colors.surface,
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.18)',
+    // Subtle golden glow
+    shadowColor: '#e8c547',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
 
+  // ─── Pet voice ───
   petVoice: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
     marginBottom: 20,
   },
-  petEmoji: { fontSize: 32 },
+  petEmojiWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(232,197,71,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.20)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  petEmoji: { fontSize: 30 },
   petText: {
-    flex: 1, fontSize: 14, color: Colors.textSecondary,
-    fontFamily: Fonts.serif, lineHeight: 22,
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontFamily: Fonts.serif,
+    lineHeight: 22,
   },
 
+  // ─── Plan cards ───
   planCard: {
-    padding: 16, borderRadius: 14, marginBottom: 10,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 10,
     backgroundColor: 'rgba(232,197,71,0.06)',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.18)',
   },
   planCardSupreme: {
-    backgroundColor: 'rgba(160,100,255,0.06)',
-    borderColor: 'rgba(160,100,255,0.15)',
+    backgroundColor: 'rgba(167,139,250,0.06)',
+    borderColor: 'rgba(167,139,250,0.18)',
   },
   planHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  planName: { fontSize: 16, color: Colors.primary, fontFamily: Fonts.serifBold },
-  planPrice: { fontSize: 14, color: Colors.primary, fontWeight: '600' },
-  planFeature: { fontSize: 12, color: Colors.textDark, lineHeight: 20, marginBottom: 2 },
+  planNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  planIcon: { fontSize: 24 },
+  planName: {
+    fontSize: 20,
+    color: Colors.primary,
+    fontFamily: Fonts.brush,
+    letterSpacing: 2,
+  },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: 'rgba(232,197,71,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.20)',
+  },
+  planPrice: {
+    fontSize: 20,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  priceUnit: {
+    fontSize: 10,
+    color: Colors.primary,
+    opacity: 0.7,
+  },
+  featureList: {
+    gap: 4,
+    marginBottom: 12,
+  },
+  planFeature: {
+    fontSize: 15,
+    color: Colors.textMuted,
+    lineHeight: 20,
+    fontFamily: Fonts.serif,
+  },
   upgradeBtn: {
-    marginTop: 10, paddingVertical: 10, borderRadius: 10, alignItems: 'center' as const,
+    paddingVertical: 11,
+    borderRadius: 12,
+    alignItems: 'center',
     backgroundColor: 'rgba(232,197,71,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.22)',
   },
-  upgradeBtnText: { fontSize: 14, color: Colors.primary, fontWeight: '600' as const },
+  upgradeBtnText: {
+    fontSize: 16,
+    color: Colors.primary,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
 
   dismissBtn: {
-    alignItems: 'center', paddingVertical: 14, marginTop: 6,
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 6,
   },
-  dismissText: { fontSize: 14, color: Colors.textDarkest },
+  dismissText: {
+    fontSize: 16,
+    color: Colors.textDarkest,
+    fontFamily: Fonts.serif,
+  },
 });

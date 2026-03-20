@@ -8,6 +8,7 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,11 +16,13 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuthStore } from '@/stores/auth-store';
-import { Colors, Fonts, Spacing } from '@/config/theme';
+import { Colors, Fonts } from '@/config/theme';
+import { LOGO } from '@/assets/images';
 
 type AuthMode = 'login' | 'register';
 
@@ -120,8 +123,9 @@ export default function AuthScreen() {
       >
         {/* ═══ Logo 區域 ═══ */}
         <View style={styles.logoSection}>
-          <Text style={styles.logoTitle}>{t('app.name', { defaultValue: '靈犀' })}</Text>
-          <Text style={styles.logoSubtitle}>LING XI</Text>
+          <Image source={LOGO.splash} style={styles.logoImage} />
+          <Image source={LOGO.splashText} style={styles.logoTextImage} />
+          <Text style={styles.logoTagline}>東方命理 · AI 靈寵</Text>
         </View>
 
         {/* ═══ Apple Sign-In（iOS 優先顯示）═══ */}
@@ -221,15 +225,22 @@ export default function AuthScreen() {
             onPress={handleEmailAuth}
             disabled={!isFormValid || isLoading}
           >
-            {isLoading ? (
-              <ActivityIndicator color={Colors.primary} size="small" />
-            ) : (
-              <Text style={styles.primaryBtnText}>
-                {mode === 'login'
-                  ? t('auth.loginButton', { defaultValue: '登入' })
-                  : t('auth.registerButton', { defaultValue: '註冊' })}
-              </Text>
-            )}
+            <LinearGradient
+              colors={['rgba(232,197,71,0.20)', 'rgba(232,197,71,0.08)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.primaryBtnGradient}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={Colors.primary} size="small" />
+              ) : (
+                <Text style={styles.primaryBtnText}>
+                  {mode === 'login'
+                    ? t('auth.loginButton', { defaultValue: '登入' })
+                    : t('auth.registerButton', { defaultValue: '註冊' })}
+                </Text>
+              )}
+            </LinearGradient>
           </Pressable>
 
           {/* 切換模式 */}
@@ -245,6 +256,7 @@ export default function AuthScreen() {
             </Text>
           </Pressable>
         </View>
+
 
         {/* ═══ 底部間距 ═══ */}
         <View style={styles.bottomSpacer} />
@@ -288,20 +300,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoTitle: {
-    fontFamily: Fonts.brush,
-    fontSize: 56,
-    color: Colors.primary,
-    letterSpacing: 8,
-    textShadowColor: 'rgba(232,197,71,0.3)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 40,
+  logoImage: {
+    width: 160,
+    height: 160,
+    resizeMode: 'contain',
   },
-  logoSubtitle: {
-    fontSize: 13,
-    color: 'rgba(232,197,71,0.5)',
-    letterSpacing: 8,
+  logoTextImage: {
+    width: 200,
+    height: 70,
+    resizeMode: 'contain',
     marginTop: 4,
+  },
+  logoTagline: {
+    fontFamily: Fonts.serif,
+    fontSize: 14,
+    color: Colors.primary,
+    opacity: 0.6,
+    marginTop: 8,
+    letterSpacing: 4,
   },
 
   // ─── Apple Sign-In ───
@@ -361,39 +377,42 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   inputLabel: {
-    fontSize: 11,
+    fontSize: 13,
     color: Colors.textDark,
     letterSpacing: 2,
     marginBottom: 8,
     marginTop: 16,
   },
   textInput: {
-    padding: 14,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 14,
     backgroundColor: 'rgba(232,197,71,0.06)',
     borderWidth: 1,
     borderColor: 'rgba(232,197,71,0.15)',
     color: Colors.primary,
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: Fonts.serif,
   },
 
   // ─── 按鈕 ───
   primaryBtn: {
     width: '100%',
-    padding: 16,
     borderRadius: 14,
-    alignItems: 'center',
-    backgroundColor: 'rgba(232,197,71,0.15)',
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(232,197,71,0.35)',
     marginTop: 24,
-    minHeight: 52,
+    minHeight: 56,
+  },
+  primaryBtnGradient: {
+    padding: 18,
+    alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 13,
   },
   primaryBtnText: {
     color: Colors.primary,
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: Fonts.serifBold,
     letterSpacing: 4,
   },
@@ -407,7 +426,7 @@ const styles = StyleSheet.create({
   },
   switchText: {
     color: Colors.textSecondary,
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Fonts.serif,
   },
 

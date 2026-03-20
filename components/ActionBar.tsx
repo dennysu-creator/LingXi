@@ -1,6 +1,5 @@
 // ═══════════════════════════════════════
-// 動作列 — 養成 + 功能按鈕
-// Premium mystical design with AI art icons
+// 動作列 — 右側垂直浮動面板
 // ═══════════════════════════════════════
 
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
@@ -19,23 +18,22 @@ interface ActionBarProps {
   activeFeature?: ActiveFeature;
 }
 
-const ROW1: { key: ActionType; image: ImageSourcePropType; labelKey: string; exp: string }[] = [
-  { key: 'feed', image: ACTION_BAR.nurture.feed, labelKey: 'pet.feed', exp: '+50' },
-  { key: 'play', image: ACTION_BAR.nurture.play, labelKey: 'pet.play', exp: '+30' },
-  { key: 'meditate', image: ACTION_BAR.nurture.meditate, labelKey: 'pet.meditate', exp: '+20' },
+const NURTURE_ITEMS: { key: ActionType; image: ImageSourcePropType; exp: string }[] = [
+  { key: 'feed', image: ACTION_BAR.nurture.feed, exp: '+50' },
+  { key: 'play', image: ACTION_BAR.nurture.play, exp: '+30' },
+  { key: 'meditate', image: ACTION_BAR.nurture.meditate, exp: '+20' },
 ];
 
-// Feature glow colors for active state
-const ABILITY_COLORS: Record<string, string> = {
-  eye: '#FFC107',
-  heart: '#4ADE80',
-  pearl: '#A78BFA',
+const ABILITY_COLORS: Record<string, { primary: string; bg: string; border: string }> = {
+  eye:   { primary: '#FFC107', bg: 'rgba(255,193,7,0.10)', border: 'rgba(255,193,7,0.30)' },
+  heart: { primary: '#4ADE80', bg: 'rgba(74,222,128,0.10)', border: 'rgba(74,222,128,0.30)' },
+  pearl: { primary: '#A78BFA', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.30)' },
 };
 
-const ROW2: { key: ActionType; image: ImageSourcePropType; labelKey: string; color: string }[] = [
-  { key: 'eye', image: ACTION_BAR.ability.eye, labelKey: 'actionBar.eye', color: ABILITY_COLORS.eye },
-  { key: 'heart', image: ACTION_BAR.ability.heart, labelKey: 'actionBar.heart', color: ABILITY_COLORS.heart },
-  { key: 'pearl', image: ACTION_BAR.ability.soul, labelKey: 'actionBar.soul', color: ABILITY_COLORS.pearl },
+const ABILITY_ITEMS: { key: ActionType; image: ImageSourcePropType; labelKey: string; colorKey: string }[] = [
+  { key: 'eye', image: ACTION_BAR.ability.eye, labelKey: 'actionBar.eye', colorKey: 'eye' },
+  { key: 'heart', image: ACTION_BAR.ability.heart, labelKey: 'actionBar.heart', colorKey: 'heart' },
+  { key: 'pearl', image: ACTION_BAR.ability.soul, labelKey: 'actionBar.soul', colorKey: 'pearl' },
 ];
 
 export default function ActionBar({ onAction, disabled, activeFeature }: ActionBarProps) {
@@ -43,183 +41,110 @@ export default function ActionBar({ onAction, disabled, activeFeature }: ActionB
 
   return (
     <View style={s.container}>
-      {/* Row 1: Nurture — hide when feature is active to save space */}
-      {!activeFeature && (
-        <View style={s.row}>
-          {ROW1.map(item => (
-            <Pressable
-              key={item.key}
-              style={({ pressed }) => [s.btn, s.btnNurture, pressed && s.pressed]}
-              onPress={() => onAction(item.key)}
-              disabled={disabled}
-            >
-              {/* Circular icon container with subtle glow */}
-              <View style={s.nurtureIconWrap}>
-                <Image source={item.image} style={s.nurtureIcon} resizeMode="contain" />
-              </View>
-              <Text style={s.btnLabel}>{t(item.labelKey)}</Text>
-              <Text style={s.btnExp}>{item.exp}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
+      {/* Ability buttons */}
+      {ABILITY_ITEMS.map(item => {
+        const isActive = activeFeature === item.key;
+        const colors = ABILITY_COLORS[item.colorKey];
+        return (
+          <Pressable
+            key={item.key}
+            style={({ pressed }) => [
+              s.abilityBtn,
+              isActive && {
+                backgroundColor: colors.bg,
+                borderColor: colors.border,
+                shadowColor: colors.primary,
+                shadowOpacity: 0.5,
+                shadowRadius: 10,
+                elevation: 6,
+              },
+              pressed && s.pressed,
+            ]}
+            onPress={() => onAction(item.key)}
+            disabled={disabled}
+          >
+            <Image source={item.image} style={s.abilityIcon} resizeMode="contain" />
+            <Text style={[s.abilityLabel, isActive && { color: colors.primary, fontWeight: '700' }]}>
+              {t(item.labelKey)}
+            </Text>
+          </Pressable>
+        );
+      })}
 
-      {/* Row 2: Abilities — highlight active feature with colored glow */}
-      <View style={s.row}>
-        {ROW2.map(item => {
-          const isActive = activeFeature === item.key;
-          return (
-            <Pressable
-              key={item.key}
-              style={({ pressed }) => [
-                s.btn,
-                s.btnAbility,
-                isActive && {
-                  backgroundColor: `${item.color}18`,
-                  borderColor: `${item.color}80`,
-                  shadowColor: item.color,
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.5,
-                  shadowRadius: 10,
-                  elevation: 8,
-                },
-                pressed && s.pressed,
-              ]}
-              onPress={() => onAction(item.key)}
-              disabled={disabled}
-            >
-              {/* Icon container — larger for abilities, with glow ring when active */}
-              <View
-                style={[
-                  s.abilityIconWrap,
-                  isActive && {
-                    borderColor: `${item.color}99`,
-                    shadowColor: item.color,
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.6,
-                    shadowRadius: 8,
-                    elevation: 6,
-                  },
-                ]}
-              >
-                <Image source={item.image} style={s.abilityIcon} resizeMode="contain" />
-              </View>
-              <Text
-                style={[
-                  s.btnLabel,
-                  s.abilityLabel,
-                  isActive && { color: item.color, fontWeight: '700' },
-                ]}
-              >
-                {t(item.labelKey)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* Divider */}
+      {!activeFeature && <View style={s.divider} />}
+
+      {/* Nurture — compact icon buttons (hidden when feature active) */}
+      {!activeFeature && NURTURE_ITEMS.map(item => (
+        <Pressable
+          key={item.key}
+          style={({ pressed }) => [s.nurtureBtn, pressed && s.pressed]}
+          onPress={() => onAction(item.key)}
+          disabled={disabled}
+        >
+          <Image source={item.image} style={s.nurtureIcon} resizeMode="contain" />
+        </Pressable>
+      ))}
     </View>
   );
 }
 
 const s = StyleSheet.create({
   container: {
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(232,197,71,0.12)',
-    backgroundColor: 'rgba(8,8,15,0.98)',
-  },
-
-  row: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 6,
-  },
-
-  btn: {
-    flex: 1,
+    position: 'absolute',
+    right: 8,
+    bottom: 40,
+    zIndex: 20,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 6,
-    borderRadius: 16,
+    borderRadius: 24,
+    backgroundColor: 'rgba(8,8,15,0.75)',
     borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.12)',
   },
-
   pressed: {
     opacity: 0.6,
-    transform: [{ scale: 0.96 }],
+    transform: [{ scale: 0.9 }],
   },
 
-  // ── Nurture buttons (Row 1) ──
-  btnNurture: {
-    backgroundColor: 'rgba(232,197,71,0.06)',
-    borderColor: 'rgba(232,197,71,0.15)',
-  },
-
-  nurtureIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+  // ─── Ability buttons ───
+  abilityBtn: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(232,197,71,0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(232,197,71,0.18)',
-    marginBottom: 6,
-    // Subtle golden glow
-    shadowColor: '#e8c547',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    borderColor: 'transparent',
   },
-
-  nurtureIcon: {
-    width: 44,
-    height: 44,
-  },
-
-  // ── Ability buttons (Row 2) ──
-  btnAbility: {
-    backgroundColor: 'rgba(100,180,255,0.04)',
-    borderColor: 'rgba(100,180,255,0.12)',
-  },
-
-  abilityIconWrap: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.10)',
-    marginBottom: 6,
-  },
-
   abilityIcon: {
-    width: 48,
-    height: 48,
+    width: 36,
+    height: 36,
   },
-
   abilityLabel: {
-    fontSize: 11,
-    letterSpacing: 1,
-  },
-
-  btnLabel: {
-    fontSize: 10,
-    color: Colors.textSecondary,
+    fontSize: 9,
+    color: Colors.textMuted,
     fontFamily: Fonts.serif,
+    letterSpacing: 1,
     marginTop: 2,
   },
 
-  btnExp: {
-    fontSize: 9,
-    color: Colors.textDark,
-    fontFamily: Fonts.serif,
-    marginTop: 1,
+  // ─── Divider ───
+  divider: {
+    width: 28,
+    height: 1,
+    backgroundColor: 'rgba(232,197,71,0.15)',
+  },
+
+  // ─── Nurture: compact icon buttons ───
+  nurtureBtn: {
+    alignItems: 'center',
+    padding: 4,
+    borderRadius: 12,
+  },
+  nurtureIcon: {
+    width: 30,
+    height: 30,
   },
 });

@@ -87,10 +87,9 @@ interface UserState {
   resetState: () => void;
 }
 
-// 每功能基礎額度（__DEV__ 模式下全部無限制）
-const FEATURE_LIMITS: Record<PlanType, number> = __DEV__
-  ? { free: 9999, member: 9999, supreme: 9999 }
-  : { free: 1, member: 5, supreme: 999 };
+// 每功能基礎額度
+// TODO: 上線前恢復正式限制 → free: 1, member: 5, supreme: 999
+const FEATURE_LIMITS: Record<PlanType, number> = { free: 9999, member: 9999, supreme: 9999 };
 
 function getInitialUserState() {
   return {

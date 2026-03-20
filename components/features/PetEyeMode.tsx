@@ -124,8 +124,12 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
           pet: petInfo,
           data: { overallScore: data.overall_score, topFeature: '天庭' },
         });
-        const resultText = data.ai_reading || resultNarration.spokenText;
-        onResult(resultText, data);
+        const resultText = (data as any).petMessage || data.ai_reading || resultNarration.spokenText;
+        onResult(resultText, {
+          ...data,
+          stars: (data as any).stars,
+          luckyItems: (data as any).luckyItems,
+        });
         // Close modal after result is sent
         setTimeout(() => { onClose?.(); setPhase('idle'); setProgress(0); setResult(null); setCapturedImage(null); }, 300);
         return;
@@ -160,12 +164,12 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
     progress < 60 ? t('eye.locating') :
     progress < 85 ? t('eye.analyzing') : t('eye.generating');
 
-  const features = result ? [
-    { label: t('eye.forehead'), score: result.features.forehead.score, desc: result.features.forehead.description },
-    { label: t('eye.eyebrows'), score: result.features.eyebrows.score, desc: result.features.eyebrows.description },
-    { label: t('eye.eyes'), score: result.features.eyes.score, desc: result.features.eyes.description },
-    { label: t('eye.nose'), score: result.features.nose.score, desc: result.features.nose.description },
-    { label: t('eye.mouth'), score: result.features.mouth.score, desc: result.features.mouth.description },
+  const features = result?.features ? [
+    { label: t('eye.forehead'), score: result.features.forehead?.score ?? 0, desc: result.features.forehead?.description ?? '' },
+    { label: t('eye.eyebrows'), score: result.features.eyebrows?.score ?? 0, desc: result.features.eyebrows?.description ?? '' },
+    { label: t('eye.eyes'), score: result.features.eyes?.score ?? 0, desc: result.features.eyes?.description ?? '' },
+    { label: t('eye.nose'), score: result.features.nose?.score ?? 0, desc: result.features.nose?.description ?? '' },
+    { label: t('eye.mouth'), score: result.features.mouth?.score ?? 0, desc: result.features.mouth?.description ?? '' },
   ] : [];
 
   const avgScore = result?.overall_score || 0;
@@ -254,12 +258,22 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
         {/* ─── 分析中 ─── */}
         {phase === 'analyzing' && (
           <View style={styles.analyzingBox}>
+            {/* Captured photo as watermark background */}
             <View style={styles.scanFrame}>
-              <Image
-                source={FEATURE_PANEL.eye.progressAnalyzing}
-                style={styles.analyzingArt}
-                resizeMode="contain"
-              />
+              {capturedImage && (
+                <Image
+                  source={{ uri: `data:image/jpeg;base64,${capturedImage}` }}
+                  style={styles.analyzingPhoto}
+                  resizeMode="cover"
+                />
+              )}
+              <View style={styles.analyzingOverlay}>
+                <Image
+                  source={FEATURE_PANEL.eye.progressAnalyzing}
+                  style={styles.analyzingArt}
+                  resizeMode="contain"
+                />
+              </View>
               {progress > 40 && (
                 <View style={styles.detectionDots}>
                   {[0, 1, 2, 3, 4, 5, 6].map((_, i) => (
@@ -310,7 +324,7 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
                 <Text style={styles.petReadingLabel}>{t('eye.petReading')}</Text>
               </View>
               <Text style={styles.petReadingText}>
-                {result.ai_reading || narration.spokenText}
+                {(result as any).petMessage || result.ai_reading || narration.spokenText}
               </Text>
             </View>
 
@@ -398,9 +412,9 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
 
 const styles = StyleSheet.create({
   outerContainer: { flex: 1 },
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: 8 },
-  bottomBar: { paddingHorizontal: Spacing.lg, paddingBottom: 8, backgroundColor: Colors.background },
+  bottomBar: { paddingHorizontal: Spacing.lg, paddingBottom: 8 },
 
   petHintCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -409,10 +423,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(100,180,255,0.1)',
     marginBottom: 16,
   },
-  petHintText: { fontSize: 13, color: Colors.pet, flex: 1, fontFamily: Fonts.serif },
+  petHintText: { fontSize: 14, color: Colors.pet, flex: 1, fontFamily: Fonts.serif },
 
   cameraContainer: {
-    height: 240, borderRadius: 20, overflow: 'hidden',
+    aspectRatio: 3 / 4, borderRadius: 20, overflow: 'hidden',
     marginBottom: 12,
   },
   camera: {
@@ -420,18 +434,18 @@ const styles = StyleSheet.create({
   },
   cameraPlaceholder: {
     alignItems: 'center', justifyContent: 'center',
-    height: 200, borderRadius: 20,
+    aspectRatio: 3 / 4, borderRadius: 20,
     backgroundColor: 'rgba(232,197,71,0.03)',
     borderWidth: 1, borderColor: 'rgba(232,197,71,0.1)',
     marginBottom: 16,
   },
   faceGuideOverlay: {
-    width: 180, height: 220, opacity: 0.35,
+    width: 180, height: 240, opacity: 0.35,
   },
   faceGuidePlaceholder: {
-    width: 160, height: 200, opacity: 0.4,
+    width: 160, height: 220, opacity: 0.4,
   },
-  cameraHint: { fontSize: 12, color: Colors.textDark, marginTop: 16, letterSpacing: 2 },
+  cameraHint: { fontSize: 13, color: Colors.textDark, marginTop: 16, letterSpacing: 2 },
   permissionBtn: {
     marginTop: 12, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10,
     backgroundColor: 'rgba(232,197,71,0.12)',
@@ -439,20 +453,25 @@ const styles = StyleSheet.create({
   permissionBtnText: { fontSize: 14, color: Colors.primary, fontWeight: '600' },
   captureButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, height: 56, borderRadius: 16,
+    gap: 10, height: 60, borderRadius: 14,
     backgroundColor: 'rgba(232,197,71,0.12)',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.3)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.25)',
     marginBottom: 16,
+    shadowColor: '#e8c547',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  captureIcon: { width: 40, height: 40 },
-  petHintAvatar: { width: 40, height: 40, borderRadius: 20 },
+  captureIcon: { width: 56, height: 56 },
+  petHintAvatar: { width: 52, height: 52, borderRadius: 26 },
   petNarrateAvatar: { width: 32, height: 32, borderRadius: 16 },
   petReadingAvatar: { width: 36, height: 36, borderRadius: 18 },
   captureText: { fontSize: 16, color: Colors.primary, fontFamily: Fonts.serifBold, letterSpacing: 2 },
-  noteText: { fontSize: 11, color: Colors.textDarkest, textAlign: 'center', fontStyle: 'italic' },
+  noteText: { fontSize: 13, color: Colors.textDarkest, textAlign: 'center', fontStyle: 'italic' },
 
   previewContainer: {
-    height: 200, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
+    aspectRatio: 3 / 4, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(232,197,71,0.06)',
     borderWidth: 1, borderColor: 'rgba(232,197,71,0.15)',
     marginBottom: 16,
@@ -461,13 +480,20 @@ const styles = StyleSheet.create({
   previewImage: { width: '100%', height: '100%' },
   previewText: { fontSize: 16, color: Colors.primary, fontFamily: Fonts.serifBold },
 
-  analyzingBox: { alignItems: 'center', paddingVertical: 30 },
+  analyzingBox: { alignItems: 'center', paddingVertical: 20 },
   scanFrame: {
-    width: 180, height: 200, borderRadius: 24,
+    width: '80%', aspectRatio: 3 / 4, borderRadius: 24,
     borderWidth: 2, borderColor: 'rgba(232,197,71,0.3)',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 20, position: 'relative',
     overflow: 'hidden',
+  },
+  analyzingPhoto: {
+    position: 'absolute', width: '100%', height: '100%', opacity: 0.25,
+  },
+  analyzingOverlay: {
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 2,
   },
   analyzingArt: {
     width: 160, height: 160,
@@ -486,7 +512,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(100,180,255,0.06)',
     marginBottom: 16,
   },
-  petNarrateText: { fontSize: 12, color: Colors.pet, fontFamily: Fonts.serif },
+  petNarrateText: { fontSize: 14, color: Colors.pet, fontFamily: Fonts.serif },
   progressText: { fontSize: 28, color: Colors.primary, fontFamily: Fonts.brush, marginBottom: 8 },
   statusText: { fontSize: 14, color: Colors.textMuted, letterSpacing: 2, marginBottom: 16 },
   progressTrack: {
@@ -510,23 +536,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   petReadingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  petReadingLabel: { fontSize: 12, color: Colors.pet, fontWeight: '600', letterSpacing: 2 },
+  petReadingLabel: { fontSize: 14, color: Colors.pet, fontWeight: '600', letterSpacing: 2 },
   petReadingText: { fontSize: 14, color: '#a0b8d0', lineHeight: 24, fontFamily: Fonts.serif },
 
-  sectionLabel: { fontSize: 12, color: Colors.textMuted, letterSpacing: 2, marginBottom: 14, fontFamily: Fonts.serif },
+  sectionLabel: { fontSize: 14, color: Colors.textMuted, letterSpacing: 2, marginBottom: 14, fontFamily: Fonts.serif },
 
   featuresCard: {
     padding: 16, borderRadius: 16,
-    backgroundColor: 'rgba(232,197,71,0.04)',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.1)',
+    backgroundColor: 'rgba(232,197,71,0.08)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.15)',
     marginBottom: 16,
   },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  featureLabel: { fontSize: 12, color: Colors.textDark, width: 32, textAlign: 'right' },
-  featureTrack: { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' },
-  featureFill: { height: '100%', borderRadius: 2 },
-  featureScore: { fontSize: 12, width: 24, fontWeight: '700' },
-  featureDesc: { fontSize: 10, color: Colors.textDarkest, width: 56 },
+  featureLabel: { fontSize: 14, color: Colors.textMuted, width: 40, textAlign: 'right', fontFamily: Fonts.serif },
+  featureTrack: { flex: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' },
+  featureFill: { height: '100%', borderRadius: 3 },
+  featureScore: { fontSize: 14, width: 32, fontWeight: '700', textAlign: 'right' },
+  featureDesc: { fontSize: 13, color: Colors.textDark, width: 60, fontFamily: Fonts.serif },
 
   luckyCard: {
     padding: 16, borderRadius: 16,
@@ -540,9 +566,9 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   luckyName: { fontSize: 16, fontFamily: Fonts.serifBold, marginBottom: 4 },
-  luckyDesc: { fontSize: 12, color: Colors.textMuted, lineHeight: 18, marginBottom: 6 },
+  luckyDesc: { fontSize: 13, color: Colors.textMuted, lineHeight: 20, marginBottom: 6 },
   luckyMeta: { flexDirection: 'row', gap: 12 },
-  luckyMetaText: { fontSize: 11, color: Colors.textDark },
+  luckyMetaText: { fontSize: 13, color: Colors.textDark },
 
   retryButton: {
     padding: 14, borderRadius: 12, alignItems: 'center',

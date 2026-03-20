@@ -23,7 +23,14 @@ export interface FortuneData {
   luckyElement?: string;
 }
 
-export interface FaceData {
+// Shared new-format fields from pet-voice AI responses
+interface PetVoiceFields {
+  stars?: number;
+  luckyItems?: Array<{ emoji: string; label: string; value: string }>;
+  mood?: string;
+}
+
+export interface FaceData extends PetVoiceFields {
   features?: Record<string, { score: number; description: string }>;
   overall_score?: number;
   fortune_level?: string;
@@ -32,16 +39,18 @@ export interface FaceData {
   lucky_number?: number;
 }
 
-export interface FengshuiData {
+export interface FengshuiData extends PetVoiceFields {
   palaces?: Array<{ direction: string; isAuspicious: boolean; gate?: string }>;
   luckyDirections?: string[];
   dangerDirections?: string[];
   location_analysis?: string;
   tips?: Array<{ icon: string; text: string }>;
   seat_advice?: string;
+  luckyDirection?: string;
+  avoidDirection?: string;
 }
 
-export interface DivinationData {
+export interface DivinationData extends PetVoiceFields {
   hexagram?: {
     id: number;
     name: string;
@@ -58,6 +67,7 @@ export interface DivinationData {
   changedHexagram?: { id: number; name: string; symbol: string; mysticalLine: string };
   changingLines?: number[];
   interpretation?: { verdict: string; guidance: string; timing: string };
+  directAnswer?: string;
 }
 
 export interface PetActionData {
