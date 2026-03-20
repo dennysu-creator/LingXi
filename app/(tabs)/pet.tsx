@@ -153,73 +153,12 @@ export default function PetScreen() {
 
   // ─── Action handlers ───
   const handleAction = useCallback((action: ActionType) => {
-    switch (action) {
-      case 'feed':
-      case 'play':
-      case 'meditate':
-        handleNurture(action);
-        break;
-      case 'eye':
-      case 'heart':
-      case 'pearl': {
-        if (activeFeature === action) {
-          setActiveFeature(null);
-          return;
-        }
-        const quotaKey = action === 'pearl' ? 'soul' : action;
-        const remaining = useUserStore.getState().getRemainingUses(quotaKey, petLevel);
-        if (remaining <= 0) {
-          setShowUpgrade(true);
-          return;
-        }
-        setActiveFeature(action);
-        break;
-      }
+    if (action === 'eye') {
+      handleEyePress();
+    } else if (action === 'heart') {
+      handleHeartPress();
     }
-  }, [activeFeature, planType, petLevel, petName, t, addMessage, feed, play, meditate, canLevelUp]);
-
-  const handleNurture = (action: 'feed' | 'play' | 'meditate') => {
-    const atCap = !canLevelUp(planType);
-    if (atCap) {
-      setShowUpgrade(true);
-      return;
-    }
-
-    const prevLevel = usePetStore.getState().level;
-    const prevEvo = usePetStore.getState().evolution;
-
-    if (action === 'feed') feed(planType);
-    else if (action === 'play') play(planType);
-    else meditate(planType);
-
-    const newLevel = usePetStore.getState().level;
-    const newEvo = usePetStore.getState().evolution;
-    const expGain = action === 'feed' ? 50 : action === 'play' ? 30 : 20;
-
-    const responses: Record<string, string> = {
-      feed: t('chat.feedResponse', { petName, defaultValue: `好好吃～謝謝主人！${petName}元氣滿滿！` }),
-      play: t('chat.playResponse', { petName, defaultValue: `好開心！和主人一起玩最快樂了～` }),
-      meditate: t('chat.meditateResponse', { petName, defaultValue: `嗯...感受到靈氣在流動...${petName}悟性提升了！` }),
-    };
-
-    addMessage({ type: action, text: responses[action], data: { exp: expGain } });
-
-    if (newLevel > prevLevel) {
-      addMessage({
-        type: 'levelup',
-        text: t('chat.levelUp', { petName, level: newLevel, defaultValue: `✨ ${petName}升到 Lv.${newLevel} 了！感覺更強大了！` }),
-        data: { level: newLevel },
-      });
-    }
-
-    if (newEvo > prevEvo) {
-      addMessage({
-        type: 'evolve',
-        text: t('chat.evolve', { petName, evolution: newEvo, defaultValue: `🌟 ${petName}進化了！第${newEvo}階段形態！` }),
-        data: { evolution: newEvo },
-      });
-    }
-  };
+  }, [handleEyePress, handleHeartPress]);
 
   // ─── Feature result handlers ───
   const handleEyeResult = useCallback((text: string, data: any) => {

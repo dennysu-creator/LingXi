@@ -76,7 +76,8 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
       const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
       if (photo?.base64) {
         setCapturedImage(photo.base64);
-        setPhase('preview');
+        // 跳過 preview 確認，直接進入分析
+        setPhase('analyzing');
       }
     } catch {
       Alert.alert(t('eye.cameraError', { defaultValue: '拍照失敗' }));
@@ -92,7 +93,6 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
 
     if (!capturedImage) return;
 
-    setPhase('analyzing');
     setProgress(0);
 
     // 模擬進度
@@ -150,14 +150,21 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
     }
   }, [capturedImage, useFeature, petLevel, onQuotaExhausted, onResult, onClose, bazi, t, petName, petCreature, petElement, petEmoji]);
 
-  // 請求相機權限 — 只在 modal 顯示時 (visible=true) 或非 modal 模式時請求
+  // 請求相機權限
   useEffect(() => {
-    if (visible === false) return; // Modal 隱藏時不請求
-    if (permission === null) return; // 尚未載入
+    if (visible === false) return;
+    if (permission === null) return;
     if (!permission?.granted) {
       requestPermission();
     }
   }, [permission, requestPermission, visible]);
+
+  // 拍照後自動啟動分析
+  useEffect(() => {
+    if (phase === 'analyzing' && capturedImage) {
+      startAnalysis();
+    }
+  }, [phase, capturedImage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const statusText =
     progress < 30 ? t('eye.scanning') :
