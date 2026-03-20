@@ -52,6 +52,7 @@ export default function PetScreen() {
   const fortuneGenRef = useRef(false);
 
   // ─── Store selectors ───
+  const petId = usePetStore(s => s.petId);
   const petName = usePetStore(s => s.name) || '靈寵';
   const petEmoji = usePetStore(s => s.emoji) || '🐉';
   const petCreature = usePetStore(s => s.creature) || '水龍';
@@ -60,9 +61,19 @@ export default function PetScreen() {
   const feed = usePetStore(s => s.feed);
   const play = usePetStore(s => s.play);
   const meditate = usePetStore(s => s.meditate);
+  const initPet = usePetStore(s => s.initPet);
 
   const planType = useUserStore(s => s.planType);
+  const birthMonth = useUserStore(s => s.birthMonth);
+  const birthDay = useUserStore(s => s.birthDay);
   const bazi = useUserStore(s => s.bazi);
+
+  // ─── Auto-fix: 如果 petId 為空但有生日資料，自動初始化靈寵 ───
+  useEffect(() => {
+    if (!petId && birthMonth && birthDay) {
+      initPet(birthMonth, birthDay);
+    }
+  }, [petId, birthMonth, birthDay, initPet]);
   const ziwei = useUserStore(s => s.ziwei);
   const astrology = useUserStore(s => s.astrology);
   const canLevelUp = usePetStore(s => s.canLevelUp);

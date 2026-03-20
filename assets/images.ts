@@ -76,16 +76,7 @@ export const EFFECTS = {
   sparkleParticle: require('./ui-v2/effects/sparkle-particle.png'),
   compassNeedle: require('./ui-v2/effects/compass-needle.png'),
   panelBgPattern: require('./ui-v2/effects/panel-bg-pattern.png'),
-  baguaSymbols: [
-    require('./ui-v2/effects/bagua-symbol-01.png'),
-    require('./ui-v2/effects/bagua-symbol-02.png'),
-    require('./ui-v2/effects/bagua-symbol-03.png'),
-    require('./ui-v2/effects/bagua-symbol-04.png'),
-    require('./ui-v2/effects/bagua-symbol-05.png'),
-    require('./ui-v2/effects/bagua-symbol-06.png'),
-    require('./ui-v2/effects/bagua-symbol-07.png'),
-    require('./ui-v2/effects/bagua-symbol-08.png'),
-  ],
+  baguaSymbols: require('./ui-v2/effects/bagua-symbol-01~08.png'),
 };
 
 // ─── Pet Avatars ───
