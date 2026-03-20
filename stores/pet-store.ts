@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════
-// 靈寵狀態管理（Zustand）
+// 靈寵狀態管理（Zustand）— 使用次數制升級
 // ═══════════════════════════════════════
 
 import { create } from 'zustand';
@@ -34,44 +34,62 @@ export function getNextUnlock(level: number): { level: number; feature: string; 
   return { level: parseInt(next[0]), ...next[1] };
 }
 
-// ─── 等級上限（依方案） ───
+// ─── 非線性升級門檻表（累計使用次數） ───
+// level N 需要 USAGE_THRESHOLDS[N] 累計次數才能達到
+// 設計：每級需要 10 + 2*(level-1) 次增量，但不超過 30 次/級
+function getUsageThreshold(level: number): number {
+  if (level <= 1) return 0;
+  let total = 0;
+  for (let i = 1; i < level; i++) {
+    total += Math.min(30, 10 + 2 * (i - 1)); // 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 30...
+  }
+  return total;
+}
 
-// TODO: 上線前恢復正式限制 → free: 10, member: 20, supreme: 999
-const LEVEL_CAPS: Record<PlanType, number> = { free: 999, member: 999, supreme: 999 };
+// 預算表（供 UI 顯示用）：
+// Lv1→2: 10次, Lv2→3: 12次, Lv3→4: 14次, ..., Lv15→16: 30次, 之後都是30次
+// 累計到 Lv10: 10+12+14+16+18+20+22+24+26+28 = 190 次 → 第一次進化
+// 累計到 Lv20: 190 + 30*10 = 490 次 → 第二次進化
+// 累計到 Lv30: 490 + 30*10 = 790 次 → 最終進化
 
-// TODO: 上線前恢復正式限制 → free: 1, member: 2, supreme: 5
-const EVOLUTION_CAPS: Record<PlanType, number> = { free: 5, member: 5, supreme: 5 };
+const MAX_LEVEL = 30;
+const EVOLUTION_LEVELS = [10, 20, 30]; // 進化觸發等級
 
 interface PetState {
   // 靈寵基本資料
-  petId: string;       // 節氣 ID（如 '01-lichun'）
+  petId: string;
   name: string;
-  creature: string;    // 靈獸原型
-  element: string;     // 五行
-  solarTerm: string;   // 節氣名
-  season: string;      // 季節
-  zodiac: string;      // 對應星座
-  personality: string; // 個性描述
+  creature: string;
+  element: string;
+  solarTerm: string;
+  season: string;
+  zodiac: string;
+  personality: string;
   emoji: string;
+
+  // 等級系統
   level: number;
+  evolution: number;      // 進化階段 1-4 (1=基礎, 2=第一進化, 3=第二進化, 4=最終)
+  usageCount: number;     // 累計使用次數（永不重置，收費依據）
+
+  // 舊欄位保留相容
   exp: number;
   expToNext: number;
-  evolution: number;   // 進化階段 1-5
-
-  // 屬性值
-  power: number;       // 靈力 0-100
-  affinity: number;    // 親密度 0-100
-  wisdom: number;      // 悟性 0-100
+  power: number;
+  affinity: number;
+  wisdom: number;
   mood: 'happy' | 'excited' | 'sleepy' | 'worried' | 'energetic';
 
   // Actions
   initPet: (month: number, day: number) => void;
+  incrementUsage: () => { leveledUp: boolean; evolved: boolean; newLevel: number; newEvolution: number };
   feed: (planType?: PlanType) => void;
   play: (planType?: PlanType) => void;
   meditate: (planType?: PlanType) => void;
   addExp: (amount: number, planType?: PlanType) => void;
   canLevelUp: (planType: PlanType) => boolean;
   getLevelCap: (planType: PlanType) => number;
+  getUsagesUntilNextLevel: () => number;
   resetState: () => void;
 }
 
@@ -87,54 +105,15 @@ function getInitialPetState() {
     personality: '',
     emoji: '',
     level: 1,
+    evolution: 1,
+    usageCount: 0,
     exp: 0,
     expToNext: 100,
-    evolution: 1,
     power: 50,
     affinity: 50,
     wisdom: 50,
     mood: 'happy' as const,
   };
-}
-
-/**
- * 嘗試升級（帶等級上限檢查，支援連續升級）
- */
-function tryLevelUp(
-  state: { level: number; exp: number; expToNext: number; evolution: number },
-  newExp: number,
-  planType: PlanType,
-): { level: number; exp: number; expToNext: number; evolution: number } | null {
-  if (newExp < state.expToNext) return null;
-
-  const levelCap = LEVEL_CAPS[planType];
-  const evoCap = EVOLUTION_CAPS[planType];
-
-  if (state.level >= levelCap) {
-    return { level: state.level, exp: state.expToNext - 1, expToNext: state.expToNext, evolution: state.evolution };
-  }
-
-  // 連續升級：處理溢出 EXP
-  let level = state.level;
-  let exp = newExp;
-  let expToNext = state.expToNext;
-  let evolution = state.evolution;
-
-  while (exp >= expToNext && level < levelCap) {
-    level += 1;
-    exp -= expToNext;
-    expToNext = Math.floor(100 * Math.pow(1.15, level - 1));
-    if (level % 10 === 0) {
-      evolution = Math.min(evolution + 1, evoCap);
-    }
-  }
-
-  // 若升級後又超過上限，卡住
-  if (level >= levelCap) {
-    exp = Math.min(exp, expToNext - 1);
-  }
-
-  return { level, exp, expToNext, evolution };
 }
 
 export const usePetStore = create<PetState>()(
@@ -155,9 +134,10 @@ export const usePetStore = create<PetState>()(
       personality: pet.personality,
       emoji: pet.emoji,
       level: 1,
+      evolution: 1,
+      usageCount: 0,
       exp: 0,
       expToNext: 100,
-      evolution: 1,
       power: 50,
       affinity: 50,
       wisdom: 50,
@@ -165,71 +145,52 @@ export const usePetStore = create<PetState>()(
     });
   },
 
-  feed: (planType = 'free') => {
+  // ─── 核心：每次使用功能 +1 ───
+  incrementUsage: () => {
     const state = get();
-    const newExp = state.exp + 50;
-    const levelResult = tryLevelUp(state, newExp, planType);
+    const newCount = state.usageCount + 1;
+    let level = state.level;
+    let evolution = state.evolution;
+    let leveledUp = false;
+    let evolved = false;
 
-    if (levelResult) {
-      set({ ...levelResult, power: Math.min(state.power + 10, 100), mood: 'happy' });
-    } else {
-      set({ exp: newExp, power: Math.min(state.power + 10, 100), mood: 'happy' });
+    // 檢查是否升級
+    while (level < MAX_LEVEL) {
+      const nextThreshold = getUsageThreshold(level + 1);
+      if (newCount >= nextThreshold) {
+        level++;
+        leveledUp = true;
+        // 檢查是否進化
+        if (EVOLUTION_LEVELS.includes(level)) {
+          evolution = Math.min(evolution + 1, 4);
+          evolved = true;
+        }
+      } else {
+        break;
+      }
     }
+
+    set({ usageCount: newCount, level, evolution });
+    return { leveledUp, evolved, newLevel: level, newEvolution: evolution };
   },
 
-  play: (planType = 'free') => {
+  // 保留舊 API 相容（內部轉發到 incrementUsage）
+  feed: () => { get().incrementUsage(); },
+  play: () => { get().incrementUsage(); },
+  meditate: () => { get().incrementUsage(); },
+  addExp: () => { get().incrementUsage(); },
+
+  canLevelUp: () => {
+    return get().level < MAX_LEVEL;
+  },
+
+  getLevelCap: () => MAX_LEVEL,
+
+  getUsagesUntilNextLevel: () => {
     const state = get();
-    const newExp = state.exp + 30;
-    const levelResult = tryLevelUp(state, newExp, planType);
-
-    if (levelResult) {
-      set({ ...levelResult, affinity: Math.min(state.affinity + 15, 100), mood: 'excited' });
-    } else {
-      set({ exp: newExp, affinity: Math.min(state.affinity + 15, 100), mood: 'excited' });
-    }
-  },
-
-  meditate: (planType = 'free') => {
-    const state = get();
-    const newExp = state.exp + 20;
-    const levelResult = tryLevelUp(state, newExp, planType);
-
-    if (levelResult) {
-      set({
-        ...levelResult,
-        wisdom: Math.min(state.wisdom + 10, 100),
-        power: Math.min(state.power + 5, 100),
-        mood: 'energetic',
-      });
-    } else {
-      set({
-        exp: newExp,
-        wisdom: Math.min(state.wisdom + 10, 100),
-        power: Math.min(state.power + 5, 100),
-        mood: 'energetic',
-      });
-    }
-  },
-
-  addExp: (amount, planType = 'free') => {
-    const state = get();
-    const newExp = state.exp + amount;
-    const levelResult = tryLevelUp(state, newExp, planType);
-
-    if (levelResult) {
-      set(levelResult);
-    } else {
-      set({ exp: newExp });
-    }
-  },
-
-  canLevelUp: (planType) => {
-    const state = get();
-    return state.level < LEVEL_CAPS[planType];
-  },
-
-  getLevelCap: (planType) => {
-    return LEVEL_CAPS[planType];
+    if (state.level >= MAX_LEVEL) return 0;
+    const nextThreshold = getUsageThreshold(state.level + 1);
+    return Math.max(0, nextThreshold - state.usageCount);
   },
 
   resetState: () => {
