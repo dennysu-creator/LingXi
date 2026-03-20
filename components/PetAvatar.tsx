@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 import { View, Text, Image, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import { Colors, Fonts, scale } from '@/config/theme';
 
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 import { usePetStore } from '@/stores/pet-store';
 import { getPetImage, PET_FRAME, FEATURE_FRAME, FEATURE_AURA } from '@/assets/images';
 
@@ -30,16 +30,22 @@ const ELEMENT_COLORS: Record<string, string> = {
 interface PetAvatarProps {
   activeFeature?: ActiveFeature;
   compact?: boolean;
+  fullscreen?: boolean;
 }
 
-export default function PetAvatar({ activeFeature, compact = false }: PetAvatarProps) {
+export default function PetAvatar({ activeFeature, compact = false, fullscreen = false }: PetAvatarProps) {
   const emoji = usePetStore(s => s.emoji) || '🐉';
   const petId = usePetStore(s => s.petId) || '';
   const name = usePetStore(s => s.name) || '靈寵';
   const level = usePetStore(s => s.level);
+  const evolution = usePetStore(s => s.evolution) || 1;
   const element = usePetStore(s => s.element) || '';
 
-  const avatarImage = getPetImage(petId, 'avatar');
+  // 根據進化階段選擇圖片：evo1(Lv1-9) → evo2(Lv10-19) → evo3(Lv20+)
+  // fullscreen 用進化大圖，一般用 avatar
+  const evoImageKey = evolution >= 3 ? 'evo3' : evolution >= 2 ? 'evo2' : 'evo1';
+  const fullImage = getPetImage(petId, evoImageKey) || getPetImage(petId, 'full');
+  const avatarImage = fullscreen ? fullImage : (getPetImage(petId, 'avatar') || fullImage);
   const elementColor = ELEMENT_COLORS[element] || Colors.primary;
 
   // ─── Floating animation ───
@@ -72,7 +78,6 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
   const frameSource = activeFeature ? FEATURE_FRAME[activeFeature] : PET_FRAME.normal;
 
   // ─── Sizes ───
-  // Normal mode: pet fills ~85% of screen width
   const fullSize = SCREEN_W * 0.85;
   const assemblySize = compact ? scale(130) : fullSize;
   const avatarImgSize = compact ? scale(80) : fullSize * 0.67;
@@ -81,9 +86,28 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
     ? (activeFeature ? scale(126) : scale(110))
     : (activeFeature ? fullSize * 0.95 : fullSize * 0.88);
 
+  // ─── Fullscreen: 直接渲染滿屏圖片 ───
+  if (fullscreen) {
+    return (
+      <View style={s.containerFullscreen}>
+        {avatarImage ? (
+          <Image
+            source={avatarImage}
+            style={s.fullscreenImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={s.fullscreenEmoji}>
+            <Text style={{ fontSize: 160 }}>{emoji}</Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // ─── Normal / Compact mode ───
   return (
     <View style={[s.container, compact && s.containerCompact]}>
-      {/* ─── Layered avatar assembly ─── */}
       <Animated.View
         style={[
           s.avatarAssembly,
@@ -91,7 +115,6 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
           { transform: [{ translateY: floatAnim }, { scale: pulseAnim }] },
         ]}
       >
-        {/* Layer 0 — Feature aura glow */}
         {activeFeature && (
           <Image
             source={FEATURE_AURA[activeFeature]}
@@ -100,7 +123,6 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
           />
         )}
 
-        {/* Layer 1 — Avatar image or emoji */}
         <View
           style={[
             s.avatarClip,
@@ -109,11 +131,15 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
               height: avatarFrameSize,
               borderRadius: avatarFrameSize / 2,
             },
+            avatarImage && {
+              borderWidth: 2,
+              borderColor: activeFeature ? FEATURE_COLOR[activeFeature] : '#E8C54780',
+            },
             activeFeature && {
-              borderColor: `${FEATURE_COLOR[activeFeature]}40`,
               shadowColor: FEATURE_COLOR[activeFeature],
-              shadowOpacity: 0.4,
-              shadowRadius: 12,
+              shadowOpacity: 0.5,
+              shadowRadius: 16,
+              shadowOffset: { width: 0, height: 0 },
             },
           ]}
         >
@@ -130,18 +156,18 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
           )}
         </View>
 
-        {/* Layer 2 — Frame overlay */}
-        <Image
-          source={frameSource}
-          style={[
-            s.frameImage,
-            { width: frameSize, height: frameSize },
-            { position: 'absolute', top: (assemblySize - frameSize) / 2, left: (assemblySize - frameSize) / 2 },
-          ]}
-          resizeMode="contain"
-        />
+        {!avatarImage && (
+          <Image
+            source={frameSource}
+            style={[
+              s.frameImage,
+              { width: frameSize, height: frameSize },
+              { position: 'absolute', top: (assemblySize - frameSize) / 2, left: (assemblySize - frameSize) / 2 },
+            ]}
+            resizeMode="contain"
+          />
+        )}
 
-        {/* Layer 3 — Eye symbol */}
         {activeFeature === 'eye' && (
           <Image
             source={PET_FRAME.eyeSymbol}
@@ -151,12 +177,10 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
         )}
       </Animated.View>
 
-      {/* Float shadow */}
       {!compact && (
         <Image source={PET_FRAME.floatShadow} style={s.floatShadow} resizeMode="contain" />
       )}
 
-      {/* ─── Info row ─── */}
       <View style={s.infoRow}>
         <Text style={[s.name, compact && { fontSize: 13 }]}>{name}</Text>
         <View style={s.levelPill}>
@@ -167,7 +191,7 @@ export default function PetAvatar({ activeFeature, compact = false }: PetAvatarP
             <Text style={[s.elementText, { color: elementColor }]}>{element}系</Text>
           </View>
         )}
-      </View>
+      </View>}
 
     </View>
   );
@@ -182,6 +206,20 @@ const s = StyleSheet.create({
   containerCompact: {
     paddingVertical: 4,
     paddingHorizontal: 12,
+  },
+  containerFullscreen: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.background,
+  },
+  fullscreenImage: {
+    width: SCREEN_W,
+    height: SCREEN_H,
+  },
+  fullscreenEmoji: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background,
   },
 
   avatarAssembly: {
@@ -200,7 +238,6 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(232,197,71,0.08)',
     borderWidth: 2,
     borderColor: 'rgba(232,197,71,0.20)',
-    // Default golden glow
     shadowColor: '#e8c547',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.2,

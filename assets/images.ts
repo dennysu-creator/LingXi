@@ -25,6 +25,23 @@ export const ACTION_BAR = {
   },
 };
 
+// ─── 新版 UI 圖標 (FLUX.2 Pro) ───
+export const UI_ICONS = {
+  category: {
+    career: require('./ui-v2/category/cat-career.png'),
+    love: require('./ui-v2/category/cat-love.png'),
+    family: require('./ui-v2/category/cat-family.png'),
+    health: require('./ui-v2/category/cat-health.png'),
+    study: require('./ui-v2/category/cat-study.png'),
+  },
+  buttons: {
+    eye: require('./ui-v2/buttons/btn-eye.png'),
+    heart: require('./ui-v2/buttons/btn-heart.png'),
+    send: require('./ui-v2/buttons/btn-send.png'),
+    settings: require('./ui-v2/buttons/btn-settings.png'),
+  },
+};
+
 // ─── Pet Avatar Frames & Overlays ───
 export const PET_FRAME = {
   normal: require('./ui-v2/pet-avatar/avatar-frame.png'),

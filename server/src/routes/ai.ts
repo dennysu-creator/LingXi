@@ -423,4 +423,60 @@ router.post('/pet-message', async (req: Request, res: Response): Promise<void> =
   }
 });
 
+// ─── POST /ai/pet-chat (自由對話，用最便宜 Haiku) ───
+router.post('/pet-chat', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.userId;
+    const planType = req.user!.planType;
+    const { message, petName, petElement, petPersonality, creature, solarTerm, zodiac, bazi } =
+      req.body as {
+        message: string;
+        petName?: string;
+        petElement?: string;
+        petPersonality?: string;
+        creature?: string;
+        solarTerm?: string;
+        zodiac?: string;
+        bazi?: string;
+      };
+
+    if (!message) {
+      res.status(400).json({ error: 'message is required' });
+      return;
+    }
+
+    const usage = await checkUsageAllowed(userId, planType, 'pet-message');
+    if (!usage.allowed) {
+      res.status(429).json({ error: 'Daily limit reached', remaining: 0, planType });
+      return;
+    }
+
+    // 永遠用 Haiku（最便宜）
+    const model = 'claude-haiku-4-5-20251001';
+
+    const systemPrompt = `你是「${petName || '小靈'}」，一隻${creature || '靈獸'}，屬性${petElement || '水'}，節氣${solarTerm || ''}，星座${zodiac || ''}。
+你的個性：${petPersonality || '可愛活潑'}。
+
+規則：
+- 你是主人的靈寵，用親切可愛的第一人稱說話，稱對方為「主人」
+- 回覆簡短（50-100字），自然口語化，帶有你的靈獸特色
+- 如果主人問運勢/命理相關問題，融入東方命理智慧回答
+- 八字參考：${bazi || '未提供'}
+- 語氣溫暖但帶有神秘感，偶爾用「...」表示靈感湧現`;
+
+    const rawResponse = await callClaude(model, systemPrompt, message);
+
+    await incrementUsage(userId, 'pet-message');
+    await saveMessage(userId, 'user', message, 'pet-chat');
+    await saveMessage(userId, 'assistant', rawResponse, 'pet-chat');
+
+    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
+    res.json({ data: { reply: rawResponse }, remaining });
+  } catch (err) {
+    console.error('Pet chat error:', err);
+    const message = err instanceof Error ? err.message : 'Chat failed';
+    res.status(500).json({ error: message });
+  }
+});
+
 export default router;
