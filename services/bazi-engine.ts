@@ -1,170 +1,110 @@
 // ═══════════════════════════════════════
-// 八字命理計算引擎
-// 根據出生年月日時計算天干地支、五行比例
+// 八字命理引擎 v2 — 基於 lunar-javascript 精確計算
+// 正確處理：節氣換月/年、日柱精確、地支藏干、喜用神
 // ═══════════════════════════════════════
 
 import {
-  HEAVENLY_STEMS,
-  EARTHLY_BRANCHES,
-  STEM_ELEMENT,
-  BRANCH_ELEMENT,
-  BRANCH_ZODIAC,
-  SHICHEN,
-} from '@/config/constants';
+  getFourPillars, getTodayPillars, calculateWuxingStrength,
+  getDayMasterElement, getWuxingRelation, getShengXiao,
+  GAN_WUXING, SHICHEN_NAMES,
+  type FourPillars, type GanZhi,
+} from './lunar-calendar';
 
 export interface BaziResult {
-  year: { stem: string; branch: string };
-  month: { stem: string; branch: string };
-  day: { stem: string; branch: string };
-  hour: { stem: string; branch: string };
+  year: { stem: string; branch: string; full: string };
+  month: { stem: string; branch: string; full: string };
+  day: { stem: string; branch: string; full: string };
+  hour: { stem: string; branch: string; full: string };
   zodiac: string;
-  dayMaster: string;          // 日主（日柱天干）
-  dayMasterElement: string;   // 日主五行
-  fiveElements: Record<string, number>;  // 五行計數
-  dominantElement: string;    // 最旺的五行
-  deficientElement: string;   // 最弱的五行
-  fullBaziString: string;     // 完整八字字串
+  dayMaster: string;
+  dayMasterElement: string;
+  wuxingCount: Record<string, number>;
+  strongestElement: string;
+  weakestElement: string;
+  favorableElement: string;
+  unfavorableElement: string;
 }
 
-/**
- * 計算年柱
- */
-function getYearPillar(year: number) {
-  const stemIndex = (year - 4) % 10;
-  const branchIndex = (year - 4) % 12;
-  return {
-    stem: HEAVENLY_STEMS[stemIndex],
-    branch: EARTHLY_BRANCHES[branchIndex],
-  };
-}
+const SHENG_MAP: Record<string, string> = { '木': '水', '火': '木', '土': '火', '金': '土', '水': '金' };
+const KE_MAP: Record<string, string> = { '木': '土', '火': '金', '土': '水', '金': '木', '水': '火' };
 
 /**
- * 計算月柱（簡化版，精確版需要節氣判斷）
+ * 計算八字命盤（精確版）
  */
-function getMonthPillar(year: number, month: number) {
-  // 月柱地支固定：正月=寅，二月=卯...
-  const branchIndex = (month + 1) % 12;
-  // 月柱天干根據年干推算（五虎遁）
-  const yearStemIndex = (year - 4) % 10;
-  const monthStemStart = (yearStemIndex % 5) * 2;
-  const stemIndex = (monthStemStart + month - 1) % 10;
-  return {
-    stem: HEAVENLY_STEMS[stemIndex],
-    branch: EARTHLY_BRANCHES[branchIndex],
-  };
-}
+export function calculateBazi(year: number, month: number, day: number, hour?: number): BaziResult {
+  const pillars = getFourPillars(year, month, day, hour);
+  const wuxingCount = calculateWuxingStrength(pillars);
+  const dayMasterElement = getDayMasterElement(pillars);
+  const zodiac = getShengXiao(year, month, day);
 
-/**
- * 計算日柱（簡化版，使用公式近似）
- */
-function getDayPillar(year: number, month: number, day: number) {
-  // 日柱計算需要萬年曆，這裡用簡化公式
-  // 正式版建議使用 lunar-javascript 套件
-  const baseDate = new Date(1900, 0, 1);
-  const targetDate = new Date(year, month - 1, day);
-  const diffDays = Math.floor((targetDate.getTime() - baseDate.getTime()) / 86400000);
-  const stemIndex = (diffDays + 10) % 10;
-  const branchIndex = (diffDays) % 12;
-  return {
-    stem: HEAVENLY_STEMS[stemIndex >= 0 ? stemIndex : stemIndex + 10],
-    branch: EARTHLY_BRANCHES[branchIndex >= 0 ? branchIndex : branchIndex + 12],
-  };
-}
+  const sorted = Object.entries(wuxingCount).sort((a, b) => b[1] - a[1]);
+  const strongestElement = sorted[0][0];
+  const weakestElement = sorted[sorted.length - 1][0];
 
-/**
- * 計算時柱
- */
-function getHourPillar(dayStem: string, hour: number) {
-  // 時辰地支
-  let branchIndex: number;
-  if (hour === 23 || hour === 0) branchIndex = 0;       // 子時
-  else branchIndex = Math.floor((hour + 1) / 2);
+  const avg = Object.values(wuxingCount).reduce((a, b) => a + b, 0) / 5;
+  const dayMasterStrength = wuxingCount[dayMasterElement] || 0;
 
-  // 時柱天干根據日干推算（五鼠遁）
-  const dayStemIndex = (HEAVENLY_STEMS as readonly string[]).indexOf(dayStem);
-  const hourStemStart = (dayStemIndex % 5) * 2;
-  const stemIndex = (hourStemStart + branchIndex) % 10;
+  const favorableElement = dayMasterStrength < avg ? SHENG_MAP[dayMasterElement] : KE_MAP[dayMasterElement];
+  const unfavorableElement = dayMasterStrength < avg ? KE_MAP[dayMasterElement] : SHENG_MAP[dayMasterElement];
+
+  const toResult = (gz: GanZhi) => ({ stem: gz.gan, branch: gz.zhi, full: gz.full });
 
   return {
-    stem: HEAVENLY_STEMS[stemIndex],
-    branch: EARTHLY_BRANCHES[branchIndex],
-  };
-}
-
-/**
- * 計算五行比例
- */
-function calculateFiveElements(
-  yearPillar: { stem: string; branch: string },
-  monthPillar: { stem: string; branch: string },
-  dayPillar: { stem: string; branch: string },
-  hourPillar: { stem: string; branch: string }
-): Record<string, number> {
-  const counts: Record<string, number> = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
-
-  [yearPillar, monthPillar, dayPillar, hourPillar].forEach(pillar => {
-    counts[STEM_ELEMENT[pillar.stem]]++;
-    counts[BRANCH_ELEMENT[pillar.branch]]++;
-  });
-
-  return counts;
-}
-
-/**
- * 取得當前時辰
- */
-export function getCurrentShichen(date?: Date): typeof SHICHEN[number] {
-  const hour = (date || new Date()).getHours();
-  if (hour === 23 || hour === 0) return SHICHEN[0];
-  return SHICHEN[Math.floor((hour + 1) / 2)];
-}
-
-/**
- * 主函式：計算完整八字
- */
-export function calculateBazi(
-  year: number,
-  month: number,
-  day: number,
-  hour: number
-): BaziResult {
-  const yearPillar = getYearPillar(year);
-  const monthPillar = getMonthPillar(year, month);
-  const dayPillar = getDayPillar(year, month, day);
-  const hourPillar = getHourPillar(dayPillar.stem, hour);
-
-  const fiveElements = calculateFiveElements(yearPillar, monthPillar, dayPillar, hourPillar);
-
-  // 找出最旺和最弱的五行
-  const sorted = Object.entries(fiveElements).sort((a, b) => b[1] - a[1]);
-  const dominantElement = sorted[0][0];
-  const deficientElement = sorted[sorted.length - 1][0];
-
-  const zodiac = BRANCH_ZODIAC[yearPillar.branch];
-  const dayMaster = dayPillar.stem;
-  const dayMasterElement = STEM_ELEMENT[dayMaster];
-
-  const fullBaziString = `${yearPillar.stem}${yearPillar.branch}年 ${monthPillar.stem}${monthPillar.branch}月 ${dayPillar.stem}${dayPillar.branch}日 ${hourPillar.stem}${hourPillar.branch}時`;
-
-  return {
-    year: yearPillar,
-    month: monthPillar,
-    day: dayPillar,
-    hour: hourPillar,
+    year: toResult(pillars.year),
+    month: toResult(pillars.month),
+    day: toResult(pillars.day),
+    hour: toResult(pillars.hour),
     zodiac,
-    dayMaster,
+    dayMaster: pillars.day.gan,
     dayMasterElement,
-    fiveElements,
-    dominantElement,
-    deficientElement,
-    fullBaziString,
+    wuxingCount,
+    strongestElement,
+    weakestElement,
+    favorableElement,
+    unfavorableElement,
   };
 }
 
 /**
- * 根據八字決定靈寵屬性
+ * 計算日運（日主 vs 今日日柱生剋）
  */
-export function determinePetElement(bazi: BaziResult): string {
-  // 靈寵五行 = 用戶最缺的五行（補足不足）
-  return bazi.deficientElement;
+export function calculateDailyBaziScore(bazi: BaziResult): { score: number; relation: string; advice: string } {
+  const todayPillars = getTodayPillars();
+  const todayElement = GAN_WUXING[todayPillars.day.gan] || '土';
+  const relation = getWuxingRelation(bazi.dayMasterElement, todayElement);
+
+  let score: number;
+  let advice: string;
+
+  switch (relation) {
+    case 'same':
+      score = 75; advice = '今日與日主同氣，比肩之日，適合合作與社交。'; break;
+    case 'sheng':
+      score = 60; advice = '今日為食傷之日，靈感充沛，適合創作，但注意體力。'; break;
+    case 'ke':
+      score = 65; advice = '今日為偏財之日，有利理財，但不宜冒進。'; break;
+    case 'bei_sheng':
+      score = 85; advice = '今日為印星之日，貴人運旺，學習工作效率極高！'; break;
+    case 'bei_ke':
+      score = 45; advice = '今日為七殺之日，壓力較大，宜低調行事。'; break;
+    default:
+      score = 70; advice = '今日運勢平穩。';
+  }
+
+  if (todayElement === bazi.favorableElement) {
+    score += 10;
+    advice += '\n✦ 今日五行利喜用神，運勢提升。';
+  } else if (todayElement === bazi.unfavorableElement) {
+    score -= 8;
+    advice += '\n⚠ 今日五行沖忌神，需謹慎。';
+  }
+
+  return { score: Math.max(20, Math.min(95, score)), relation, advice };
+}
+
+export function getCurrentShichen(): { name: string; index: number; display: string } {
+  const h = new Date().getHours();
+  const index = h >= 23 || h < 1 ? 0 : Math.floor((h + 1) / 2);
+  const names = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時', '午時', '未時', '申時', '酉時', '戌時', '亥時'];
+  return { name: names[index], index, display: SHICHEN_NAMES[index] };
 }

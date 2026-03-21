@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculateBazi, type BaziResult } from '@/services/bazi-engine';
 import { calculateZiweiChart, type ZiweiChart } from '@/services/ziwei-engine';
 import { calculateAstrology, type AstrologyResult } from '@/services/astrology-engine';
+import { solarToLunar } from '@/services/lunar-calendar';
 import type { CalendarType, FeatureType, PlanType } from '@/types/shared';
 
 // Re-export for backward compatibility
@@ -124,10 +125,10 @@ function buildDerivedCharts(
   let lunarMonth = month;
   let lunarDay = day;
   if (calendarType === 'solar') {
-    const approxLunarMonth = month <= 1 ? 12 + month - 1 : month - 1;
-    const approxLunarDay = day <= 20 ? day + 10 : day - 20;
-    lunarMonth = approxLunarMonth === 0 ? 12 : approxLunarMonth;
-    lunarDay = Math.max(1, Math.min(30, approxLunarDay));
+    // 使用 lunar-javascript 進行精確陽曆→農曆轉換
+    const lunar = solarToLunar(year, month, day);
+    lunarMonth = Math.abs(lunar.month); // 閏月為負數，取絕對值
+    lunarDay = lunar.day;
   }
 
   return {
