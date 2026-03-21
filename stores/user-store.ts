@@ -89,8 +89,7 @@ interface UserState {
 }
 
 // 每功能基礎額度
-// TODO: 上線前恢復正式限制 → free: 1, member: 5, supreme: 999
-const FEATURE_LIMITS: Record<PlanType, number> = { free: 9999, member: 9999, supreme: 9999 };
+const FEATURE_LIMITS: Record<PlanType, number> = { free: 1, member: 5, supreme: 999 };
 
 function getInitialUserState() {
   return {

@@ -222,6 +222,9 @@ export default function PetScreen() {
   const handleCategoryPress = useCallback((catKey: string) => {
     if (divinationLoading) return;
     if (!bazi || !ziwei || !astrology) return;
+    // F4: 檢查每日額度
+    const canUse = useUserStore.getState().useFeature('soul', petLevel);
+    if (!canUse) { setShowUpgrade(true); return; }
     setDivinationLoading(true);
 
     const catLabel = CATEGORIES.find(c => c.key === catKey)?.label || '';
@@ -351,6 +354,9 @@ export default function PetScreen() {
   // 靈眼：開相機 → 拍照 → 動畫 → 分析結果
   const handleEyePress = useCallback(async () => {
     if (eyeLoading || cameraOpen) return;
+    // F4: 檢查每日額度
+    const canUse = useUserStore.getState().useFeature('eye', petLevel);
+    if (!canUse) { setShowUpgrade(true); return; }
     // 請求相機權限
     if (Platform.OS !== 'web') {
       try {
@@ -421,6 +427,9 @@ export default function PetScreen() {
 
   const handleHeartPress = useCallback(() => {
     if (compassActive || !bazi) return;
+    // F4: 檢查每日額度
+    const canUse = useUserStore.getState().useFeature('heart', petLevel);
+    if (!canUse) { setShowUpgrade(true); return; }
     setCompassActive(true);
 
     // 2.5 秒後關閉羅盤，直接輸出風水結果到對話
@@ -454,6 +463,9 @@ export default function PetScreen() {
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || chatLoading) return;
+    // F4: 檢查聊天額度（使用 soul 類別）
+    const remaining = useUserStore.getState().getRemainingUses('soul', petLevel);
+    if (remaining <= 0) { setShowUpgrade(true); return; }
     const question = inputText.trim();
     addMessage({ type: 'user', text: question, data: {} });
     setInputText('');
@@ -528,9 +540,14 @@ export default function PetScreen() {
       {latestMessage && !divinationLoading && !eyeLoading && !compassActive && !hideMessage && (
         <View style={styles.floatingText}>
           <GlassView intensity={30} style={styles.floatingBlur}>
-            <Pressable style={styles.floatingClose} onPress={() => setHideMessage(true)}>
-              <Text style={styles.floatingCloseText}>✕</Text>
-            </Pressable>
+            <View style={styles.floatingTopBar}>
+              <Pressable style={styles.floatingShareBtn} onPress={() => { import('@/services/share-service').then(s => s.shareResult('靈犀運勢', latestMessage.text)); }}>
+                <Text style={styles.floatingShareText}>分享 ↗</Text>
+              </Pressable>
+              <Pressable style={styles.floatingClose} onPress={() => setHideMessage(true)}>
+                <Text style={styles.floatingCloseText}>✕</Text>
+              </Pressable>
+            </View>
             <Text style={styles.floatingContent}>{latestMessage.text}</Text>
           </GlassView>
         </View>
@@ -571,14 +588,18 @@ export default function PetScreen() {
       <View style={styles.sideBtns}>
         <Pressable style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]} onPress={handleEyePress}>
           <Image source={UI_ICONS.buttons.eye} style={styles.sideBtnIcon} resizeMode="contain" />
+          {planType === 'free' && <View style={styles.lockOverlay}><Text style={styles.lockIcon}>🔒</Text></View>}
         </Pressable>
         <Pressable style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]} onPress={handleHeartPress}>
           <Image source={UI_ICONS.buttons.heart} style={styles.sideBtnIcon} resizeMode="contain" />
+          {planType === 'free' && <View style={styles.lockOverlay}><Text style={styles.lockIcon}>🔒</Text></View>}
         </Pressable>
       </View>
 
       {/* ═══ 底部：類別 + 輸入（無底框） ═══ */}
       <View style={styles.bottomFloat}>
+        {/* F4: 今日剩餘次數 */}
+        <Text style={styles.remainingText}>今日剩餘 {useUserStore.getState().getRemainingUses('soul', petLevel)} 次</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
           {CATEGORIES.map(cat => (
             <Pressable key={cat.key} style={({ pressed }) => [styles.catChip, pressed && styles.sideBtnPressed]} onPress={() => handleCategoryPress(cat.key)} disabled={divinationLoading}>
@@ -655,12 +676,20 @@ const styles = StyleSheet.create({
   },
   floatingBlur: { paddingHorizontal: 20, paddingVertical: 16, paddingTop: 36 },
   floatingClose: {
-    position: 'absolute', top: 8, right: 10, zIndex: 5,
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center', justifyContent: 'center',
   },
   floatingCloseText: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
+  floatingTopBar: {
+    position: 'absolute', top: 6, right: 8, zIndex: 5,
+    flexDirection: 'row', gap: 6,
+  },
+  floatingShareBtn: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
+    backgroundColor: 'rgba(232,197,71,0.15)', borderWidth: 1, borderColor: 'rgba(232,197,71,0.3)',
+  },
+  floatingShareText: { fontSize: 11, color: Colors.primary, fontWeight: '600' },
   floatingContent: {
     fontSize: 15, color: '#EDE4D0', fontFamily: Fonts.serif,
     lineHeight: 26, letterSpacing: 0.3,
@@ -701,6 +730,16 @@ const styles = StyleSheet.create({
   },
   elementTagText: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: '500', letterSpacing: 1 },
 
+  remainingText: {
+    fontSize: 11, color: '#E8C547', fontFamily: Fonts.serif, letterSpacing: 1,
+    textAlign: 'right', marginBottom: 4, marginRight: 8, opacity: 0.7,
+  },
+  lockOverlay: {
+    position: 'absolute', top: -4, right: -4, width: 20, height: 20, borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.3)',
+  },
+  lockIcon: { fontSize: 10 },
   sideBtns: { position: 'absolute', right: 14, bottom: 170, zIndex: 5, gap: 14, alignItems: 'center' },
   sideBtn: {
     width: 54, height: 54, borderRadius: 27,

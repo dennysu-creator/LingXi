@@ -16,6 +16,7 @@ import { useUserStore } from '@/stores/user-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { setTokens } from '@/services/api-client';
 import { initSubscriptionService, identifyUser } from '@/services/subscription-service';
+import { initNotifications } from '@/services/notification-service';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import '@/i18n'; // 初始化多語言系統
 
@@ -53,6 +54,8 @@ export default function RootLayout() {
           await setTokens('dev-mock-token');
         }
         await initSubscriptionService();
+        // 初始化每日推播通知（8AM + 6PM）
+        await initNotifications();
       } catch {
         // 認證檢查失敗 → 當作未登入
       } finally {
