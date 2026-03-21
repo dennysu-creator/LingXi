@@ -1,0 +1,27 @@
+v1.0.0 -- Initial Release
+
+Welcome to LingXi! Your AI Spirit Pet is ready.
+
+- 24 Solar Term Spirit Pets with unique Five Elements attributes
+- AI Face Reading (Spirit Eye) powered by advanced vision AI
+- AI Feng Shui Compass (Spirit Heart) with GPS + magnetometer
+- AI Divination (Spirit Soul) with oracle lots and I-Ching hexagrams
+- BaZi, Zi Wei Dou Shu, Qi Men Dun Jia, and Western Astrology integration
+- Pet nurturing system with 3-stage evolution (Lv.10/20/30)
+- 6 languages: Traditional Chinese, Simplified Chinese, Japanese, English, German, French
+- Member and Supreme subscription plans
+
+---
+
+v1.0.0 -- 首次發布
+
+歡迎使用靈犀！你的 AI 命理靈寵已就緒。
+
+- 24 節氣靈寵，五行屬性各異
+- AI 面相分析（靈眼）— 先進視覺 AI 驅動
+- AI 風水羅盤（靈心）— GPS + 磁力計即時感應
+- AI 占卜問事（靈魂）— 六十甲子靈籤 + 易經六十四卦
+- 整合八字、紫微斗數、奇門遁甲、西洋占星四大命理系統
+- 靈寵養成系統，三階段進化（Lv.10/20/30）
+- 支援 6 種語言：繁中、簡中、日、英、德、法
+- 會員版與至尊版訂閱方案

@@ -25,7 +25,15 @@ export const ACTION_BAR = {
   },
 };
 
-// ─── 新版 UI 圖標 (FLUX.2 Pro) ───
+// ─── Onboarding & Auth 背景 (FLUX Ultra) ───
+export const BACKGROUNDS = {
+  welcome: require('./ui-v2/onboarding/bg-welcome.png'),
+  birthday: require('./ui-v2/onboarding/bg-birthday.png'),
+  petReveal: require('./ui-v2/onboarding/bg-pet-reveal.png'),
+  login: require('./ui-v2/auth/bg-login.png'),
+};
+
+// ─── 新版 UI 圖標 (FLUX Ultra) ───
 export const UI_ICONS = {
   category: {
     career: require('./ui-v2/category/cat-career.png'),

@@ -1,0 +1,55 @@
+LingXi -- AI Spirit Pet x Eastern Fortune Telling
+
+All things possess a spirit. LingXi merges millennia of Eastern metaphysical wisdom with cutting-edge AI to create your very own Spirit Pet companion. Enter your birth date and time, and the app matches you with one of 24 unique Spirit Pets based on the Chinese solar terms. Your Spirit Pet accompanies you every day -- reading fortunes, guiding directions, analyzing your face -- serving as your personal mystical life advisor.
+
+--- 24 Solar Term Spirit Pets ---
+
+Based on your birthday, the system assigns one of 24 Spirit Pets: the Spring Deer of Lichun, the Summer Lion of Xiazhi, the Autumn Tiger of Liqiu, the Winter Dragon of Dongzhi... Each pet carries a unique Five Elements attribute and personality. Through daily interaction, your pet levels up and undergoes three evolution stages at Lv.10, Lv.20, and Lv.30, unlocking new forms and abilities.
+
+--- Five Fortune-Telling Systems ---
+
+LingXi integrates five Eastern and Western divination systems for comprehensive life guidance:
+
+- BaZi (Eight Characters): Four Pillars of Destiny analysis based on your birth year, month, day, and hour
+- Zi Wei Dou Shu (Purple Star Astrology): Twelve-palace destiny chart covering career, love, and wealth
+- Qi Men Dun Jia (Mystical Door Escape): Real-time Eight Gates directional guidance for daily auspicious positioning
+- Western Astrology: Sun sign analysis cross-referenced with Five Elements for a dual East-West perspective
+- Sixty Jiazi Oracle Lots: Shake your phone to draw oracle lots, cast moon blocks for confirmation, and let your Spirit Pet interpret the result
+
+--- Three AI-Powered Features ---
+
+[Spirit Eye -- AI Face Reading]
+Open the camera and let your Spirit Pet analyze your facial features through AI vision. Forehead, eyebrows, eyes, nose, and mouth are each interpreted with today's fortune, delivering personalized lucky items, colors, and directional advice.
+
+[Spirit Heart -- AI Feng Shui Compass]
+Using GPS positioning and the magnetometer compass, your Spirit Pet senses the energy field at your current location. Combined with Qi Men Dun Jia's Eight Gates, it marks auspicious and inauspicious directions with real-time Feng Shui guidance.
+
+[Spirit Soul -- AI Divination]
+Choose from five categories -- Career, Love, Health, Study, or Family -- and your Spirit Pet activates the Spirit Pearl for divination. Sixty Jiazi oracle lots combined with 64 I-Ching hexagrams, enhanced by AI-powered deep interpretation tailored to your specific question.
+
+--- Pet Nurturing System ---
+
+- Feed, Play, and Meditate to earn experience and build affinity
+- Unlock abilities as you level up: Basic Chat, Fortune Reminders, Outfit Advice, Direction Navigation, Deep Reading, Prediction Alerts
+- Three-stage visual evolution makes your Spirit Pet truly one of a kind
+- Daily proactive fortune and outfit suggestions from your pet
+
+--- Subscription Plans ---
+
+Free: 1 AI feature use per day
+Member ($12.99/mo): 5 uses per day, level cap Lv.20, AI deep reading
+Supreme ($64.99/mo): Unlimited uses, no level cap, exclusive evolution and skins
+
+Subscriptions auto-renew and can be canceled anytime in your App Store account settings.
+
+--- Six Languages ---
+
+Supports Traditional Chinese, Simplified Chinese, Japanese, English, German, and French with automatic system language detection.
+
+--- Privacy and Security ---
+
+Photos taken for face reading are used solely for real-time AI analysis and are never stored on our servers. Your birth data is encrypted and never shared with third parties.
+
+Developer: YI HSUAN SU (YouQuan Technology Co., Ltd.)
+Support: dennysu@nedtex.com.tw
+Website: nedtex.com.tw
