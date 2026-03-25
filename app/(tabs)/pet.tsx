@@ -94,7 +94,7 @@ export default function PetScreen() {
   const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
   // 新訊息進來時自動顯示（用 latestMessage 的時間戳判斷，而非 length）
-  const msgTimestamp = latestMessage?.time?.getTime?.() ?? latestMessage?.text?.length ?? 0;
+  const msgTimestamp = latestMessage?.time ?? latestMessage?.text?.length ?? 0;
   useEffect(() => { setHideMessage(false); }, [msgTimestamp, messages.length]);
 
   const petInfo: PetInfo = { name: petName, type: petCreature, element: petElement, emoji: petEmoji, level: petLevel };
@@ -150,15 +150,6 @@ export default function PetScreen() {
       addMessage({ type: 'fortune', text: narration.spokenText, data: { slot } });
     }
   }, [bazi, ziwei, astrology]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ─── Action handlers ───
-  const handleAction = useCallback((action: ActionType) => {
-    if (action === 'eye') {
-      handleEyePress();
-    } else if (action === 'heart') {
-      handleHeartPress();
-    }
-  }, [handleEyePress, handleHeartPress]);
 
   // ─── Feature result handlers ───
   const handleEyeResult = useCallback((text: string, data: any) => {
@@ -439,7 +430,7 @@ export default function PetScreen() {
 
         try {
           const qimenChart = generateQimenChart(new Date());
-          const fortuneResult = calculateUnifiedFortune(bazi, ziwei, qimenChart, astrology);
+          const fortuneResult = calculateUnifiedFortune(bazi, ziwei!, qimenChart, astrology!);
           const luckyDir = fortuneResult.luckyDirections?.[0] || '東南';
           const avoidDir = '西';
           const locStr = compassLocation || '目前位置';

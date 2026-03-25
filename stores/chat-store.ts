@@ -8,7 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ChatMessageType =
   | 'fortune' | 'outfit' | 'face' | 'fengshui' | 'divination'
-  | 'feed' | 'play' | 'meditate' | 'levelup' | 'evolve';
+  | 'feed' | 'play' | 'meditate' | 'levelup' | 'evolve'
+  | 'system' | 'user' | 'chat';
 
 // ─── Per-type data shapes ───
 
@@ -37,6 +38,8 @@ export interface FaceData extends PetVoiceFields {
   lucky_item?: { emoji: string; name: string; reason: string };
   lucky_direction?: string;
   lucky_number?: number;
+  score?: number;
+  level?: string;
 }
 
 export interface FengshuiData extends PetVoiceFields {
@@ -48,6 +51,9 @@ export interface FengshuiData extends PetVoiceFields {
   seat_advice?: string;
   luckyDirection?: string;
   avoidDirection?: string;
+  luckyDir?: string;
+  avoidDir?: string;
+  location?: string;
 }
 
 export interface DivinationData extends PetVoiceFields {
@@ -82,6 +88,20 @@ export interface EvolveData {
   evolution?: number;
 }
 
+export interface SystemData {
+  [key: string]: unknown;
+}
+
+export interface UserData {
+  question?: string;
+  [key: string]: unknown;
+}
+
+export interface ChatData {
+  question?: string;
+  [key: string]: unknown;
+}
+
 export type ChatMessageData =
   | FortuneData
   | FaceData
@@ -89,7 +109,10 @@ export type ChatMessageData =
   | DivinationData
   | PetActionData
   | LevelUpData
-  | EvolveData;
+  | EvolveData
+  | SystemData
+  | UserData
+  | ChatData;
 
 export interface ChatMessage {
   id: string;
