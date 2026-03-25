@@ -131,16 +131,16 @@ export default function PetAvatar({ activeFeature, compact = false, fullscreen =
               height: avatarFrameSize,
               borderRadius: avatarFrameSize / 2,
             },
-            avatarImage && {
+            avatarImage ? {
               borderWidth: 2,
               borderColor: activeFeature ? FEATURE_COLOR[activeFeature] : '#E8C54780',
-            },
-            activeFeature && {
+            } : undefined,
+            activeFeature ? {
               shadowColor: FEATURE_COLOR[activeFeature],
               shadowOpacity: 0.5,
               shadowRadius: 16,
               shadowOffset: { width: 0, height: 0 },
-            },
+            } : undefined,
           ]}
         >
           {avatarImage ? (
@@ -191,7 +191,7 @@ export default function PetAvatar({ activeFeature, compact = false, fullscreen =
             <Text style={[s.elementText, { color: elementColor }]}>{element}系</Text>
           </View>
         )}
-      </View>}
+      </View>
 
     </View>
   );
