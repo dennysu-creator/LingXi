@@ -191,7 +191,7 @@ export default function PetAvatar({ activeFeature, compact = false, fullscreen =
             <Text style={[s.elementText, { color: elementColor }]}>{element}系</Text>
           </View>
         )}
-      </View>
+      </View>}
 
     </View>
   );
