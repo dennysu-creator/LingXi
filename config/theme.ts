@@ -143,4 +143,67 @@ export const CardStyle = {
   padding: Spacing.lg,
 } as const;
 
+// ─────────────────────────────────────────────
+// V4 Pet-First Immersive tokens
+// 配 expo-blur 的 <BlurView tint="dark"> 使用
+// ─────────────────────────────────────────────
+export const V4 = {
+  glass: {
+    base:         'rgba(10, 10, 14, 0.55)',
+    strong:       'rgba(10, 10, 14, 0.72)',
+    border:       'rgba(232, 197, 71, 0.18)',
+    borderStrong: 'rgba(232, 197, 71, 0.35)',
+  },
+
+  gold:    '#E8C547',
+  goldDim: 'rgba(232, 197, 71, 0.6)',
+  ink:     '#0A0A0E',
+
+  text: {
+    primary:   '#F5F1E8',
+    secondary: 'rgba(245, 241, 232, 0.7)',
+    tertiary:  'rgba(245, 241, 232, 0.45)',
+    accent:    '#E8C547',
+  },
+
+  space: {
+    xs:  6,
+    sm:  10,
+    md:  14,
+    lg:  20,
+    xl:  28,
+    xxl: 40,
+  },
+
+  radius: {
+    sm:   10,
+    md:   16,
+    lg:   22,
+    pill: 999,
+  },
+
+  glow: {
+    gold: {
+      shadowColor:   '#E8C547',
+      shadowOpacity: 0.4,
+      shadowRadius:  24,
+      shadowOffset:  { width: 0, height: 0 } as const,
+      elevation:     6,
+    },
+    soft: {
+      shadowColor:   '#000',
+      shadowOpacity: 0.35,
+      shadowRadius:  32,
+      shadowOffset:  { width: 0, height: 8 } as const,
+      elevation:     10,
+    },
+  },
+
+  motion: {
+    bubbleSpring: { tension: 80, friction: 10 },
+    enter:        { duration: 300 },
+    tapPulse:     { duration: 400, peak: 1.04 },
+  },
+} as const;
+
 export { SCREEN_W, SCREEN_H };

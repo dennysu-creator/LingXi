@@ -1,19 +1,16 @@
 // ═══════════════════════════════════════
-// 靈寵中心 — 全螢幕靈寵 + 漫畫對白泡泡
-// StatusBar(⚙️+Logo+Date+Lv) → MangaBubble → PetAvatar → ActionBar
-// 三大功能以內嵌面板呈現，歷史對話移至設定頁
+// 靈寵中心 V4 — Pet-First Immersive
+// 全螢幕靈寵 + 頂部 chip + 右側浮鈕 + 可收合 PetBubble + 透明 5-tab 分類列
 // ═══════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Image, ScrollView, Pressable, StyleSheet, TextInput, KeyboardAvoidingView, Platform, Keyboard, Animated, Easing } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, TextInput, KeyboardAvoidingView, Platform, Keyboard, Animated, Easing } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { Colors, Fonts, FontSize, Spacing, BorderRadius, GlowShadow } from '@/config/theme';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Fonts, GlowShadow, V4 } from '@/config/theme';
 
-// GlassView 需要 native rebuild，改用半透明 View 模擬
-const GlassView = ({ intensity, children, style }: { intensity?: number; tint?: string; children: React.ReactNode; style?: any }) => (
-  <View style={[{ backgroundColor: `rgba(8,8,15,${Math.min(0.95, (intensity || 50) / 100 + 0.4)})` }, style]}>{children}</View>
-);
 import { UI_ICONS } from '@/assets/images';
 import { usePetStore } from '@/stores/pet-store';
 import { useUserStore } from '@/stores/user-store';
@@ -25,8 +22,6 @@ import { getLocalDateKey } from '@/services/date-utils';
 import { generateQimenChart } from '@/services/qimen-engine';
 
 import PetAvatar, { type ActiveFeature } from '@/components/PetAvatar';
-import { type ActionType } from '@/components/ActionBar';
-import FeaturePanel from '@/components/FeaturePanel';
 import UpgradeModal from '@/components/UpgradeModal';
 
 // 羅盤浮層（靈心用）
@@ -36,16 +31,19 @@ if (Platform.OS !== 'web') {
   try { Magnetometer = require('expo-sensors').Magnetometer; } catch {}
 }
 
-// ─── 農曆日期工具（簡化） ───
-function getLunarDateStr(): string {
-  const now = new Date();
-  const shichen = getCurrentShichen();
-  const m = now.getMonth() + 1;
-  const d = now.getDate();
-  return `${m}月${d}日 · ${shichen.name}時`;
-}
+// ─── 毛玻璃 wrapper(BlurView + 半透明覆蓋色) ───
+const Glass = ({ intensity = 40, tint = 'dark' as 'dark' | 'light' | 'default', children, style }: {
+  intensity?: number;
+  tint?: 'dark' | 'light' | 'default';
+  children?: React.ReactNode;
+  style?: any;
+}) => (
+  <BlurView intensity={intensity} tint={tint} style={[{ backgroundColor: V4.glass.base }, style]}>
+    {children}
+  </BlurView>
+);
 
-// ─── 時段判斷 ───
+// ─── 時段判斷(用於頂部三顆進度點) ───
 function getTimeSlot(): 'morning' | 'afternoon' | 'evening' {
   const h = new Date().getHours();
   if (h < 12) return 'morning';
@@ -53,10 +51,54 @@ function getTimeSlot(): 'morning' | 'afternoon' | 'evening' {
   return 'evening';
 }
 
-export default function PetScreen() {
-  const { t } = useTranslation();
+// ─── HH:mm formatter ───
+function formatHHmm(t: number | string | Date | undefined): string {
+  if (!t) return '';
+  const d = t instanceof Date ? t : new Date(t);
+  if (isNaN(d.getTime())) return '';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 
+// ─── PetBubble 標題(依訊息 type) ───
+function getBubbleTitle(msgType: string | undefined): string {
+  switch (msgType) {
+    case 'evolve':     return '靈寵進化';
+    case 'levelup':    return '靈寵升級';
+    case 'face':       return '靈眼觀相';
+    case 'fengshui':   return '靈心風水';
+    case 'divination': return '靈寵卜卦';
+    case 'chat':       return '靈寵回應';
+    case 'user':       return '主人問';
+    case 'system':     return '系統訊息';
+    case 'fortune':
+    default:           return '今日靈寵奇語';
+  }
+}
+
+// ─── 高亮關鍵字渲染(吉凶 / 方位 / 吉時) ───
+const HIGHLIGHT_PATTERN = /大吉|中吉|小吉|需留意|上相|中相|平相|凶險|凶|東南方|東北方|西南方|西北方|正東方|正南方|正西方|正北方|東方|南方|西方|北方|吉時|吉方位|避方位/g;
+
+function renderHighlightedBody(body: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+  HIGHLIGHT_PATTERN.lastIndex = 0;
+  while ((match = HIGHLIGHT_PATTERN.exec(body)) !== null) {
+    if (match.index > lastIdx) parts.push(body.slice(lastIdx, match.index));
+    parts.push(
+      <Text key={`h${match.index}`} style={{ color: V4.text.accent, fontWeight: '600' }}>
+        {match[0]}
+      </Text>
+    );
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < body.length) parts.push(body.slice(lastIdx));
+  return parts;
+}
+
+export default function PetScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // ─── State ───
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -93,11 +135,25 @@ export default function PetScreen() {
   const messages = useChatStore(s => s.messages);
   const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
-  // 新訊息進來時自動顯示（用 latestMessage 的時間戳判斷，而非 length）
-  const msgTimestamp = latestMessage?.time ?? latestMessage?.text?.length ?? 0;
-  useEffect(() => { setHideMessage(false); }, [msgTimestamp, messages.length]);
-
   const petInfo: PetInfo = { name: petName, type: petCreature, element: petElement, emoji: petEmoji, level: petLevel };
+
+  // ─── Bubble 收合動畫 ───
+  const [bubbleCollapsed, setBubbleCollapsed] = useState(false);
+  const bubbleAnim = useRef(new Animated.Value(1)).current; // 1 = expanded, 0 = collapsed
+
+  // 新訊息到 → 自動展開
+  const msgTimestamp = latestMessage?.time ?? latestMessage?.text?.length ?? 0;
+  useEffect(() => { setBubbleCollapsed(false); }, [msgTimestamp, messages.length]);
+
+  // 收合 / 展開 spring
+  useEffect(() => {
+    Animated.spring(bubbleAnim, {
+      toValue: bubbleCollapsed ? 0 : 1,
+      tension: V4.motion.bubbleSpring.tension,
+      friction: V4.motion.bubbleSpring.friction,
+      useNativeDriver: true,
+    }).start();
+  }, [bubbleCollapsed, bubbleAnim]);
 
   // ─── Generate daily fortune on mount ───
   useEffect(() => {
@@ -151,49 +207,9 @@ export default function PetScreen() {
     }
   }, [bazi, ziwei, astrology]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Feature result handlers ───
-  const handleEyeResult = useCallback((text: string, data: any) => {
-    addMessage({
-      type: 'face', text,
-      data: {
-        features: data.features, overall_score: data.overall_score,
-        fortune_level: data.fortune_level, lucky_item: data.lucky_item,
-        lucky_direction: data.lucky_direction, lucky_number: data.lucky_number,
-        stars: data.stars, luckyItems: data.luckyItems, mood: data.mood,
-      },
-    });
-  }, [addMessage]);
-
-  const handleHeartResult = useCallback((text: string, data: any) => {
-    addMessage({
-      type: 'fengshui', text,
-      data: {
-        palaces: data.palaces, luckyDirections: data.luckyDirections,
-        dangerDirections: data.dangerDirections, location_analysis: data.location_analysis,
-        tips: data.tips, seat_advice: data.seat_advice,
-        stars: data.stars, luckyItems: data.luckyItems, mood: data.mood,
-        luckyDirection: data.luckyDirection, avoidDirection: data.avoidDirection,
-      },
-    });
-  }, [addMessage]);
-
-  const handlePearlResult = useCallback((text: string, data: any) => {
-    addMessage({
-      type: 'divination', text,
-      data: {
-        hexagram: data.hexagram, category: data.category,
-        changedHexagram: data.changedHexagram, changingLines: data.changingLines,
-        interpretation: data.interpretation, directAnswer: data.directAnswer,
-        stars: data.stars, luckyItems: data.luckyItems, mood: data.mood,
-      },
-    });
-  }, [addMessage]);
-
   const handleQuotaExhausted = useCallback(() => { setShowUpgrade(true); }, []);
   const closeFeature = useCallback(() => { setActiveFeature(null); }, []);
 
-  const lunarStr = getLunarDateStr();
-  const [showActions, setShowActions] = useState(false);
   const [inputText, setInputText] = useState('');
   const [divinationLoading, setDivinationLoading] = useState(false);
 
@@ -203,10 +219,10 @@ export default function PetScreen() {
 
   const CATEGORIES = [
     { key: 'career', label: '事業', icon: UI_ICONS.category.career },
-    { key: 'love', label: '桃花', icon: UI_ICONS.category.love },
+    { key: 'love',   label: '桃花', icon: UI_ICONS.category.love },
     { key: 'family', label: '家庭', icon: UI_ICONS.category.family },
     { key: 'health', label: '健康', icon: UI_ICONS.category.health },
-    { key: 'study', label: '學業', icon: UI_ICONS.category.study },
+    { key: 'study',  label: '學業', icon: UI_ICONS.category.study },
   ];
 
   // 按類別直接算命 → 動畫 → 結果輸出到對話框
@@ -248,10 +264,10 @@ export default function PetScreen() {
         // 取該類別的分數
         const scoreMap: Record<string, number> = {
           career: fortuneResult.scores.career,
-          love: fortuneResult.scores.love,
+          love:   fortuneResult.scores.love,
           family: fortuneResult.scores.health, // 家庭歸健康
           health: fortuneResult.scores.health,
-          study: fortuneResult.scores.study,
+          study:  fortuneResult.scores.study,
         };
         const score = scoreMap[catKey] ?? fortuneResult.overallScore;
         const level = score >= 80 ? '大吉' : score >= 60 ? '中吉' : score >= 40 ? '小吉' : '需留意';
@@ -271,8 +287,8 @@ export default function PetScreen() {
           `${narration.spokenText}\n\n` +
           `✦ ${catLabel}指數：${score}/100\n` +
           (fortuneResult.luckyDirections?.[0] ? `✦ 幸運方位：${fortuneResult.luckyDirections[0]}\n` : '') +
-          (fortuneResult.luckyColors?.[0] ? `✦ 幸運色：${fortuneResult.luckyColors[0]}\n` : '') +
-          (fortuneResult.luckyNumbers?.[0] ? `✦ 幸運數字：${fortuneResult.luckyNumbers[0]}` : '');
+          (fortuneResult.luckyColors?.[0]     ? `✦ 幸運色：${fortuneResult.luckyColors[0]}\n`   : '') +
+          (fortuneResult.luckyNumbers?.[0]    ? `✦ 幸運數字：${fortuneResult.luckyNumbers[0]}` : '');
 
         addMessage({
           type: 'fortune',
@@ -306,7 +322,6 @@ export default function PetScreen() {
   const glowOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] });
 
   const [chatLoading, setChatLoading] = useState(false);
-  const [hideMessage, setHideMessage] = useState(false);
   const [eyeLoading, setEyeLoading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const cameraRef = useRef<any>(null);
@@ -397,9 +412,9 @@ export default function PetScreen() {
           (reading ? `${reading}\n\n` : `${petName}凝視了主人的面相...\n\n`) +
           `✦ 整體面相：${score}/100\n` +
           (data.features?.forehead ? `✦ 天庭：${data.features.forehead.score}/100\n` : '') +
-          (data.features?.eyes ? `✦ 眼相：${data.features.eyes.score}/100\n` : '') +
-          (data.lucky_direction ? `✦ 吉方位：${data.lucky_direction}\n` : '') +
-          (data.lucky_item ? `✦ 開運物：${data.lucky_item}` : '');
+          (data.features?.eyes     ? `✦ 眼相：${data.features.eyes.score}/100\n`     : '') +
+          (data.lucky_direction    ? `✦ 吉方位：${data.lucky_direction}\n`             : '') +
+          (data.lucky_item         ? `✦ 開運物：${data.lucky_item}`                    : '');
 
         addMessage({ type: 'face', text: resultText, data: { score, level, ...data } });
         incrementUsage();
@@ -488,6 +503,20 @@ export default function PetScreen() {
     }
   };
 
+  // ─── 頂部三顆進度點 active index(早:0、午:1、晚:2)───
+  const slot = getTimeSlot();
+  const activeDotIdx = slot === 'morning' ? 0 : slot === 'afternoon' ? 1 : 2;
+
+  // ─── 最近一次運勢分類(底部 tab active 態)───
+  const lastCatKey = (latestMessage?.data as any)?.category as string | undefined;
+
+  // ─── Bubble translateY 與 opacity ───
+  const bubbleTranslateY = bubbleAnim.interpolate({ inputRange: [0, 1], outputRange: [320, 0] });
+  const bubbleOpacity = bubbleAnim;
+
+  const showBubble = !!latestMessage && !divinationLoading && !eyeLoading && !compassActive;
+  const showCollapsedHandle = showBubble && bubbleCollapsed;
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* ═══ Layer 0: 全螢幕靈寵 ═══ */}
@@ -495,7 +524,21 @@ export default function PetScreen() {
         <PetAvatar activeFeature={activeFeature} compact={false} fullscreen />
       </View>
 
-      {/* ═══ 羅盤浮層（靈心啟動時） ═══ */}
+      {/* ═══ Layer 1: 頂部漸層遮罩 ═══ */}
+      <LinearGradient
+        colors={['rgba(10,10,14,0.7)', 'rgba(10,10,14,0)']}
+        style={styles.topGradient}
+        pointerEvents="none"
+      />
+
+      {/* ═══ Layer 2: 底部漸層遮罩(讓 tab 與 bubble 可讀) ═══ */}
+      <LinearGradient
+        colors={['rgba(10,10,14,0)', 'rgba(10,10,14,0.85)']}
+        style={styles.bottomGradient}
+        pointerEvents="none"
+      />
+
+      {/* ═══ 羅盤浮層(靈心啟動時) ═══ */}
       {compassActive && (
         <Animated.View style={[styles.compassOverlay, { opacity: compassAnim, transform: [{ scale: compassAnim }] }]}>
           <Animated.View style={[styles.compassRing, { transform: [{ rotate: `${-compassHeading}deg` }] }]}>
@@ -520,40 +563,42 @@ export default function PetScreen() {
         </Animated.View>
       )}
 
-      {/* ═══ 右上角設定（毛玻璃） ═══ */}
-      <GlassView intensity={40} style={styles.settingsBtn}>
-        <Pressable style={styles.settingsBtnInner} onPress={() => router.navigate('/(tabs)/profile')}>
-          <Image source={UI_ICONS.buttons.settings} style={styles.settingsIconImg} resizeMode="contain" />
-        </Pressable>
-      </GlassView>
-
-      {/* ═══ 浮動結果（完整顯示 + X 關閉） ═══ */}
-      {latestMessage && !divinationLoading && !eyeLoading && !compassActive && !hideMessage && (
-        <View style={styles.floatingText}>
-          <GlassView intensity={30} style={styles.floatingBlur}>
-            <View style={styles.floatingTopBar}>
-              <Pressable style={styles.floatingShareBtn} onPress={() => { import('@/services/share-service').then(s => s.shareResult('靈犀運勢', latestMessage.text)); }}>
-                <Text style={styles.floatingShareText}>分享 ↗</Text>
-              </Pressable>
-              <Pressable style={styles.floatingClose} onPress={() => setHideMessage(true)}>
-                <Text style={styles.floatingCloseText}>✕</Text>
-              </Pressable>
+      {/* ═══ Layer 3: 頂部 chip(暱稱 + Lv + 三顆進度點 + 八卦徽章) ═══ */}
+      <View style={[styles.headerWrap, { top: insets.top + 8 }]} pointerEvents="box-none">
+        <Pressable onPress={() => router.navigate('/(tabs)/profile')} style={styles.headerChipPressable}>
+          <Glass intensity={40} style={styles.headerChip}>
+            <Text style={styles.headerName} numberOfLines={1}>{petName}</Text>
+            <View style={styles.headerLvBadge}>
+              <Text style={styles.headerLvText}>Lv.{petLevel}</Text>
             </View>
-            <Text style={styles.floatingContent}>{latestMessage.text}</Text>
-          </GlassView>
-        </View>
-      )}
+            <View style={styles.headerDots}>
+              {[0, 1, 2].map(i => (
+                <View
+                  key={i}
+                  style={[
+                    styles.headerDot,
+                    i < activeDotIdx && styles.headerDotPast,
+                    i === activeDotIdx && styles.headerDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          </Glass>
+        </Pressable>
 
-      {/* ═══ 左下名牌 ═══ */}
-      <View style={styles.nameplate}>
-        <Text style={styles.petName}>{petName}</Text>
-        <View style={styles.nameBadges}>
-          <View style={styles.lvBadge}><Text style={styles.lvText}>Lv.{petLevel}</Text></View>
-          <View style={styles.elementTag}><Text style={styles.elementTagText}>✦ {petElement}</Text></View>
-        </View>
+        {/* 八卦徽章 — 純視覺,長按 placeholder */}
+        <Pressable
+          onPress={() => {}}
+          onLongPress={() => { /* placeholder for future action */ }}
+          style={styles.headerBaguaPressable}
+        >
+          <Glass intensity={40} style={styles.headerBagua}>
+            <Text style={styles.headerBaguaIcon}>☯</Text>
+          </Glass>
+        </Pressable>
       </View>
 
-      {/* ═══ 相機浮層（靈眼拍照） ═══ */}
+      {/* ═══ 相機浮層(靈眼拍照) ═══ */}
       {cameraOpen && Platform.OS !== 'web' && (() => {
         const CameraView = require('expo-camera').CameraView;
         return (
@@ -575,52 +620,137 @@ export default function PetScreen() {
         );
       })()}
 
-      {/* ═══ 右側功能鈕 ═══ */}
-      <View style={styles.sideBtns}>
+      {/* ═══ Layer 4: 右側浮鈕(44×44) ═══ */}
+      <View style={styles.sideBtns} pointerEvents="box-none">
         <Pressable style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]} onPress={handleEyePress}>
-          <Image source={UI_ICONS.buttons.eye} style={styles.sideBtnIcon} resizeMode="contain" />
+          <Glass intensity={50} style={styles.sideBtnGlass}>
+            <Image source={UI_ICONS.buttons.eye} style={styles.sideBtnIcon} resizeMode="contain" />
+          </Glass>
           {planType === 'free' && <View style={styles.lockOverlay}><Text style={styles.lockIcon}>🔒</Text></View>}
         </Pressable>
         <Pressable style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]} onPress={handleHeartPress}>
-          <Image source={UI_ICONS.buttons.heart} style={styles.sideBtnIcon} resizeMode="contain" />
+          <Glass intensity={50} style={styles.sideBtnGlass}>
+            <Image source={UI_ICONS.buttons.heart} style={styles.sideBtnIcon} resizeMode="contain" />
+          </Glass>
           {planType === 'free' && <View style={styles.lockOverlay}><Text style={styles.lockIcon}>🔒</Text></View>}
         </Pressable>
       </View>
 
-      {/* ═══ 底部：類別 + 輸入（無底框） ═══ */}
-      <View style={styles.bottomFloat}>
-        {/* F4: 今日剩餘次數 */}
-        <Text style={styles.remainingText}>今日剩餘 {useUserStore.getState().getRemainingUses('soul', petLevel)} 次</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
-          {CATEGORIES.map(cat => (
-            <Pressable key={cat.key} style={({ pressed }) => [styles.catChip, pressed && styles.sideBtnPressed]} onPress={() => handleCategoryPress(cat.key)} disabled={divinationLoading}>
-              <Image source={cat.icon} style={styles.catIcon} resizeMode="cover" />
-              <Text style={styles.catLabel}>{cat.label}</Text>
+      {/* ═══ Layer 5: PetBubble(可收合的訊息卡) ═══ */}
+      {showBubble && (
+        <Animated.View
+          pointerEvents={bubbleCollapsed ? 'none' : 'box-none'}
+          style={[
+            styles.bubbleWrap,
+            { transform: [{ translateY: bubbleTranslateY }], opacity: bubbleOpacity },
+          ]}
+        >
+          <Glass intensity={50} style={styles.bubbleCard}>
+            {/* 把手列(可點收合) */}
+            <Pressable onPress={() => setBubbleCollapsed(true)} style={styles.bubbleHandleArea}>
+              <View style={styles.bubbleHandleBar} />
             </Pressable>
-          ))}
-        </ScrollView>
-        <View style={styles.inputRow}>
-          <View style={styles.inputWrapper}>
-            <TextInput style={styles.textInput} placeholder={chatLoading ? '靈寵思考中...' : '向靈寵問卦...'} placeholderTextColor="rgba(232,197,71,0.25)" value={inputText} onChangeText={setInputText} onSubmitEditing={handleSendMessage} returnKeyType="send" editable={!chatLoading} />
-          </View>
-          <Pressable style={({ pressed }) => [styles.sendBtn, pressed && { opacity: 0.6 }, chatLoading && { opacity: 0.3 }]} onPress={handleSendMessage} disabled={chatLoading}>
-            {chatLoading ? <Text style={styles.sendBtnText}>⏳</Text> : <Image source={UI_ICONS.buttons.send} style={styles.sendBtnIcon} resizeMode="contain" />}
-          </Pressable>
+            {/* 標題列 */}
+            <View style={styles.bubbleHeader}>
+              <View style={styles.bubbleTitleRow}>
+                <View style={styles.bubbleTitleDot} />
+                <Text style={styles.bubbleTitle} numberOfLines={1}>
+                  {getBubbleTitle(latestMessage?.type)}
+                </Text>
+              </View>
+              <View style={styles.bubbleHeaderRight}>
+                <Text style={styles.bubbleTime}>{formatHHmm(latestMessage?.time)}</Text>
+                <Pressable onPress={() => setBubbleCollapsed(true)} style={styles.bubbleCloseBtn}>
+                  <Text style={styles.bubbleCloseText}>✕</Text>
+                </Pressable>
+              </View>
+            </View>
+            {/* 內文(高亮) */}
+            <Text style={styles.bubbleBody} numberOfLines={6}>
+              {renderHighlightedBody(latestMessage?.text || '')}
+            </Text>
+            {/* 分享 */}
+            <Pressable
+              onPress={() => { import('@/services/share-service').then(s => s.shareResult('靈犀運勢', latestMessage?.text || '')); }}
+              style={styles.bubbleShareBtn}
+            >
+              <Text style={styles.bubbleShareText}>分享 ↗</Text>
+            </Pressable>
+          </Glass>
+        </Animated.View>
+      )}
+
+      {/* ═══ 收合狀態的 8px 把手(讓使用者重新展開) ═══ */}
+      {showCollapsedHandle && (
+        <Pressable onPress={() => setBubbleCollapsed(false)} style={styles.collapsedHandleWrap} hitSlop={12}>
+          <View style={styles.collapsedHandleBar} />
+        </Pressable>
+      )}
+
+      {/* ═══ Layer 6: 輸入框(只在展開時顯示) ═══ */}
+      {!bubbleCollapsed && (
+        <View style={styles.composerWrap}>
+          <Glass intensity={50} style={styles.composer}>
+            <TextInput
+              style={styles.composerInput}
+              placeholder={chatLoading ? '靈寵思考中...' : '向靈寵問卦...'}
+              placeholderTextColor={V4.text.tertiary}
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmitEditing={handleSendMessage}
+              returnKeyType="send"
+              editable={!chatLoading}
+            />
+            <Pressable
+              style={({ pressed }) => [styles.composerSendBtn, pressed && { opacity: 0.6 }, chatLoading && { opacity: 0.3 }]}
+              onPress={handleSendMessage}
+              disabled={chatLoading}
+            >
+              {chatLoading
+                ? <Text style={styles.composerSendText}>⏳</Text>
+                : <Image source={UI_ICONS.buttons.send} style={styles.composerSendIcon} resizeMode="contain" />}
+            </Pressable>
+          </Glass>
+        </View>
+      )}
+
+      {/* ═══ Layer 7: 底部 5 顆透明 tab(分類重設計) ═══ */}
+      <View style={[styles.tabRow, { paddingBottom: Math.max(insets.bottom, 8) }]} pointerEvents="box-none">
+        {/* 今日剩餘次數 — 小字置右 */}
+        <Text style={styles.tabRemainingText}>
+          今日剩餘 {useUserStore.getState().getRemainingUses('soul', petLevel)} 次
+        </Text>
+        <View style={styles.tabRowInner}>
+          {CATEGORIES.map(cat => {
+            const isActive = lastCatKey === cat.key;
+            return (
+              <Pressable
+                key={cat.key}
+                style={({ pressed }) => [styles.tabBtn, pressed && { opacity: 0.55 }]}
+                onPress={() => handleCategoryPress(cat.key)}
+                disabled={divinationLoading}
+              >
+                <View style={[styles.tabIconCircle, isActive && styles.tabIconCircleActive]}>
+                  <Image source={cat.icon} style={styles.tabIconImg} resizeMode="cover" />
+                </View>
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{cat.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
       {/* ═══ 占卜/靈眼動畫 ═══ */}
       {(divinationLoading || eyeLoading) && (
-        <GlassView intensity={60} style={styles.animOverlay}>
+        <Glass intensity={60} style={styles.animOverlay}>
           <Animated.View style={[styles.animSpinner, { transform: [{ rotate: spinRotate }] }]}>
             <Text style={styles.animSymbol}>{eyeLoading ? '👁' : '☰'}</Text>
           </Animated.View>
           <Animated.Text style={[styles.animText, { opacity: glowOpacity }]}>
             {eyeLoading ? '靈眼正在觀相中...' : '靈寵正在感應中...'}
           </Animated.Text>
-        </GlassView>
+        </Glass>
       )}
-
 
       <UpgradeModal visible={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </KeyboardAvoidingView>
@@ -645,47 +775,233 @@ function getFortuneQuote(result: UnifiedFortuneResult): string | undefined {
   return undefined;
 }
 
+// ─── 版面常數(供 absolute 排層使用) ───
+const TAB_ROW_TOTAL_H = 90; // icon 圓 42 + label + paddings
+const COMPOSER_H = 50;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050508' },
+  container: { flex: 1, backgroundColor: V4.ink },
   petFullscreen: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
 
-  settingsBtn: {
-    position: 'absolute', top: 54, right: 14, zIndex: 30,
-    width: 44, height: 44, borderRadius: 22, overflow: 'hidden',
-    borderWidth: 1.5, borderColor: 'rgba(232,197,71,0.20)',
-    backgroundColor: 'rgba(8,8,15,0.5)',
+  // ─── 頂部 / 底部漸層 ───
+  topGradient: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 200, zIndex: 1,
   },
-  settingsBtnInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  settingsIcon: { fontSize: 17 },
-  settingsIconImg: { width: 24, height: 24, opacity: 0.8 },
+  bottomGradient: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 220, zIndex: 1,
+  },
 
-  floatingText: {
-    position: 'absolute', bottom: 140, left: 16, right: 16, zIndex: 8,
-    borderRadius: 20, overflow: 'hidden',
-    borderWidth: 1.5, borderColor: 'rgba(232,197,71,0.12)',
-    backgroundColor: 'rgba(8,8,15,0.75)',
+  // ─── 頂部 chip(name + Lv + dots)+ 八卦徽章 ───
+  headerWrap: {
+    position: 'absolute', left: 0, right: 0, zIndex: 30,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: V4.space.md,
   },
-  floatingBlur: { paddingHorizontal: 20, paddingVertical: 16, paddingTop: 36 },
-  floatingClose: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+  headerChipPressable: {
+    flexShrink: 1,
+    borderRadius: V4.radius.pill, overflow: 'hidden',
+    borderWidth: 1, borderColor: V4.glass.border,
+  },
+  headerChip: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 8,
+    gap: 10,
+  },
+  headerName: {
+    fontSize: 15, color: V4.text.primary, fontFamily: Fonts.brush,
+    letterSpacing: 2, maxWidth: 110,
+  },
+  headerLvBadge: {
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: V4.radius.pill,
+    backgroundColor: V4.gold,
+  },
+  headerLvText: {
+    fontSize: 11, color: V4.ink, fontWeight: '700', letterSpacing: 0.5,
+  },
+  headerDots: {
+    flexDirection: 'row', gap: 5, alignItems: 'center', marginLeft: 4,
+  },
+  headerDot: {
+    width: 5, height: 5, borderRadius: 2.5,
+    backgroundColor: 'rgba(245,241,232,0.25)',
+  },
+  headerDotPast: {
+    backgroundColor: V4.goldDim,
+  },
+  headerDotActive: {
+    backgroundColor: V4.gold,
+    width: 7, height: 7, borderRadius: 3.5,
+  },
+  headerBaguaPressable: {
+    width: 38, height: 38, borderRadius: 19, overflow: 'hidden',
+    borderWidth: 1, borderColor: V4.glass.border,
+    marginLeft: V4.space.sm,
+  },
+  headerBagua: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+  },
+  headerBaguaIcon: {
+    fontSize: 18, color: V4.gold,
+  },
+
+  // ─── 右側浮鈕(44×44) ───
+  sideBtns: {
+    position: 'absolute', right: V4.space.md, top: '38%', zIndex: 5,
+    gap: V4.space.md, alignItems: 'center',
+  },
+  sideBtn: {
+    width: 44, height: 44, borderRadius: 22, overflow: 'visible',
+  },
+  sideBtnGlass: {
+    flex: 1, borderRadius: 22, overflow: 'hidden',
+    borderWidth: 1, borderColor: V4.glass.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  floatingCloseText: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
-  floatingTopBar: {
-    position: 'absolute', top: 6, right: 8, zIndex: 5,
-    flexDirection: 'row', gap: 6,
+  sideBtnPressed: { opacity: 0.5, transform: [{ scale: 0.9 }] },
+  sideBtnIcon: { width: 26, height: 26, borderRadius: 6 },
+
+  lockOverlay: {
+    position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: 9,
+    backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: V4.glass.borderStrong,
   },
-  floatingShareBtn: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
-    backgroundColor: 'rgba(232,197,71,0.15)', borderWidth: 1, borderColor: 'rgba(232,197,71,0.3)',
+  lockIcon: { fontSize: 9 },
+
+  // ─── PetBubble ───
+  bubbleWrap: {
+    position: 'absolute',
+    left: V4.space.md, right: V4.space.md, zIndex: 8,
+    bottom: TAB_ROW_TOTAL_H + COMPOSER_H + V4.space.lg,
   },
-  floatingShareText: { fontSize: 11, color: Colors.primary, fontWeight: '600' },
-  floatingContent: {
-    fontSize: 15, color: '#EDE4D0', fontFamily: Fonts.serif,
-    lineHeight: 26, letterSpacing: 0.3,
+  bubbleCard: {
+    borderRadius: V4.radius.lg, overflow: 'hidden',
+    borderWidth: 1, borderColor: V4.glass.border,
+    paddingHorizontal: V4.space.lg,
+    paddingTop: 8, paddingBottom: V4.space.md,
+    ...V4.glow.soft,
+  },
+  bubbleHandleArea: {
+    alignItems: 'center', paddingVertical: 4,
+  },
+  bubbleHandleBar: {
+    width: 36, height: 3, borderRadius: 2,
+    backgroundColor: 'rgba(245,241,232,0.30)',
+  },
+  bubbleHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: 4, marginBottom: V4.space.sm,
+  },
+  bubbleTitleRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1,
+  },
+  bubbleTitleDot: {
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: V4.gold,
+  },
+  bubbleTitle: {
+    fontSize: 14, color: V4.text.primary, fontWeight: '700',
+    letterSpacing: 1, flexShrink: 1,
+  },
+  bubbleHeaderRight: {
+    flexDirection: 'row', alignItems: 'center', gap: V4.space.sm,
+  },
+  bubbleTime: {
+    fontSize: 12, color: V4.text.tertiary, fontWeight: '500', letterSpacing: 0.5,
+  },
+  bubbleCloseBtn: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  bubbleCloseText: { fontSize: 11, color: V4.text.tertiary },
+  bubbleBody: {
+    fontSize: 14, color: V4.text.primary, fontFamily: Fonts.serif,
+    lineHeight: 24, letterSpacing: 0.3,
+  },
+  bubbleShareBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: V4.space.md, paddingVertical: V4.space.xs,
+    borderRadius: V4.radius.pill,
+    backgroundColor: 'rgba(232,197,71,0.12)',
+    borderWidth: 1, borderColor: V4.glass.borderStrong,
+    marginTop: V4.space.sm,
+  },
+  bubbleShareText: { fontSize: 11, color: V4.gold, fontWeight: '600', letterSpacing: 0.5 },
+
+  collapsedHandleWrap: {
+    position: 'absolute', left: 0, right: 0,
+    bottom: TAB_ROW_TOTAL_H + 4,
+    alignItems: 'center', paddingVertical: 6, zIndex: 8,
+  },
+  collapsedHandleBar: {
+    width: 48, height: 4, borderRadius: 2,
+    backgroundColor: V4.goldDim,
   },
 
+  // ─── Composer(輸入列) ───
+  composerWrap: {
+    position: 'absolute', left: V4.space.md, right: V4.space.md, zIndex: 6,
+    bottom: TAB_ROW_TOTAL_H + V4.space.sm,
+  },
+  composer: {
+    flexDirection: 'row', alignItems: 'center',
+    height: COMPOSER_H,
+    borderRadius: V4.radius.lg, overflow: 'hidden',
+    borderWidth: 1, borderColor: V4.glass.border,
+    paddingLeft: V4.space.md, paddingRight: 6,
+  },
+  composerInput: {
+    flex: 1, height: COMPOSER_H,
+    fontSize: 14, color: V4.text.primary, fontFamily: Fonts.serif, letterSpacing: 0.5,
+  },
+  composerSendBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: V4.gold,
+    alignItems: 'center', justifyContent: 'center',
+    ...GlowShadow.gold,
+  },
+  composerSendIcon: { width: 20, height: 20, tintColor: V4.ink },
+  composerSendText: { fontSize: 16, color: V4.ink },
+
+  // ─── 底部 5 顆 tab(原分類 chip 重設計) ───
+  tabRow: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 5,
+    paddingTop: V4.space.sm,
+  },
+  tabRemainingText: {
+    fontSize: 10, color: V4.goldDim, fontFamily: Fonts.serif,
+    textAlign: 'right', marginRight: V4.space.lg, marginBottom: 4,
+    letterSpacing: 1, opacity: 0.8,
+  },
+  tabRowInner: {
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-around',
+    paddingHorizontal: V4.space.sm,
+  },
+  tabBtn: {
+    alignItems: 'center', gap: 4,
+    paddingHorizontal: 4, paddingVertical: 2,
+    flex: 1,
+  },
+  tabIconCircle: {
+    width: 42, height: 42, borderRadius: 21,
+    borderWidth: 1, borderColor: 'rgba(245,241,232,0.20)',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(10,10,14,0.35)',
+    overflow: 'hidden',
+  },
+  tabIconCircleActive: {
+    borderColor: V4.gold,
+    backgroundColor: 'rgba(232,197,71,0.18)',
+    ...GlowShadow.gold,
+  },
+  tabIconImg: { width: 30, height: 30, borderRadius: 15 },
+  tabLabel: {
+    fontSize: 11, color: V4.text.secondary, fontFamily: Fonts.serif,
+    letterSpacing: 1,
+  },
+  tabLabelActive: { color: V4.gold, fontWeight: '700' },
+
+  // ─── 相機浮層 ───
   cameraOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 40, backgroundColor: '#000' },
   cameraView: { flex: 1 },
   cameraUI: {
@@ -698,83 +1014,17 @@ const styles = StyleSheet.create({
   cameraCancelBtn: { width: 60, alignItems: 'center' },
   cameraCancelText: { fontSize: 16, color: '#fff', fontFamily: Fonts.serif },
   cameraShutterBtn: {
-    width: 76, height: 76, borderRadius: 38, borderWidth: 4, borderColor: '#E8C547',
+    width: 76, height: 76, borderRadius: 38, borderWidth: 4, borderColor: V4.gold,
     alignItems: 'center', justifyContent: 'center',
     ...GlowShadow.goldStrong,
   },
   cameraShutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: 'rgba(232,197,71,0.25)' },
 
-  nameplate: { position: 'absolute', bottom: 128, left: 20, zIndex: 5 },
-  petName: {
-    fontSize: 30, color: '#fff', fontFamily: Fonts.brush, letterSpacing: 6,
-    textShadowColor: 'rgba(0,0,0,0.95)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 12,
-  },
-  nameBadges: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  lvBadge: {
-    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8,
-    backgroundColor: 'rgba(232,197,71,0.15)', borderWidth: 1, borderColor: 'rgba(232,197,71,0.35)',
-  },
-  lvText: { fontSize: 12, color: Colors.primary, fontWeight: '800', letterSpacing: 1 },
-  elementTag: {
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
-  },
-  elementTagText: { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: '500', letterSpacing: 1 },
-
-  remainingText: {
-    fontSize: 11, color: '#E8C547', fontFamily: Fonts.serif, letterSpacing: 1,
-    textAlign: 'right', marginBottom: 4, marginRight: 8, opacity: 0.7,
-  },
-  lockOverlay: {
-    position: 'absolute', top: -4, right: -4, width: 20, height: 20, borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(232,197,71,0.3)',
-  },
-  lockIcon: { fontSize: 10 },
-  sideBtns: { position: 'absolute', right: 14, bottom: 170, zIndex: 5, gap: 14, alignItems: 'center' },
-  sideBtn: {
-    width: 54, height: 54, borderRadius: 27,
-    backgroundColor: 'rgba(8,8,15,0.5)', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: 'rgba(232,197,71,0.18)',
-    shadowColor: '#E8C547', shadowOpacity: 0.15, shadowRadius: 10, shadowOffset: { width: 0, height: 0 },
-  },
-  sideBtnPressed: { opacity: 0.4, transform: [{ scale: 0.88 }] },
-  sideBtnIcon: { width: 32, height: 32, borderRadius: 8 },
-
-  bottomFloat: {
-    position: 'absolute', bottom: Platform.OS === 'ios' ? 28 : 10,
-    left: 0, right: 0, zIndex: 5, paddingHorizontal: 14,
-  },
-  catRow: { gap: 12, marginBottom: 10, paddingHorizontal: 6 },
-  catChip: { alignItems: 'center', gap: 4, paddingHorizontal: 2 },
-  catIcon: {
-    width: 40, height: 40, borderRadius: 12,
-    borderWidth: 1.5, borderColor: 'rgba(232,197,71,0.15)',
-    shadowColor: '#E8C547', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 0 },
-  },
-  catLabel: {
-    fontSize: 11, color: 'rgba(255,255,255,0.55)', fontFamily: Fonts.serif, letterSpacing: 1,
-    textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6,
-  },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  inputWrapper: {
-    flex: 1, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(8,8,15,0.55)', borderWidth: 1.5, borderColor: 'rgba(232,197,71,0.12)',
-    justifyContent: 'center',
-  },
-  textInput: { height: 44, paddingHorizontal: 18, fontSize: 14, color: '#EDE4D0', fontFamily: Fonts.serif, letterSpacing: 0.5 },
-  sendBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(232,197,71,0.15)', borderWidth: 1.5, borderColor: 'rgba(232,197,71,0.30)',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#E8C547', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 0 },
-  },
-  sendBtnText: { fontSize: 16, color: Colors.primary },
-  sendBtnIcon: { width: 22, height: 22, opacity: 0.9 },
-
+  // ─── 占卜/靈眼動畫 ───
   animOverlay: {
     ...StyleSheet.absoluteFillObject, zIndex: 50,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(5,5,8,0.7)',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(5,5,8,0.7)',
   },
   animSpinner: {
     width: 110, height: 110, borderRadius: 55, borderWidth: 2, borderColor: '#A78BFA',
@@ -784,6 +1034,7 @@ const styles = StyleSheet.create({
   animSymbol: { fontSize: 44, color: '#A78BFA' },
   animText: { marginTop: 24, fontSize: 17, color: '#C4B5FD', fontFamily: Fonts.serif, letterSpacing: 5 },
 
+  // ─── 羅盤 ───
   compassOverlay: { position: 'absolute', top: '22%', alignSelf: 'center', zIndex: 15, alignItems: 'center' },
   compassRing: {
     width: 170, height: 170, borderRadius: 85, borderWidth: 2.5, borderColor: 'rgba(74,222,128,0.5)',
@@ -796,11 +1047,4 @@ const styles = StyleSheet.create({
   needleS: { width: 4, height: 42, backgroundColor: 'rgba(255,255,255,0.15)', borderBottomLeftRadius: 2, borderBottomRightRadius: 2 },
   compassLocText: { marginTop: 10, fontSize: 13, color: '#4ADE80', fontFamily: Fonts.serif, letterSpacing: 2 },
   compassHint: { marginTop: 4, fontSize: 11, color: 'rgba(74,222,128,0.45)', fontFamily: Fonts.serif },
-
-  divinationOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 50, alignItems: 'center', justifyContent: 'center' },
-  divinationSpinner: { width: 110, height: 110, borderRadius: 55, borderWidth: 2, borderColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(167,139,250,0.08)' },
-  divinationSymbol: { fontSize: 44, color: '#A78BFA' },
-  divinationText: { marginTop: 20, fontSize: 16, color: '#C4B5FD', fontFamily: Fonts.serif, letterSpacing: 4 },
-  featureOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, top: '30%', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden', zIndex: 25, borderWidth: 1, borderColor: 'rgba(232,197,71,0.10)' },
-  overlayHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(232,197,71,0.25)', marginTop: 8, marginBottom: 4 },
 });

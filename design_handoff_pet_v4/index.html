@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>靈犀 V4 — Handoff Pack</title>
+<meta name="viewport" content="width=1280">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a0a0e;
+    --ink-2: #12121a;
+    --gold: #e8c547;
+    --gold-dim: rgba(232, 197, 71, 0.6);
+    --paper: #f5f1e8;
+    --line: rgba(232, 197, 71, 0.18);
+    --text: #f5f1e8;
+    --text-2: rgba(245, 241, 232, 0.65);
+    --text-3: rgba(245, 241, 232, 0.4);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--ink); color: var(--text); font-family: 'Inter', 'Noto Serif TC', system-ui, sans-serif; }
+  body { min-height: 100vh; }
+  a { color: var(--gold); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Hero */
+  .hero { padding: 80px 64px 60px; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
+  .hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 85% 50%, rgba(232,197,71,0.12), transparent 60%);
+    pointer-events: none;
+  }
+  .hero-inner { max-width: 1200px; margin: 0 auto; position: relative; display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; }
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-bottom: 20px; }
+  h1 { font-family: 'Noto Serif TC', serif; font-weight: 300; font-size: 72px; line-height: 1.05; margin: 0 0 20px; letter-spacing: -1px; }
+  h1 em { color: var(--gold); font-style: normal; font-weight: 600; }
+  .sub { font-size: 18px; color: var(--text-2); max-width: 620px; line-height: 1.6; }
+  .meta { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); letter-spacing: 2px; text-align: right; }
+  .meta div { margin-bottom: 6px; }
+  .meta b { color: var(--gold); font-weight: 500; }
+
+  /* Section */
+  section { padding: 72px 64px; border-bottom: 1px solid var(--line); max-width: 1200px; margin: 0 auto; }
+  .section-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 4px; color: var(--gold); margin-bottom: 12px; text-transform: uppercase; }
+  h2 { font-family: 'Noto Serif TC', serif; font-weight: 400; font-size: 42px; margin: 0 0 16px; letter-spacing: -0.5px; }
+  .lede { color: var(--text-2); font-size: 16px; line-height: 1.7; max-width: 700px; margin-bottom: 48px; }
+
+  /* Compare grid */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+  .compare .cell { }
+  .cell-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .cell-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 3px; padding: 4px 10px; border-radius: 3px; }
+  .tag-before { background: rgba(255,255,255,0.08); color: var(--text-2); }
+  .tag-after  { background: var(--gold); color: var(--ink); font-weight: 700; }
+  .cell-title { font-family: 'Noto Serif TC', serif; font-size: 20px; font-weight: 400; margin: 0; }
+  .cell-desc { font-size: 13px; color: var(--text-2); margin: 8px 0 0; line-height: 1.6; }
+  .phone-frame { background: radial-gradient(ellipse at center, rgba(232,197,71,0.06), transparent 70%); padding: 32px; border: 1px solid var(--line); border-radius: 12px; display: flex; justify-content: center; }
+  .phone-frame img { max-width: 280px; width: 100%; display: block; filter: drop-shadow(0 40px 60px rgba(0,0,0,0.6)); }
+
+  /* States row */
+  .states { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .state { text-align: center; }
+  .state img { max-width: 240px; width: 100%; display: block; margin: 0 auto 16px; filter: drop-shadow(0 30px 50px rgba(0,0,0,0.6)); }
+  .state-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--gold); margin-bottom: 6px; }
+  .state-title { font-family: 'Noto Serif TC', serif; font-size: 18px; margin: 0 0 6px; }
+  .state-desc { font-size: 13px; color: var(--text-2); line-height: 1.6; max-width: 240px; margin: 0 auto; }
+
+  /* Files */
+  .files { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .file-card { border: 1px solid var(--line); border-radius: 10px; padding: 28px; background: rgba(232,197,71,0.02); transition: all 0.15s; text-decoration: none; color: inherit; display: block; }
+  .file-card:hover { border-color: var(--gold); background: rgba(232,197,71,0.06); text-decoration: none; }
+  .file-card .name { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--gold); margin-bottom: 12px; letter-spacing: 1px; }
+  .file-card h3 { font-family: 'Noto Serif TC', serif; font-size: 22px; font-weight: 400; margin: 0 0 8px; }
+  .file-card p { color: var(--text-2); font-size: 14px; margin: 0; line-height: 1.6; }
+  .file-card .meta-row { margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); letter-spacing: 1px; }
+
+  /* Scope callout */
+  .scope { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .scope-col { padding: 32px; }
+  .scope-col.do { border-right: 1px solid var(--line); }
+  .scope-col h4 { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 3px; margin: 0 0 20px; }
+  .scope-col.do h4 { color: var(--gold); }
+  .scope-col.dont h4 { color: rgba(255, 120, 120, 0.8); }
+  .scope-col ul { list-style: none; padding: 0; margin: 0; }
+  .scope-col li { padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,0.06); font-size: 14px; color: var(--text-2); display: flex; gap: 10px; align-items: baseline; }
+  .scope-col li:last-child { border-bottom: none; }
+  .scope-col li::before { font-family: 'JetBrains Mono', monospace; font-size: 12px; flex-shrink: 0; width: 14px; }
+  .scope-col.do li::before { content: '+'; color: var(--gold); }
+  .scope-col.dont li::before { content: '−'; color: rgba(255, 120, 120, 0.8); }
+
+  /* Footer */
+  footer { padding: 48px 64px; text-align: center; color: var(--text-3); font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 3px; border-top: 1px solid var(--line); max-width: 1200px; margin: 0 auto; }
+  footer a { color: var(--gold); }
+
+  /* Small intrinsic detail */
+  .corner { position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-3); letter-spacing: 2px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="eyebrow">Handoff Pack · 2026.04.19</div>
+      <h1>靈犀 V4<br><em>Pet-First</em> Immersive</h1>
+      <p class="sub">
+        把 Home 從上下卡片堆改成「靈寵占滿畫面、UI 漂浮其上」的沉浸式介面。
+        這包是給 Claude Code 在本機 <code style="font-family: 'JetBrains Mono', monospace; color: var(--gold);">LingXi/</code> repo 實作 V4 的完整規格。
+      </p>
+    </div>
+    <div class="meta">
+      <div><b>V</b> 4.0</div>
+      <div><b>Owner</b> you</div>
+      <div><b>Dev</b> Claude Code</div>
+      <div><b>Scope</b> Home only</div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="section-label">01 · Before / After</div>
+  <h2>把擠壓的 UI 放到幕後,讓靈寵站 C 位</h2>
+  <p class="lede">
+    左邊是現狀(V3):靈寵被擠在中間,上方 header、下方 status card、再下方 action bar、再下方 tab bar —— 四層 UI 切割畫面。
+    右邊是 V4:全螢幕靈寵為底,毛玻璃 chip / 浮動鍵 / 訊息卡 / 透明 tab 全部漂在它上面,視覺層次與留白重新拿回來。
+  </p>
+
+  <div class="compare">
+    <div class="cell">
+      <div class="cell-head">
+        <span class="cell-tag tag-before">BEFORE</span>
+        <div>
+          <h3 class="cell-title">V3 現狀</h3>
+          <p class="cell-desc">卡片堆疊,靈寵僅佔中段,金色 accent 被稀釋</p>
+        </div>
+      </div>
+      <div class="phone-frame"><img src="screenshots/before.png" alt="V3 current"></div>
+    </div>
+
+    <div class="cell">
+      <div class="cell-head">
+        <span class="cell-tag tag-after">V4</span>
+        <div>
+          <h3 class="cell-title">Pet-First Immersive</h3>
+          <p class="cell-desc">全螢幕靈寵 + 毛玻璃浮動元件,主角歸位</p>
+        </div>
+      </div>
+      <div class="phone-frame"><img src="screenshots/v4-open.png" alt="V4 open state"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-label">02 · States</div>
+  <h2>兩個狀態 · 一次互動</h2>
+  <p class="lede">
+    底部訊息卡可以下滑收起 — 展開時是「今日靈寵奇語」完整訊息,收起後就是純沉浸模式,靈寵不被任何 UI 遮住。一個 toggle、兩種使用語境。
+  </p>
+
+  <div class="states">
+    <div class="state">
+      <img src="screenshots/v4-open.png" alt="Open state">
+      <div class="state-label">STATE A</div>
+      <h3 class="state-title">展開 · Daily Whisper</h3>
+      <p class="state-desc">底部橫卡顯示每日占卜摘要,關鍵字(小吉 / 東南方)金色高亮</p>
+    </div>
+    <div class="state">
+      <img src="screenshots/v4-closed.png" alt="Closed state">
+      <div class="state-label">STATE B</div>
+      <h3 class="state-title">收起 · Pure Immersive</h3>
+      <p class="state-desc">只留頂部 chip、右側兩顆功能鍵、透明 tab。純靈寵畫面</p>
+    </div>
+    <div class="state">
+      <img src="screenshots/before.png" alt="Before">
+      <div class="state-label">REFERENCE</div>
+      <h3 class="state-title">V3 對照</h3>
+      <p class="state-desc">現狀畫面,用來肉眼對照 V4 改動幅度</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="section-label">03 · Files</div>
+  <h2>這包裡有四份文件</h2>
+  <p class="lede">
+    先讀 README,再照 polish-spec 一個 component 一個 component 改。Tokens 直接貼到 <code style="color: var(--gold);">config/theme.ts</code>,最後跑 cleanup。
+  </p>
+
+  <div class="files">
+    <a class="file-card" href="README.md">
+      <div class="name">README.md</div>
+      <h3>這包是什麼</h3>
+      <p>入口。說明這包給誰、怎麼讀、做什麼不做什麼、驗收標準。</p>
+      <div class="meta-row">~ 1.2 KB · START HERE</div>
+    </a>
+
+    <a class="file-card" href="v4-polish-spec.md">
+      <div class="name">v4-polish-spec.md</div>
+      <h3>主要實作規格</h3>
+      <p>10 個小節,涵蓋整體方向 → Theme tokens → 五個 component 的逐條改動 → Home 重組 → 動畫 → 驗收清單。</p>
+      <div class="meta-row">~ 7.5 KB · MAIN SPEC</div>
+    </a>
+
+    <a class="file-card" href="tokens.diff.md">
+      <div class="name">tokens.diff.md</div>
+      <h3>Theme tokens patch</h3>
+      <p>直接貼進 <code style="color:var(--gold)">config/theme.ts</code> 的一段 <code style="color:var(--gold)">v4</code> object,含 glass / gold / text / space / radius / motion。</p>
+      <div class="meta-row">~ 2.8 KB · TOKENS</div>
+    </a>
+
+    <a class="file-card" href="cleanup-checklist.md">
+      <div class="name">cleanup-checklist.md</div>
+      <h3>Repo 清理清單</h3>
+      <p>根目錄累積的 PPTX 生成腳本、過時 mockup、舊 handoff 文件 — 紅/黃/綠三級分類。V4 polish 驗收後再跑。</p>
+      <div class="meta-row">~ 3.7 KB · LAST STEP</div>
+    </a>
+  </div>
+</section>
+
+<section>
+  <div class="section-label">04 · Scope</div>
+  <h2>做什麼 · 不做什麼</h2>
+  <p class="lede">
+    這次只針對 Home 做 pet-first 改造。其他畫面、後端、翻譯、新功能通通不動 — 讓這輪 PR 可以乾淨合進去。
+  </p>
+
+  <div class="scope">
+    <div class="scope-col do">
+      <h4>── DO</h4>
+      <ul>
+        <li>改 <code style="color:var(--gold)">PetAvatar</code> 支援 fullBleed mode</li>
+        <li>新增 <code style="color:var(--gold)">PetHeaderChip</code> 元件</li>
+        <li>新增 <code style="color:var(--gold)">PetFloatingActions</code>(eye / heart)</li>
+        <li>改 <code style="color:var(--gold)">PetBubble</code> 為可收底部卡</li>
+        <li>改 <code style="color:var(--gold)">ActionBar</code> 為透明 + 漸層遮罩</li>
+        <li>重組 <code style="color:var(--gold)">app/(tabs)/index.tsx</code></li>
+        <li>新增 <code style="color:var(--gold)">theme.v4.*</code> tokens</li>
+        <li>擦 repo 根目錄累積的 PPTX 腳本</li>
+      </ul>
+    </div>
+    <div class="scope-col dont">
+      <h4>── DON'T</h4>
+      <ul>
+        <li>不改後端 / engines / services / stores</li>
+        <li>不改 i18n 字串</li>
+        <li>不新增套件(除了 expo-blur 如果還沒裝)</li>
+        <li>不做 V1 / V2 / V3 / V5 alt 版本</li>
+        <li>不碰 Bazi / Features / Plans / Auth 等其他頁</li>
+        <li>不改 light mode(V4 only dark)</li>
+        <li>不動 <code style="color: rgba(255,120,120,0.8)">docs/</code> 底下的正式簡報</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  LINGXI · V4 HANDOFF · DESIGN → CLAUDE CODE · NEXT: <a href="README.md">README.md →</a>
+</footer>
+
+</body>
+</html>

@@ -1,9 +1,10 @@
+node_modules/
+.expo/
 server/
 functions/
+docs/
 *.pptx
 *.py
 *.html
-ART_PROMPTS.md
-DEV-PROGRESS.md
-UI_FLOW.md
+*.md
 lingxi-full-prototype.jsx
