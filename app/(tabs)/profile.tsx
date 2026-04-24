@@ -42,8 +42,9 @@ export default function ProfileScreen() {
   const element = usePetStore(s => s.element) || '';
   const petId = usePetStore(s => s.petId) || '01-lichun';
 
-  const planLabel = planType === 'supreme' ? t('profile.supreme')
-    : planType === 'member' ? t('profile.member')
+  const isPaid = planType === 'paid' || planType === 'member' || planType === 'supreme';
+  const planLabel = isPaid
+    ? t('profile.paid', { defaultValue: '靈犀訂閱' })
     : t('profile.free');
 
   const baziText = bazi
@@ -115,14 +116,12 @@ export default function ProfileScreen() {
         </View>
         <View style={[
           styles.planBadge,
-          planType === 'member' && styles.planBadgeMember,
-          planType === 'supreme' && styles.planBadgeSupreme,
-          planType === 'free' && styles.planBadgeFree,
+          isPaid && styles.planBadgePaid,
+          !isPaid && styles.planBadgeFree,
         ]}>
           <Text style={[
             styles.planBadgeText,
-            planType === 'supreme' && { color: '#a78bfa' },
-            planType === 'free' && { color: Colors.textDark },
+            !isPaid && { color: Colors.textDark },
           ]}>
             {planLabel}
           </Text>
@@ -224,8 +223,17 @@ export default function ProfileScreen() {
           onPress={async () => {
             setIsRestoring(true);
             try {
-              const restoredPlan = await restorePurchases();
-              useAuthStore.getState().updatePlan(restoredPlan);
+              const result = await restorePurchases();
+              useAuthStore.getState().updatePlan(result.planType);
+              // Server sync — webhook may not have arrived yet.
+              try {
+                const { api } = await import('@/services/api-client');
+                await api.post('/api/subscription/sync');
+                // Re-pull profile to refresh trial + subscription mirror.
+                await useAuthStore.getState().checkAuth();
+              } catch (err) {
+                console.warn('[profile] restore sync failed:', err);
+              }
               showMessage(t('profile.restoreSuccess', { defaultValue: '恢復購買成功' }));
             } catch {
               showMessage(t('profile.restoreFailed', { defaultValue: '恢復購買失敗' }));
@@ -289,11 +297,8 @@ const styles = StyleSheet.create({
   planBadgeFree: {
     backgroundColor: 'rgba(150,150,150,0.15)',
   },
-  planBadgeMember: {
+  planBadgePaid: {
     backgroundColor: 'rgba(232,197,71,0.15)',
-  },
-  planBadgeSupreme: {
-    backgroundColor: 'rgba(167,139,250,0.15)',
   },
   planBadgeText: { fontSize: 13, color: Colors.primary, fontWeight: '700' },
 

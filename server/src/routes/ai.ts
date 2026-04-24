@@ -1,7 +1,16 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import { authenticate } from '../middleware/auth';
+import { softAttestation, hardAttestation } from '../middleware/attestation';
 import { callClaude, callClaudeVision, parseClaudeJson } from '../services/claude';
-import { checkUsageAllowed, incrementUsage, selectModel, saveMessage } from './ai-usage';
+import {
+  reserveAiCall,
+  commitAiCall,
+  refundAiCall,
+  selectModel,
+  saveMessage,
+  ReserveOutcome,
+} from './ai-usage';
 import {
   FACE_READING_SYSTEM,
   PET_MESSAGE_SYSTEM,
@@ -16,40 +25,138 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.use(softAttestation);
+router.use(hardAttestation);
 
-// ═══════════════════════════════════════
+// ─── Helpers ──────────────────────────────────────────────────
+
+function idempotencyKey(req: Request): string {
+  const header = req.headers['x-idempotency-key'];
+  if (typeof header === 'string' && header.length > 0 && header.length <= 128) {
+    return header;
+  }
+  const src = JSON.stringify({ u: req.user?.userId, p: req.path, b: req.body });
+  return 'auto-' + crypto.createHash('sha256').update(src).digest('hex').slice(0, 48);
+}
+
+function blockedResponse(res: Response, outcome: Extract<ReserveOutcome, { kind: 'blocked' }>): void {
+  const upgradeRequired = outcome.reason === 'trial_exhausted';
+  res.status(429).json({
+    error:
+      outcome.reason === 'paid_cap_reached'
+        ? 'Daily fair-use cap reached. Resets at midnight.'
+        : 'Free experience used up. Subscribe to continue.',
+    trialUsed: outcome.trialUsed,
+    trialLimit: outcome.trialLimit,
+    remaining: 0,
+    subscriptionStatus: outcome.subscriptionStatus,
+    upgradeRequired,
+    fairUseCapReached: outcome.reason === 'paid_cap_reached',
+  });
+}
+
+function safeSaveMessage(userId: string, role: string, content: string, feature: string, metadata?: Record<string, unknown>): void {
+  saveMessage(userId, role, content, feature, metadata).catch((err) => {
+    console.error('saveMessage failed (non-fatal):', err);
+  });
+}
+
+interface SuccessBody {
+  data: unknown;
+  remaining: number;
+  trialUsed: number;
+  trialLimit: number;
+}
+
+function successBody(data: unknown, outcome: ReserveOutcome): SuccessBody {
+  const o = outcome as Extract<ReserveOutcome, { kind: 'new' | 'replay' }>;
+  return {
+    data,
+    remaining: o.remaining,
+    trialUsed: o.trialUsed,
+    trialLimit: o.trialLimit,
+  };
+}
+
+/**
+ * Common wrapper: handles reservation, replay, in_flight, blocked, commit, refund.
+ * The `execute` callback runs the actual Claude call and returns the data payload.
+ */
+async function executeAiCall(
+  req: Request,
+  res: Response,
+  feature: string,
+  execute: () => Promise<unknown>
+): Promise<void> {
+  const userId = req.user!.userId;
+  const idKey = idempotencyKey(req);
+
+  let outcome: ReserveOutcome;
+  try {
+    outcome = await reserveAiCall(userId, feature, idKey);
+  } catch (err) {
+    console.error(`[${feature}] reserve error:`, err);
+    res.status(500).json({ error: 'Reservation failed' });
+    return;
+  }
+
+  if (outcome.kind === 'blocked') {
+    return blockedResponse(res, outcome);
+  }
+  if (outcome.kind === 'replay') {
+    // Idempotent retry: return the cached response without calling Claude.
+    res.json(successBody(outcome.cachedResponse, outcome));
+    return;
+  }
+  if (outcome.kind === 'in_flight') {
+    // Concurrent duplicate: client should retry with a new key.
+    res.status(409).json({
+      error: 'Duplicate request in flight. Retry with a new idempotency key.',
+      trialUsed: outcome.trialUsed,
+      trialLimit: outcome.trialLimit,
+      subscriptionStatus: outcome.subscriptionStatus,
+    });
+    return;
+  }
+
+  // kind === 'new': call Claude, commit on success, refund on failure.
+  try {
+    const data = await execute();
+    await commitAiCall(userId, idKey, data);
+    res.json(successBody(data, outcome));
+  } catch (err) {
+    console.error(`[${feature}] AI call failed:`, err);
+    try {
+      await refundAiCall(userId, idKey);
+    } catch (refundErr) {
+      console.error(`[${feature}] refund failed:`, refundErr);
+    }
+    const msg = err instanceof Error ? err.message : 'AI call failed';
+    res.status(500).json({ error: msg });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Routes
-// ═══════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 
 // ─── POST /ai/face-reading ───
 router.post('/face-reading', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const planType = req.user!.planType;
-    const { imageBase64, bazi, qimen, date } = req.body as {
-      imageBase64: string;
-      bazi?: string;
-      qimen?: string;
-      date?: string;
-    };
+  const userId = req.user!.userId;
+  const { imageBase64, bazi, qimen, date } = req.body as {
+    imageBase64: string;
+    bazi?: string;
+    qimen?: string;
+    date?: string;
+  };
 
-    if (!imageBase64) {
-      res.status(400).json({ error: 'imageBase64 is required' });
-      return;
-    }
+  if (!imageBase64) {
+    res.status(400).json({ error: 'imageBase64 is required' });
+    return;
+  }
 
-    const usage = await checkUsageAllowed(userId, planType, 'face-reading');
-    if (!usage.allowed) {
-      res.status(429).json({
-        error: 'Daily usage limit reached for face reading',
-        remaining: 0,
-        planType,
-      });
-      return;
-    }
-
-    const model = selectModel(planType);
-
+  await executeAiCall(req, res, 'face-reading', async () => {
+    const model = selectModel();
     const userPrompt = `請分析這張面部照片。
 
 用戶八字資訊：${bazi || '未提供'}
@@ -58,60 +165,33 @@ router.post('/face-reading', async (req: Request, res: Response): Promise<void> 
 
 請提供完整的面相分析結果，以 JSON 格式回覆。`;
 
-    const rawResponse = await callClaudeVision(
-      model,
-      FACE_READING_SYSTEM,
-      userPrompt,
-      imageBase64
-    );
-
+    const rawResponse = await callClaudeVision(model, FACE_READING_SYSTEM, userPrompt, imageBase64);
     const parsed = parseClaudeJson(rawResponse);
-
-    // Increment usage only after successful AI call
-    await incrementUsage(userId, 'face-reading');
-    await saveMessage(userId, 'user', '[Face Reading Request]', 'face-reading', { bazi, date });
-    await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'face-reading');
-
-    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
-    res.json({ data: parsed, remaining });
-  } catch (err) {
-    console.error('Face reading error:', err);
-    const message = err instanceof Error ? err.message : 'Face reading failed';
-    res.status(500).json({ error: message });
-  }
+    safeSaveMessage(userId, 'user', '[Face Reading Request]', 'face-reading', { bazi, date });
+    safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'face-reading');
+    return parsed;
+  });
 });
 
 // ─── POST /ai/feng-shui ───
 router.post('/feng-shui', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const planType = req.user!.planType;
-    const { latitude, longitude, locationDescription, heading, bazi, qimen } = req.body as {
-      latitude: number;
-      longitude: number;
-      locationDescription?: string;
-      heading?: number;
-      bazi?: string;
-      qimen?: string;
-    };
+  const userId = req.user!.userId;
+  const { latitude, longitude, locationDescription, heading, bazi, qimen } = req.body as {
+    latitude: number;
+    longitude: number;
+    locationDescription?: string;
+    heading?: number;
+    bazi?: string;
+    qimen?: string;
+  };
 
-    if (latitude === undefined || longitude === undefined) {
-      res.status(400).json({ error: 'latitude and longitude are required' });
-      return;
-    }
+  if (latitude === undefined || longitude === undefined) {
+    res.status(400).json({ error: 'latitude and longitude are required' });
+    return;
+  }
 
-    const usage = await checkUsageAllowed(userId, planType, 'feng-shui');
-    if (!usage.allowed) {
-      res.status(429).json({
-        error: 'Daily usage limit reached for feng shui',
-        remaining: 0,
-        planType,
-      });
-      return;
-    }
-
-    const model = selectModel(planType);
-
+  await executeAiCall(req, res, 'feng-shui', async () => {
+    const model = selectModel();
     const userPrompt = `請分析以下位置的風水：
 
 GPS 座標：${latitude}, ${longitude}
@@ -124,46 +204,27 @@ GPS 座標：${latitude}, ${longitude}
 
     const rawResponse = await callClaude(model, FENGSHUI_SYSTEM, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
-
-    await incrementUsage(userId, 'feng-shui');
-    await saveMessage(userId, 'user', userPrompt, 'feng-shui');
-    await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'feng-shui');
-
-    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
-    res.json({ data: parsed, remaining });
-  } catch (err) {
-    console.error('Feng shui error:', err);
-    const message = err instanceof Error ? err.message : 'Feng shui analysis failed';
-    res.status(500).json({ error: message });
-  }
+    safeSaveMessage(userId, 'user', userPrompt, 'feng-shui');
+    safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'feng-shui');
+    return parsed;
+  });
 });
 
 // ─── POST /ai/fortune ───
 router.post('/fortune', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const planType = req.user!.planType;
-    const { bazi, qimen, date, ziwei, astrology, petInfo, unified } = req.body as {
-      bazi?: string;
-      qimen?: string;
-      date?: string;
-      ziwei?: string;
-      astrology?: string;
-      petInfo?: string;
-      unified?: boolean;
-    };
+  const userId = req.user!.userId;
+  const { bazi, qimen, date, ziwei, astrology, petInfo, unified } = req.body as {
+    bazi?: string;
+    qimen?: string;
+    date?: string;
+    ziwei?: string;
+    astrology?: string;
+    petInfo?: string;
+    unified?: boolean;
+  };
 
-    const usage = await checkUsageAllowed(userId, planType, 'fortune');
-    if (!usage.allowed) {
-      res.status(429).json({
-        error: 'Daily usage limit reached for fortune',
-        remaining: 0,
-        planType,
-      });
-      return;
-    }
-
-    const model = selectModel(planType);
+  await executeAiCall(req, res, 'fortune', async () => {
+    const model = selectModel();
     const systemPrompt = unified ? UNIFIED_FORTUNE_SYSTEM : DAILY_FORTUNE_SYSTEM;
 
     const userPrompt = unified
@@ -187,44 +248,24 @@ router.post('/fortune', async (req: Request, res: Response): Promise<void> => {
 
     const rawResponse = await callClaude(model, systemPrompt, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
-
-    await incrementUsage(userId, 'fortune');
-    await saveMessage(userId, 'user', '[Fortune Request]', 'fortune', { date, unified });
-    await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'fortune');
-
-    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
-    res.json({ data: parsed, remaining });
-  } catch (err) {
-    console.error('Fortune error:', err);
-    const message = err instanceof Error ? err.message : 'Fortune analysis failed';
-    res.status(500).json({ error: message });
-  }
+    safeSaveMessage(userId, 'user', '[Fortune Request]', 'fortune', { date, unified });
+    safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'fortune');
+    return parsed;
+  });
 });
 
 // ─── POST /ai/outfit ───
 router.post('/outfit', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const planType = req.user!.planType;
-    const { bazi, qimen, weather, faceAnalysis } = req.body as {
-      bazi?: string;
-      qimen?: string;
-      weather?: string;
-      faceAnalysis?: string;
-    };
+  const userId = req.user!.userId;
+  const { bazi, qimen, weather, faceAnalysis } = req.body as {
+    bazi?: string;
+    qimen?: string;
+    weather?: string;
+    faceAnalysis?: string;
+  };
 
-    const usage = await checkUsageAllowed(userId, planType, 'outfit');
-    if (!usage.allowed) {
-      res.status(429).json({
-        error: 'Daily usage limit reached for outfit advice',
-        remaining: 0,
-        planType,
-      });
-      return;
-    }
-
-    const model = selectModel(planType);
-
+  await executeAiCall(req, res, 'outfit', async () => {
+    const model = selectModel();
     const userPrompt = `請提供今日穿搭建議。
 
 用戶八字五行：${bazi || '未提供'}
@@ -236,72 +277,53 @@ router.post('/outfit', async (req: Request, res: Response): Promise<void> => {
 
     const rawResponse = await callClaude(model, OUTFIT_SYSTEM, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
-
-    await incrementUsage(userId, 'outfit');
-    await saveMessage(userId, 'user', '[Outfit Request]', 'outfit');
-    await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'outfit');
-
-    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
-    res.json({ data: parsed, remaining });
-  } catch (err) {
-    console.error('Outfit error:', err);
-    const message = err instanceof Error ? err.message : 'Outfit advice failed';
-    res.status(500).json({ error: message });
-  }
+    safeSaveMessage(userId, 'user', '[Outfit Request]', 'outfit');
+    safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'outfit');
+    return parsed;
+  });
 });
 
 // ─── POST /ai/divination ───
 router.post('/divination', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const planType = req.user!.planType;
-    const {
-      type,
-      poem,
-      level,
-      classicRef,
-      question,
-      bazi,
-      qimen,
-      jiaoBeiResult,
-      attempts,
-      hexagramName,
-      hexagramOracle,
-      category,
-      changedHexagram,
-      changingLines,
-      ziwei,
-      astrology,
-    } = req.body as {
-      type: 'lingqian' | 'hexagram';
-      poem?: string;
-      level?: string;
-      classicRef?: string;
-      question?: string;
-      bazi?: string;
-      qimen?: string;
-      jiaoBeiResult?: string;
-      attempts?: number;
-      hexagramName?: string;
-      hexagramOracle?: string;
-      category?: string;
-      changedHexagram?: string;
-      changingLines?: number[];
-      ziwei?: string;
-      astrology?: string;
-    };
+  const userId = req.user!.userId;
+  const {
+    type,
+    poem,
+    level,
+    classicRef,
+    question,
+    bazi,
+    qimen,
+    jiaoBeiResult,
+    attempts,
+    hexagramName,
+    hexagramOracle,
+    category,
+    changedHexagram,
+    changingLines,
+    ziwei,
+    astrology,
+  } = req.body as {
+    type: 'lingqian' | 'hexagram';
+    poem?: string;
+    level?: string;
+    classicRef?: string;
+    question?: string;
+    bazi?: string;
+    qimen?: string;
+    jiaoBeiResult?: string;
+    attempts?: number;
+    hexagramName?: string;
+    hexagramOracle?: string;
+    category?: string;
+    changedHexagram?: string;
+    changingLines?: number[];
+    ziwei?: string;
+    astrology?: string;
+  };
 
-    const usage = await checkUsageAllowed(userId, planType, 'divination');
-    if (!usage.allowed) {
-      res.status(429).json({
-        error: 'Daily usage limit reached for divination',
-        remaining: 0,
-        planType,
-      });
-      return;
-    }
-
-    const model = selectModel(planType);
+  await executeAiCall(req, res, 'divination', async () => {
+    const model = selectModel();
     let systemPrompt: string;
     let userPrompt: string;
 
@@ -343,54 +365,31 @@ ${poem || '未提供'}
 
     const rawResponse = await callClaude(model, systemPrompt, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
-
-    await incrementUsage(userId, 'divination');
-    await saveMessage(userId, 'user', `[Divination: ${type}]`, 'divination', {
-      type,
-      question,
-    });
-    await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'divination');
-
-    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
-    res.json({ data: parsed, remaining });
-  } catch (err) {
-    console.error('Divination error:', err);
-    const message = err instanceof Error ? err.message : 'Divination failed';
-    res.status(500).json({ error: message });
-  }
+    safeSaveMessage(userId, 'user', `[Divination: ${type}]`, 'divination', { type, question });
+    safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'divination');
+    return parsed;
+  });
 });
 
 // ─── POST /ai/pet-message ───
 router.post('/pet-message', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const planType = req.user!.planType;
-    const { petName, petElement, petPersonality, solarTerm, creature, zodiac, bazi, ziwei, qimen, messageType } =
-      req.body as {
-        petName?: string;
-        petElement?: string;
-        petPersonality?: string;
-        solarTerm?: string;
-        creature?: string;
-        zodiac?: string;
-        bazi?: string;
-        ziwei?: string;
-        qimen?: string;
-        messageType?: string;
-      };
+  const userId = req.user!.userId;
+  const { petName, petElement, petPersonality, solarTerm, creature, zodiac, bazi, ziwei, qimen, messageType } =
+    req.body as {
+      petName?: string;
+      petElement?: string;
+      petPersonality?: string;
+      solarTerm?: string;
+      creature?: string;
+      zodiac?: string;
+      bazi?: string;
+      ziwei?: string;
+      qimen?: string;
+      messageType?: string;
+    };
 
-    const usage = await checkUsageAllowed(userId, planType, 'pet-message');
-    if (!usage.allowed) {
-      res.status(429).json({
-        error: 'Daily usage limit reached for pet messages',
-        remaining: 0,
-        planType,
-      });
-      return;
-    }
-
-    const model = selectModel(planType);
-
+  await executeAiCall(req, res, 'pet-message', async () => {
+    const model = selectModel();
     const userPrompt = `靈寵資訊：
 - 名字：${petName || '小靈'}
 - 節氣：${solarTerm || '未知'}
@@ -410,51 +409,33 @@ router.post('/pet-message', async (req: Request, res: Response): Promise<void> =
 
     const rawResponse = await callClaude(model, PET_MESSAGE_SYSTEM, userPrompt);
     const parsed = parseClaudeJson(rawResponse);
-
-    await incrementUsage(userId, 'pet-message');
-    await saveMessage(userId, 'assistant', JSON.stringify(parsed), 'pet-message');
-
-    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
-    res.json({ data: parsed, remaining });
-  } catch (err) {
-    console.error('Pet message error:', err);
-    const message = err instanceof Error ? err.message : 'Pet message generation failed';
-    res.status(500).json({ error: message });
-  }
+    safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'pet-message');
+    return parsed;
+  });
 });
 
-// ─── POST /ai/pet-chat (自由對話，按方案選模型) ───
+// ─── POST /ai/pet-chat ───
 router.post('/pet-chat', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.userId;
-    const planType = req.user!.planType;
-    const { message, petName, petElement, petPersonality, creature, solarTerm, zodiac, bazi } =
-      req.body as {
-        message: string;
-        petName?: string;
-        petElement?: string;
-        petPersonality?: string;
-        creature?: string;
-        solarTerm?: string;
-        zodiac?: string;
-        bazi?: string;
-      };
+  const userId = req.user!.userId;
+  const { message, petName, petElement, petPersonality, creature, solarTerm, zodiac, bazi } =
+    req.body as {
+      message: string;
+      petName?: string;
+      petElement?: string;
+      petPersonality?: string;
+      creature?: string;
+      solarTerm?: string;
+      zodiac?: string;
+      bazi?: string;
+    };
 
-    if (!message) {
-      res.status(400).json({ error: 'message is required' });
-      return;
-    }
+  if (!message) {
+    res.status(400).json({ error: 'message is required' });
+    return;
+  }
 
-    const usage = await checkUsageAllowed(userId, planType, 'pet-message');
-    if (!usage.allowed) {
-      res.status(429).json({ error: 'Daily limit reached', remaining: 0, planType });
-      return;
-    }
-
-    // 按方案選模型: free=Haiku, member=Sonnet, supreme=Opus
-    const model = selectModel(planType);
-
-    // 計算當前時辰
+  await executeAiCall(req, res, 'pet-chat', async () => {
+    const model = selectModel();
     const now = new Date();
     const hour = now.getHours();
     const shichenNames = ['子', '丑', '丑', '寅', '寅', '卯', '卯', '辰', '辰', '巳', '巳', '午', '午', '未', '未', '申', '申', '酉', '酉', '戌', '戌', '亥', '亥', '子'];
@@ -469,34 +450,24 @@ router.post('/pet-chat', async (req: Request, res: Response): Promise<void> => {
 
 ═══ 主人命理檔案 ═══
 八字四柱：${bazi || '未提供'}
-（若有八字資訊，請據此分析主人的五行強弱、用神喜忌，融入回覆中）
 
 ═══ 時空感知 ═══
 當前時辰：${currentShichen}時（${hour}:00）
-時辰能量：${{子:'水氣深沉，宜靜思內觀',丑:'土氣漸凝，養精蓄銳之時',寅:'木氣初動，萬物待發',卯:'木氣旺盛，宜開展新事',辰:'土氣厚重，龍脈匯聚',巳:'火氣漸升，思維敏捷',午:'火氣最旺，陽極之時',未:'土氣柔和，宜養心神',申:'金氣初動，宜決斷收束',酉:'金氣旺盛，宜省思總結',戌:'土氣歸藏，萬物收斂',亥:'水氣初生，靈感湧現'}[currentShichen] || '氣場流轉中'}
+時辰能量：${({ 子: '水氣深沉，宜靜思內觀', 丑: '土氣漸凝，養精蓄銳之時', 寅: '木氣初動，萬物待發', 卯: '木氣旺盛，宜開展新事', 辰: '土氣厚重，龍脈匯聚', 巳: '火氣漸升，思維敏捷', 午: '火氣最旺，陽極之時', 未: '土氣柔和，宜養心神', 申: '金氣初動，宜決斷收束', 酉: '金氣旺盛，宜省思總結', 戌: '土氣歸藏，萬物收斂', 亥: '水氣初生，靈感湧現' } as Record<string, string>)[currentShichen] || '氣場流轉中'}
 
 ═══ 對話規則 ═══
 - 用溫暖而帶神秘感的第一人稱說話，稱對方為「主人」
 - 回覆控制在 80-150 字，自然口語化，帶有你的靈獸特色
-- 運勢/命理問題：結合八字五行、時辰能量、陰陽消長來分析，用「天干地支」「五行生剋」等專業術語但以淺顯方式解釋
+- 運勢/命理問題：結合八字五行、時辰能量、陰陽消長來分析
 - 生活問題：從命理角度給出建議，例如方位、顏色、時機等
 - 偶爾用「...」表示靈感湧現，用「✦」標記重要啟示
-- 展現你作為${creature || '靈獸'}的獨特靈性，例如感應氣場變化、預知吉凶
-- 語氣如同一位慈祥而睿智的神諭，透過靈寵之口傳達天機`;
+- 展現你作為${creature || '靈獸'}的獨特靈性`;
 
     const rawResponse = await callClaude(model, systemPrompt, message);
-
-    await incrementUsage(userId, 'pet-message');
-    await saveMessage(userId, 'user', message, 'pet-chat');
-    await saveMessage(userId, 'assistant', rawResponse, 'pet-chat');
-
-    const remaining = usage.remaining === -1 ? -1 : usage.remaining - 1;
-    res.json({ data: { reply: rawResponse }, remaining });
-  } catch (err) {
-    console.error('Pet chat error:', err);
-    const message = err instanceof Error ? err.message : 'Chat failed';
-    res.status(500).json({ error: message });
-  }
+    safeSaveMessage(userId, 'user', message, 'pet-chat');
+    safeSaveMessage(userId, 'assistant', rawResponse, 'pet-chat');
+    return { reply: rawResponse };
+  });
 });
 
 export default router;

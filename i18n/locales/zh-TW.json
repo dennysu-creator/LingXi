@@ -301,12 +301,18 @@
     "center": "中宮"
   },
   "subscription": {
-    "free": "免費版",
-    "member": "靈犀會員",
-    "supreme": "靈犀至尊",
+    "free": "免費體驗",
+    "paid": "靈犀訂閱",
+    "monthly": "月付方案",
+    "yearly": "年付方案",
     "perMonth": "/月",
+    "perYear": "/年",
     "subscribe": "立即訂閱",
-    "restore": "恢復購買"
+    "restore": "恢復購買",
+    "savingsBadge": "省 16%",
+    "yearlyEquiv": "約 NT${{monthly}}/月，最划算",
+    "member": "靈犀會員",
+    "supreme": "靈犀至尊"
   },
   "settings": {
     "title": "設定",
@@ -359,15 +365,23 @@
     "evolve": "🌟 {{petName}}進化了！第{{evolution}}階段形態！"
   },
   "upgrade": {
-    "petVoice": "主人，今天的次數用完了...升級的話，我能幫你做更多喔！",
-    "laterBtn": "明天再來",
+    "petVoice": "主人，{{petName}}想陪你探索更多天機，訂閱後每天最多 100 次 AI 解讀～",
+    "trialRemaining": "免費體驗剩餘 {{remaining}}/{{total}} 次",
+    "featDaily": "· 每日最多 100 次 AI 解讀",
+    "featAi": "· AI 深度命理解讀",
+    "featPet": "· 靈寵成長無上限",
+    "featShare": "· 專屬靈寵分享卡",
+    "subscribeMonthly": "訂閱月付",
+    "subscribeYearly": "訂閱年付",
+    "restore": "恢復購買",
+    "restoreSuccess": "已恢復訂閱",
+    "restoreNothing": "未找到有效訂閱",
+    "restoreNothingDesc": "您的 Apple ID 尚未購買靈犀訂閱",
+    "restoreFailed": "恢復失敗",
+    "purchaseFailed": "購買失敗",
+    "laterBtn": "稍後再說",
     "upgradeBtn": "立即升級",
-    "memberF1": "· 靈眼/靈心/靈魂 5次/日",
-    "memberF2": "· 靈寵等級上限 Lv.20",
-    "memberF3": "· AI 深度解讀（Sonnet）",
-    "supremeF1": "· 全功能無限使用",
-    "supremeF2": "· 靈寵等級無上限",
-    "supremeF3": "· 專屬進化 + 皮膚"
+    "legal": "訂閱會自動續訂，可隨時於 App Store 管理。退款由 Apple 處理，取消後不會恢復免費體驗次數。"
   },
   "actionBar": {
     "eye": "靈眼",
@@ -376,9 +390,10 @@
   },
   "profile": {
     "title": "我的",
+    "paid": "靈犀訂閱",
     "supreme": "靈犀至尊",
     "member": "靈犀會員",
-    "free": "免費版",
+    "free": "免費體驗",
     "guest": "訪客",
     "language": "語言設定",
     "destinyData": "命盤資料",

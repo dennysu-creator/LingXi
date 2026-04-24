@@ -7,7 +7,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, ApiError, setTokens, clearTokens, getToken } from '@/services/api-client';
-import type { PlanType } from '@/types/shared';
+import type { PlanType, SubscriptionStatus } from '@/types/shared';
+import { normalizePlan } from '@/types/shared';
 import { useUserStore } from '@/stores/user-store';
 import { usePetStore } from '@/stores/pet-store';
 import { useChatStore } from '@/stores/chat-store';
@@ -19,6 +20,9 @@ export interface AuthUser {
   email: string;
   name: string;
   planType: PlanType;
+  subscriptionStatus?: SubscriptionStatus;
+  trialUsed?: number;
+  trialLimit?: number;
 }
 
 interface AuthResponse {
@@ -40,6 +44,9 @@ interface ProfileResponse {
   gender?: 'male' | 'female';
   destinyData?: Record<string, unknown> | null;
   planType: PlanType;
+  subscriptionStatus?: SubscriptionStatus;
+  trialUsed?: number;
+  trialLimit?: number;
 }
 
 function syncProfileToLocalStores(profile: ProfileResponse) {
@@ -52,6 +59,9 @@ function syncProfileToLocalStores(profile: ProfileResponse) {
     calendarType: profile.calendarType,
     gender: profile.gender,
     planType: profile.planType,
+    subscriptionStatus: profile.subscriptionStatus,
+    trialUsed: profile.trialUsed,
+    trialLimit: profile.trialLimit,
     destinyData: profile.destinyData,
   });
 
@@ -59,6 +69,18 @@ function syncProfileToLocalStores(profile: ProfileResponse) {
   if (!petStore.petId && profile.birthMonth > 0 && profile.birthDay > 0) {
     petStore.initPet(profile.birthMonth, profile.birthDay);
   }
+}
+
+function authUserFromProfile(profile: ProfileResponse): AuthUser {
+  return {
+    id: profile.id,
+    email: profile.email,
+    name: profile.name,
+    planType: normalizePlan(profile.planType),
+    subscriptionStatus: profile.subscriptionStatus,
+    trialUsed: profile.trialUsed,
+    trialLimit: profile.trialLimit,
+  };
 }
 
 function resetLocalStores() {
@@ -102,16 +124,14 @@ export const useAuthStore = create<AuthState>()(
       const data = await api.post<AuthResponse>('/auth/login', { email, password }, { noAuth: true });
 
       await setTokens(data.accessToken, data.refreshToken);
-      let nextUser = data.user;
+      let nextUser: AuthUser = {
+        ...data.user,
+        planType: normalizePlan(data.user.planType),
+      };
       try {
         const profile = await api.get<ProfileResponse>('/user/profile');
         syncProfileToLocalStores(profile);
-        nextUser = {
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          planType: profile.planType,
-        };
+        nextUser = authUserFromProfile(profile);
       } catch {
         useUserStore.getState().setPremium(data.user.planType);
       }
@@ -173,12 +193,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const profile = await api.get<ProfileResponse>('/user/profile');
           syncProfileToLocalStores(profile);
-          data.user = {
-            id: profile.id,
-            email: profile.email,
-            name: profile.name,
-            planType: profile.planType,
-          };
+          data.user = authUserFromProfile(profile);
         } catch {
           useUserStore.getState().setPremium(data.user.planType);
         }
@@ -240,12 +255,7 @@ export const useAuthStore = create<AuthState>()(
       set({
         isAuthenticated: true,
         isLoading: false,
-        user: {
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          planType: profile.planType,
-        },
+        user: authUserFromProfile(profile),
         error: null,
       });
 
@@ -273,12 +283,13 @@ export const useAuthStore = create<AuthState>()(
   },
 
   updatePlan: (planType: PlanType) => {
+    const normalized = normalizePlan(planType);
     const { user } = get();
-    useUserStore.getState().setPremium(planType);
+    useUserStore.getState().setPremium(normalized);
     if (!user) return;
 
     set({
-      user: { ...user, planType },
+      user: { ...user, planType: normalized },
     });
   },
 

@@ -121,7 +121,7 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
             question: question || undefined,
             changedHexagram: hexResult.changedHexagram?.name,
             changingLines: hexResult.changingLines,
-          });
+          }, { idempotent: true });
 
           const aiData = aiResponse.data;
           // Use AI petMessage as chat text, fallback to local narration

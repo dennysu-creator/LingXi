@@ -14,6 +14,8 @@ router.get('/profile', async (req: Request, res: Response): Promise<void> => {
     const result = await query(
       `SELECT id, email, name, birth_year, birth_month, birth_day, birth_hour,
               calendar_type, gender, destiny_data, plan_type, language,
+              trial_used_count, trial_limit, subscription_status,
+              subscription_product_id, subscription_expires_at, will_renew,
               created_at, updated_at
        FROM users WHERE id = $1`,
       [userId]
@@ -39,6 +41,12 @@ router.get('/profile', async (req: Request, res: Response): Promise<void> => {
       destinyData: user.destiny_data,
       planType: user.plan_type,
       language: user.language,
+      trialUsed: user.trial_used_count,
+      trialLimit: user.trial_limit,
+      subscriptionStatus: user.subscription_status,
+      subscriptionProductId: user.subscription_product_id,
+      subscriptionExpiresAt: user.subscription_expires_at,
+      willRenew: user.will_renew,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     });

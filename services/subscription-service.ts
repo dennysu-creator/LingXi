@@ -1,11 +1,16 @@
-// ═══════════════════════════════════════
-// 訂閱服務（RevenueCat SDK 串接）
-// ═══════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// 訂閱服務 — 單一 'paid' entitlement，月/年 2 個產品
+// ═══════════════════════════════════════════════════════════════
 
 import { Platform } from 'react-native';
-import type { PlanType } from '@/stores/user-store';
+import {
+  ENTITLEMENT_PAID,
+  PRODUCT_ID_MONTHLY,
+  PRODUCT_ID_YEARLY,
+  type PlanType,
+} from '@/types/shared';
 
-// ─── Native-only: react-native-purchases（Web 不支援） ───
+// ─── Native-only dynamic import ────────────────────────────────
 let Purchases: any = null;
 let LOG_LEVEL: any = null;
 
@@ -15,83 +20,67 @@ if (Platform.OS !== 'web') {
     Purchases = mod.default;
     LOG_LEVEL = mod.LOG_LEVEL;
   } catch {
-    // Not available (e.g. Expo Go)
+    // Not available (e.g. Expo Go).
   }
 }
 
 type PurchasesPackage = any;
 type CustomerInfo = any;
 
-// ─── 方案定義 ───
+// ─── Product catalog ───────────────────────────────────────────
 
-export interface SubscriptionPlan {
+export interface PaidProduct {
   id: string;
-  type: PlanType;
-  name: string;
-  priceMonthly: number;
-  features: string[];
+  cadence: 'monthly' | 'yearly';
+  priceDisplay: string;   // "NT$199" / "NT$1999"
+  periodLabel: string;    // i18n key 'subscription.perMonth' / 'perYear'
+  badge?: string;         // "省 16%" for yearly
 }
 
-export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+export const PAID_PRODUCTS: PaidProduct[] = [
   {
-    id: 'free',
-    type: 'free',
-    name: '免費版',
-    priceMonthly: 0,
-    features: [
-      '每功能每日 1 次',
-      '靈寵等級上限 Lv.10',
-      '基礎模板解讀',
-    ],
+    id: PRODUCT_ID_MONTHLY,
+    cadence: 'monthly',
+    priceDisplay: 'NT$199',
+    periodLabel: 'subscription.perMonth',
   },
   {
-    id: 'lingxi_member_monthly',
-    type: 'member',
-    name: '靈犀會員',
-    priceMonthly: 390,
-    features: [
-      '每功能每日 5 次',
-      '靈寵等級上限 Lv.20',
-      'AI Haiku 解讀',
-      '完整占星分析',
-    ],
-  },
-  {
-    id: 'lingxi_supreme_monthly',
-    type: 'supreme',
-    name: '靈犀至尊',
-    priceMonthly: 1990,
-    features: [
-      '所有功能無限次',
-      '靈寵等級無上限',
-      'AI Sonnet 深度解讀',
-      '跨系統深度分析',
-      '含首飾珠寶建議',
-    ],
+    id: PRODUCT_ID_YEARLY,
+    cadence: 'yearly',
+    priceDisplay: 'NT$1999',
+    periodLabel: 'subscription.perYear',
+    badge: 'subscription.savingsBadge',
   },
 ];
 
-// ─── RevenueCat Entitlement → PlanType 映射 ───
+// ─── Entitlement mapping ───────────────────────────────────────
 
-function mapEntitlementToPlanType(customerInfo: CustomerInfo): PlanType {
-  if (customerInfo.entitlements.active['supreme']) return 'supreme';
-  if (customerInfo.entitlements.active['member']) return 'member';
-  return 'free';
+export function mapEntitlementToPlanType(customerInfo: CustomerInfo): PlanType {
+  return customerInfo?.entitlements?.active?.[ENTITLEMENT_PAID] ? 'paid' : 'free';
 }
 
-// ─── 初始化 ───
+export function getActiveProductCadence(customerInfo: CustomerInfo | null): 'monthly' | 'yearly' | null {
+  const ent = customerInfo?.entitlements?.active?.[ENTITLEMENT_PAID];
+  if (!ent) return null;
+  if (ent.productIdentifier === PRODUCT_ID_MONTHLY) return 'monthly';
+  if (ent.productIdentifier === PRODUCT_ID_YEARLY) return 'yearly';
+  return null;
+}
+
+// ─── Initialization ────────────────────────────────────────────
 
 let isInitialized = false;
 
 export async function initSubscriptionService(): Promise<void> {
   if (isInitialized || Platform.OS === 'web' || !Purchases) return;
 
-  const apiKey = Platform.OS === 'ios'
-    ? process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY
-    : '';
+  const apiKey =
+    Platform.OS === 'ios'
+      ? process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY
+      : process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || '';
 
   if (!apiKey) {
-    console.warn('[SubscriptionService] No RevenueCat API key configured');
+    console.warn('[SubscriptionService] No RevenueCat API key configured for', Platform.OS);
     return;
   }
 
@@ -100,73 +89,113 @@ export async function initSubscriptionService(): Promise<void> {
     await Purchases.configure({ apiKey });
     isInitialized = true;
   } catch (err) {
-    // RevenueCat 在 Expo Go 中不可用，跳過初始化
-    console.warn('[SubscriptionService] RevenueCat init failed (expected in Expo Go):', (err as Error).message);
+    console.warn(
+      '[SubscriptionService] RevenueCat init failed (expected in Expo Go):',
+      (err as Error).message
+    );
   }
 }
 
-/**
- * 設定 RevenueCat 用戶 ID（登入後呼叫）
- */
+/** Identify RC user = backend user id. MUST be called before any purchase. */
 export async function identifyUser(userId: string): Promise<void> {
   if (!isInitialized) return;
-  await Purchases.logIn(userId);
+  try {
+    await Purchases.logIn(userId);
+  } catch (err) {
+    console.warn('[SubscriptionService] logIn failed:', (err as Error).message);
+  }
 }
 
-/**
- * 取得可購買的方案
- */
+export async function logOutUser(): Promise<void> {
+  if (!isInitialized) return;
+  try {
+    await Purchases.logOut();
+  } catch {
+    // ignore
+  }
+}
+
+// ─── Offerings ─────────────────────────────────────────────────
+
 export async function getOfferings(): Promise<PurchasesPackage[]> {
   if (!isInitialized) return [];
-  const offerings = await Purchases.getOfferings();
-  return offerings.current?.availablePackages || [];
+  try {
+    const offerings = await Purchases.getOfferings();
+    return offerings.current?.availablePackages || [];
+  } catch (err) {
+    console.warn('[SubscriptionService] getOfferings failed:', (err as Error).message);
+    return [];
+  }
 }
 
-/**
- * 購買訂閱方案
- */
-export async function purchasePlan(planId: string): Promise<PlanType | null> {
+/** Find the RC package for a product id. */
+async function findPackage(productId: string): Promise<PurchasesPackage | null> {
+  const packages = await getOfferings();
+  return packages.find((p: any) => p.product.identifier === productId) || null;
+}
+
+// ─── Purchase ──────────────────────────────────────────────────
+
+export interface PurchaseResult {
+  planType: PlanType;
+  productId: string | null;
+  customerInfo: CustomerInfo | null;
+  cancelled: boolean;
+}
+
+export async function purchasePlan(productId: string): Promise<PurchaseResult> {
   if (!isInitialized) {
-    console.warn('[SubscriptionService] Not initialized');
-    return null;
+    return { planType: 'free', productId: null, customerInfo: null, cancelled: false };
   }
 
   try {
-    const offerings = await Purchases.getOfferings();
-    const packages = offerings.current?.availablePackages || [];
-    const pkg = packages.find((p: any) => p.product.identifier === planId);
-
+    const pkg = await findPackage(productId);
     if (!pkg) {
-      console.error(`[SubscriptionService] Package not found: ${planId}`);
-      return null;
+      console.error('[SubscriptionService] Package not found:', productId);
+      return { planType: 'free', productId: null, customerInfo: null, cancelled: false };
     }
 
     const { customerInfo } = await Purchases.purchasePackage(pkg);
-    const planType = mapEntitlementToPlanType(customerInfo);
-
-    return planType;
+    return {
+      planType: mapEntitlementToPlanType(customerInfo),
+      productId,
+      customerInfo,
+      cancelled: false,
+    };
   } catch (err: unknown) {
-    if (typeof err === 'object' && err !== null && 'userCancelled' in err && (err as Record<string, unknown>).userCancelled) return null;
+    if (typeof err === 'object' && err !== null && 'userCancelled' in err && (err as any).userCancelled) {
+      return { planType: 'free', productId: null, customerInfo: null, cancelled: true };
+    }
     throw err;
   }
 }
 
-/**
- * 恢復購買
- */
-export async function restorePurchases(): Promise<PlanType> {
-  if (!isInitialized) return 'free';
+// ─── Restore ───────────────────────────────────────────────────
+
+export async function restorePurchases(): Promise<PurchaseResult> {
+  if (!isInitialized) return { planType: 'free', productId: null, customerInfo: null, cancelled: false };
 
   const customerInfo = await Purchases.restorePurchases();
-  return mapEntitlementToPlanType(customerInfo);
+  const cadence = getActiveProductCadence(customerInfo);
+  return {
+    planType: mapEntitlementToPlanType(customerInfo),
+    productId: cadence === 'monthly' ? PRODUCT_ID_MONTHLY : cadence === 'yearly' ? PRODUCT_ID_YEARLY : null,
+    customerInfo,
+    cancelled: false,
+  };
 }
 
-/**
- * 檢查當前訂閱狀態
- */
-export async function checkSubscriptionStatus(): Promise<PlanType> {
-  if (!isInitialized) return 'free';
+// ─── Status ────────────────────────────────────────────────────
+
+export async function checkSubscriptionStatus(): Promise<PurchaseResult> {
+  if (!isInitialized) return { planType: 'free', productId: null, customerInfo: null, cancelled: false };
 
   const customerInfo = await Purchases.getCustomerInfo();
-  return mapEntitlementToPlanType(customerInfo);
+  const cadence = getActiveProductCadence(customerInfo);
+  return {
+    planType: mapEntitlementToPlanType(customerInfo),
+    productId: cadence === 'monthly' ? PRODUCT_ID_MONTHLY : cadence === 'yearly' ? PRODUCT_ID_YEARLY : null,
+    customerInfo,
+    cancelled: false,
+  };
 }

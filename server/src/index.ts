@@ -40,12 +40,28 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? false : '*'),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Idempotency-Key',
+      'X-Device-Key',
+      'X-Device-Platform',
+      'X-Attestation-Token',
+    ],
     maxAge: 86400,
   })
 );
 
-app.use(express.json({ limit: '10mb' }));
+// Capture the raw request body so webhook HMAC signature verification
+// can work AFTER JSON parsing. Extends Express Request with `rawBody`.
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+      (req as express.Request & { rawBody?: string }).rawBody = buf.toString('utf8');
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 
 const globalLimiter = rateLimit({

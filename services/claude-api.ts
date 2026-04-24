@@ -91,12 +91,27 @@ export interface DivinationResult {
 interface AiResponse<T> {
   data: T;
   remaining?: number;
+  trialUsed?: number;
+  trialLimit?: number;
 }
 
 /** 快取最近一次各 AI 端點回傳的剩餘次數 */
 const _lastRemaining: Record<string, number | undefined> = {};
 export function getLastRemaining(endpoint: string): number | undefined {
   return _lastRemaining[endpoint];
+}
+
+// Sync server-authoritative trial state into the local store after each call.
+function syncTrialMirror(r: { trialUsed?: number; trialLimit?: number }): void {
+  if (typeof r.trialUsed === 'number' && typeof r.trialLimit === 'number') {
+    // Lazy import to avoid circular dep during module init.
+    try {
+      const mod = require('@/stores/user-store');
+      mod.useUserStore?.getState().setTrialState(r.trialUsed, r.trialLimit);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 // ─── API 呼叫函式 ───
@@ -115,8 +130,9 @@ export async function analyzeFace(
     bazi: baziInfo,
     qimen: qimenInfo,
     date,
-  });
+  }, { idempotent: true });
   _lastRemaining['face-reading'] = result.remaining;
+  syncTrialMirror(result);
   return result.data;
 }
 
@@ -136,8 +152,9 @@ export async function generatePetMessage(
     bazi: baziInfo,
     qimen: qimenInfo,
     messageType,
-  });
+  }, { idempotent: true });
   _lastRemaining['pet-message'] = result.remaining;
+  syncTrialMirror(result);
   return result.data;
 }
 
@@ -159,8 +176,9 @@ export async function analyzeFengShui(
     locationDescription: locationName,
     bazi: baziInfo,
     qimen: qimenInfo,
-  });
+  }, { idempotent: true });
   _lastRemaining['feng-shui'] = result.remaining;
+  syncTrialMirror(result);
   return result.data;
 }
 
@@ -178,8 +196,9 @@ export async function getOutfitAdvice(
     qimen: qimenInfo,
     weather: weather ? `${weather.temp}°C, ${weather.condition}` : undefined,
     faceAnalysis: faceScore ? JSON.stringify(faceScore) : undefined,
-  });
+  }, { idempotent: true });
   _lastRemaining['outfit'] = result.remaining;
+  syncTrialMirror(result);
   return result.data;
 }
 
@@ -195,8 +214,9 @@ export async function getDailyFortune(
     bazi: baziInfo,
     qimen: qimenInfo,
     date,
-  });
+  }, { idempotent: true });
   _lastRemaining['fortune'] = result.remaining;
+  syncTrialMirror(result);
   return result.data;
 }
 
@@ -211,7 +231,8 @@ export async function getDivinationReading(
   const result = await api.post<AiResponse<DivinationResult>>('/ai/divination', {
     type: backendType,
     ...data,
-  });
+  }, { idempotent: true });
   _lastRemaining['divination'] = result.remaining;
+  syncTrialMirror(result);
   return result.data;
 }

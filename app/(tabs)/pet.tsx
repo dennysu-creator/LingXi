@@ -23,6 +23,8 @@ import { generateQimenChart } from '@/services/qimen-engine';
 
 import PetAvatar, { type ActiveFeature } from '@/components/PetAvatar';
 import UpgradeModal from '@/components/UpgradeModal';
+import ShareCard, { type ShareCardData } from '@/components/ShareCard';
+import { buildShareCardData, captureAndShare } from '@/services/share-service';
 
 // 羅盤浮層（靈心用）
 import * as Location from 'expo-location';
@@ -140,6 +142,29 @@ export default function PetScreen() {
   // ─── Bubble 收合動畫 ───
   const [bubbleCollapsed, setBubbleCollapsed] = useState(false);
   const bubbleAnim = useRef(new Animated.Value(1)).current; // 1 = expanded, 0 = collapsed
+
+  // ─── Share card (hidden off-screen) ───
+  const [shareCardData, setShareCardData] = useState<ShareCardData | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const shareCardRef = useRef<View>(null);
+
+  const triggerShare = useCallback(async (title: string, content: string, category?: string) => {
+    if (isSharing) return;
+    setIsSharing(true);
+    const data = buildShareCardData({ title, content, category });
+    setShareCardData(data);
+    // Wait for the hidden card to mount + font/image + one frame to settle.
+    await new Promise((r) => setTimeout(r, 350));
+    try {
+      await captureAndShare(shareCardRef, {
+        dialogTitle: title,
+        textFallback: `${title}\n\n${content}\n\n🔮 靈犀 LingXi — AI 命理靈寵\n📲 https://apps.apple.com/app/id6759918378`,
+      });
+    } finally {
+      setShareCardData(null);
+      setIsSharing(false);
+    }
+  }, [isSharing]);
 
   // 新訊息到 → 自動展開
   const msgTimestamp = latestMessage?.time ?? latestMessage?.text?.length ?? 0;
@@ -479,20 +504,17 @@ export default function PetScreen() {
     setChatLoading(true);
 
     try {
-      const { apiRequest } = await import('@/services/api-client');
-      const resp = await apiRequest<{ data: { reply: string }; remaining: number }>('/ai/pet-chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: question,
-          petName,
-          petElement,
-          petPersonality: usePetStore.getState().personality,
-          creature: petCreature,
-          solarTerm: usePetStore.getState().solarTerm,
-          zodiac: usePetStore.getState().zodiac,
-          bazi: bazi ? JSON.stringify(bazi) : '',
-        }),
-      });
+      const { api } = await import('@/services/api-client');
+      const resp = await api.post<{ data: { reply: string }; remaining: number }>('/ai/pet-chat', {
+        message: question,
+        petName,
+        petElement,
+        petPersonality: usePetStore.getState().personality,
+        creature: petCreature,
+        solarTerm: usePetStore.getState().solarTerm,
+        zodiac: usePetStore.getState().zodiac,
+        bazi: bazi ? JSON.stringify(bazi) : '',
+      }, { idempotent: true });
       addMessage({ type: 'chat', text: resp.data.reply, data: { question } });
     } catch {
       // API 失敗時用本地回覆
@@ -671,10 +693,14 @@ export default function PetScreen() {
             </Text>
             {/* 分享 */}
             <Pressable
-              onPress={() => { import('@/services/share-service').then(s => s.shareResult('靈犀運勢', latestMessage?.text || '')); }}
+              onPress={() => {
+                const title = getBubbleTitle(latestMessage?.type);
+                void triggerShare(title, latestMessage?.text || '', latestMessage?.type);
+              }}
               style={styles.bubbleShareBtn}
+              disabled={isSharing}
             >
-              <Text style={styles.bubbleShareText}>分享 ↗</Text>
+              <Text style={styles.bubbleShareText}>{isSharing ? '生成中...' : '分享 ↗'}</Text>
             </Pressable>
           </Glass>
         </Animated.View>
@@ -753,6 +779,13 @@ export default function PetScreen() {
       )}
 
       <UpgradeModal visible={showUpgrade} onClose={() => setShowUpgrade(false)} />
+
+      {/* ═══ Hidden ShareCard (captured off-screen to PNG) ═══ */}
+      {shareCardData && (
+        <View pointerEvents="none" style={styles.hiddenShareHost}>
+          <ShareCard ref={shareCardRef} data={shareCardData} />
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -782,6 +815,16 @@ const COMPOSER_H = 50;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: V4.ink },
   petFullscreen: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+
+  // Off-screen share card host. Layout is real so capture works;
+  // position puts it far off visible screen so users never see it.
+  hiddenShareHost: {
+    position: 'absolute',
+    left: -99999,
+    top: 0,
+    opacity: 1,
+    // zIndex 0 — below everything visible, but layout still computes.
+  },
 
   // ─── 頂部 / 底部漸層 ───
   topGradient: {

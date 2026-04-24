@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 export interface JwtPayload {
   userId: string;
   email: string;
-  planType: string;
+  planType?: string; // legacy — do not trust; read subscription_status from DB
 }
 
 declare global {
@@ -42,7 +42,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   try {
     const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
 
-    if (!decoded.userId || !decoded.email || !decoded.planType) {
+    if (!decoded.userId || !decoded.email) {
       res.status(401).json({ error: 'Invalid token payload' });
       return;
     }

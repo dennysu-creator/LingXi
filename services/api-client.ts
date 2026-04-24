@@ -4,12 +4,41 @@
 // ═══════════════════════════════════════
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import { getDeviceIdAsync, getPlatformTag } from '@/hooks/useDeviceId';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lingxi-api-440150253440.asia-east1.run.app';
 
 
 const TOKEN_KEY = 'lingxi_jwt_token';
 const REFRESH_KEY = 'lingxi_refresh_token';
+
+// ─── Device headers for attestation / analytics ──────────────
+async function getDeviceHeaders(): Promise<Record<string, string>> {
+  try {
+    if (Platform.OS === 'web') return {};
+    const deviceId = await getDeviceIdAsync();
+    return {
+      'X-Device-Key': deviceId,
+      'X-Device-Platform': getPlatformTag(),
+    };
+  } catch {
+    return {};
+  }
+}
+
+// ─── Idempotency key for AI calls ────────────────────────────
+let _cryptoMod: typeof import('expo-crypto') | null = null;
+function generateIdempotencyKey(): string {
+  try {
+    if (!_cryptoMod) _cryptoMod = require('expo-crypto');
+    if (_cryptoMod?.randomUUID) return _cryptoMod.randomUUID();
+  } catch {
+    // Fall through to timestamp-based key.
+  }
+  const rand = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  return `${Date.now()}-${rand}`.slice(0, 64);
+}
 
 // ─── Token 管理 ───
 
@@ -84,18 +113,33 @@ interface RequestOptions {
   noAuth?: boolean;
   timeout?: number;
   retries?: number;
+  /** Enable idempotency header for safely retryable mutations (AI calls). */
+  idempotent?: boolean;
+  /** Reuse an explicit key across retries (caller-provided). */
+  idempotencyKey?: string;
 }
 
+// Track idempotency key across retries for a single logical request.
 export async function apiRequest<T = any>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = 'GET', body, headers = {}, noAuth = false, timeout = 15000, retries = 2 } = options;
+  const { method = 'GET', body, headers = {}, noAuth = false, timeout = 15000, retries = 2, idempotent = false } = options;
 
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     ...headers,
   };
+
+  // Device headers (best-effort, never block).
+  Object.assign(requestHeaders, await getDeviceHeaders());
+
+  // Idempotency for AI/write calls — preserved across retries.
+  if (idempotent) {
+    const key = options.idempotencyKey || generateIdempotencyKey();
+    options.idempotencyKey = key; // pin for any retry
+    requestHeaders['X-Idempotency-Key'] = key;
+  }
 
   if (!noAuth) {
     let token = await getToken();
