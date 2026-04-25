@@ -41,7 +41,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <Text style={styles.emoji}>🔮</Text>
           <Text style={styles.title}>
-            {this.props.fallbackMessage || '發生了一些問題'}
+            {this.props.fallbackMessage || i18n.t('error.genericTitle', { defaultValue: '發生了一些問題' })}
           </Text>
           <Text style={styles.subtitle}>{i18n.t('error.unexpected', { defaultValue: '靈犀遇到了意外狀況' })}</Text>
           <Pressable

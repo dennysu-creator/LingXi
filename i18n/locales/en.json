@@ -100,7 +100,7 @@
     "startAnalysis": "Open Spirit Sight",
     "scanning": "Spirit Pet is observing...",
     "locating": "Tracing the features...",
-    "analyzing": "Reading the contours...",
+    "analyzing": "Spirit Sight is reading...",
     "generating": "Spirit Pet is interpreting...",
     "todayReading": "Today's Reflection",
     "featureAnalysis": "Five Features in Reading",
@@ -125,7 +125,20 @@
     "luckyItemDesc": "Worn today, it draws Water — softening what your chart leaves wanting",
     "luckyItemDir": "Southeast",
     "luckyItemNumbers": "3, 6, 8",
-    "petFound": "{{petName}} sees something..."
+    "petFound": "{{petName}} sees something...",
+    "bubbleTitle": "Spirit Sight",
+    "cameraPermissionRequired": "Camera permission is needed for Spirit Sight",
+    "captureFailure": "The image did not capture — please try again",
+    "resultTitle": "【Spirit Sight — {{level}}】",
+    "overallScore": "✦ Countenance: {{score}}/100",
+    "adviceGood": "✦ Your light is clear today — good for connection",
+    "adviceBad": "✦ Rest, and let your light gather",
+    "fallbackNarration": "{{petName}} gazed upon your countenance...",
+    "faceLevel": {
+      "great": "Radiant",
+      "good": "Settled",
+      "neutral": "Quiet"
+    }
   },
   "heart": {
     "title": "Heart Compass",
@@ -140,7 +153,21 @@
     "analyzing": "Spirit Pet is sensing...",
     "locationAnalysis": "The Energy of This Place",
     "tips": "Your Spirit's Counsel",
-    "note": "The full release will draw on live GPS, compass, and AI to compose your personal Feng Shui reading"
+    "note": "The full release will draw on live GPS, compass, and AI to compose your personal Feng Shui reading",
+    "bubbleTitle": "Heart Compass",
+    "resultTitle": "【Heart Compass — {{loc}}】",
+    "avoidDirection": "✦ To avoid: {{dir}}",
+    "overallScore": "✦ Energy: {{score}}/100",
+    "adviceFaceLuckyDir": "💡 Face the {{dir}} — the day's flow favors it",
+    "luckyColorPrefix": "🎨 Today's color: {{color}}",
+    "errorMessage": "{{petName}} reaches for this place's energy... but the threads are restless. Try again soon.",
+    "locating": "Locating...",
+    "fallbackNarration": "{{petName}} feels the flow of this place...",
+    "seatLabel": "Seat",
+    "avoidLabel": "Avoid",
+    "luckyDirLine": "✦ Favorable: {{dir}}",
+    "avoidListLine": "⚠ Avoid: {{dir}}",
+    "currentLocation": "Current location"
   },
   "pearl": {
     "title": "Spirit Pearl",
@@ -175,7 +202,7 @@
     "cat_health": "Wellness",
     "cat_study": "Study",
     "startSoul": "Open Soul Reading",
-    "remaining": "{{n}} readings remaining today",
+    "remaining": "{{n}} reading{{n,plural, =1 { } other {s}}} remaining today",
     "petHint": "{{name}} listens for the breath of heaven and earth...",
     "petChanneling": "{{petName}} reaches into the unseen...",
     "hexagramNum": "Hexagram {{n}}",
@@ -186,7 +213,13 @@
     "changedHexagram": "Changing Hexagram",
     "changingLines": "Changing Lines",
     "quotaEmpty": "Today's spirit has settled",
-    "quotaUpgrade": "Subscribe to keep the readings flowing"
+    "quotaUpgrade": "Subscribe to keep the readings flowing",
+    "resultTitle": "【{{category}} Fortune — {{level}}】",
+    "resultScore": "✦ {{category}} Index: {{score}}/100",
+    "sensing": "Your Spirit is sensing...",
+    "petAnalyzing": "{{petName}} is reading the hexagram...",
+    "timing": "Timing",
+    "errorMessage": "{{petName}} reached out... try again soon"
   },
   "pet": {
     "title": "Spirit Pet",
@@ -227,7 +260,19 @@
     "defaultMsg2": "Good afternoon — for the meeting ahead, sit toward the southeast. The Open Gate will hold you.",
     "defaultMsg3": "You've carried much today. Let evening be still — the Block Gate sits in the north, ideal for meditation.",
     "evoStage": "Stage of Awakening",
-    "compassSensing": "Sensing the energy of this place…"
+    "compassSensing": "Sensing the energy of this place…",
+    "thinkingPlaceholder": "Spirit is listening...",
+    "askQuestion": "Speak to your Spirit...",
+    "luckyDirSuffix": "✦ Direction: {{dir}}",
+    "luckyColorSuffix": "✦ Color: {{color}}",
+    "luckyNumSuffix": "✦ Number: {{num}}",
+    "a11y": {
+      "collapseBubble": "Collapse spirit message",
+      "closeBubble": "Close spirit message",
+      "expandBubble": "Expand spirit message",
+      "scrollDownMore": "Scroll down for more"
+    },
+    "elementBadge": "{{element}}-element"
   },
   "narrator": {
     "greetNight": "It's late — be gentle with yourself",
@@ -277,7 +322,14 @@
     "good": "Favorable",
     "small": "Gently favorable",
     "neutral": "Even",
-    "bad": "Tread softly"
+    "bad": "Tread softly",
+    "level": {
+      "great": "Greatly Favorable",
+      "good": "Favorable",
+      "small": "Mildly Favorable",
+      "neutral": "In Balance",
+      "caution": "Tread Softly"
+    }
   },
   "qimen": {
     "openGate": "Open Gate",
@@ -338,7 +390,8 @@
     "retry": "Try again",
     "today": "Today",
     "fiveElements": "Five Elements",
-    "note": "The full release will compose readings shaped to you, by AI"
+    "note": "The full release will compose readings shaped to you, by AI",
+    "luckyItem": "Talisman"
   },
   "petUnlock": {
     "basicChat": "Daily Companionship",
@@ -365,7 +418,13 @@
     "playResponse": "What joy. There's nothing finer than time with you.",
     "meditateResponse": "Stillness... the spirit moves. {{petName}} feels something new awaken.",
     "levelUp": "✨ {{petName}} has reached Lv.{{level}} — the bond grows stronger.",
-    "evolve": "🌟 {{petName}} has awakened into Stage {{evolution}}."
+    "evolve": "🌟 {{petName}} has awakened into Stage {{evolution}}.",
+    "evolveTitle": "Spirit Awakening",
+    "levelupTitle": "Level Reached",
+    "chatResponse": "Spirit Whispers",
+    "userQuestion": "You ask",
+    "dailyFortune": "Today's Whisper",
+    "systemMessage": "Notice"
   },
   "upgrade": {
     "petVoice": "There is more {{petName}} would show you. Subscribe, and we can read the day together — up to 100 times daily.",
@@ -418,9 +477,15 @@
   },
   "error": {
     "unexpected": "Ling Xi has encountered something unexpected",
-    "retry": "Reload"
+    "retry": "Reload",
+    "loginRequired": "Sign in first",
+    "timeoutRetry": "Request timed out — please retry",
+    "network": "Network connection failed",
+    "genericTitle": "Something went still"
   },
   "share": {
-    "scanToDownload": "Scan to download"
+    "scanToDownload": "Scan to download",
+    "generating": "Generating...",
+    "action": "Share ↗"
   }
 }

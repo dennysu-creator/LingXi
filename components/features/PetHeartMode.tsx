@@ -178,9 +178,9 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
     } catch (err) {
       let msg = t('heart.analysisFailed', { defaultValue: '分析失敗，請重試' });
       if (err instanceof ApiError) {
-        if (err.status === 401) msg = '請先登入';
-        else if (err.status === 408) msg = '請求逾時，請重試';
-        else if (err.status === 0) msg = '網路連線失敗';
+        if (err.status === 401) msg = t('error.loginRequired', { defaultValue: '請先登入' });
+        else if (err.status === 408) msg = t('error.timeoutRetry', { defaultValue: '請求逾時，請重試' });
+        else if (err.status === 0) msg = t('error.network', { defaultValue: '網路連線失敗' });
         else msg = err.message || msg;
       }
       Alert.alert(msg);

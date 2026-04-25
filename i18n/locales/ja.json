@@ -100,7 +100,7 @@
     "startAnalysis": "霊眼をひらく",
     "scanning": "霊獣が静かに観じています...",
     "locating": "面の輪郭をなぞっています...",
-    "analyzing": "面の相を読み解いています...",
+    "analyzing": "霊眼が読み解いています...",
     "generating": "霊獣が紐解いています...",
     "todayReading": "今日の面影",
     "featureAnalysis": "五官に宿る運",
@@ -125,7 +125,20 @@
     "luckyItemDesc": "今日身に纏えば水気を呼び寄せ、命盤に欠けたるを補う",
     "luckyItemDir": "東南",
     "luckyItemNumbers": "3, 6, 8",
-    "petFound": "{{petName}}が何かを見いだしました..."
+    "petFound": "{{petName}}が何かを見いだしました...",
+    "bubbleTitle": "霊眼の読み",
+    "cameraPermissionRequired": "霊眼を使うにはカメラの許可が必要です",
+    "captureFailure": "撮影できませんでした。もう一度お試しください",
+    "resultTitle": "【霊眼の読み — {{level}}】",
+    "overallScore": "✦ 面の輝き ： {{score}}/100",
+    "adviceGood": "✦ 今日は気が澄んでいます — 人と語らうのに良い",
+    "adviceBad": "✦ 休らい、気を整える時",
+    "fallbackNarration": "{{petName}}があなたの面差しを静かに見つめます...",
+    "faceLevel": {
+      "great": "麗しき面",
+      "good": "落ち着き",
+      "neutral": "静けさ"
+    }
   },
   "heart": {
     "title": "心羅針",
@@ -140,7 +153,21 @@
     "analyzing": "霊獣が感じ取っています...",
     "locationAnalysis": "この場のエネルギー",
     "tips": "霊獣の助言",
-    "note": "正式版ではリアルタイム GPS と羅針盤、AI が、あなただけの風水を紡ぎます"
+    "note": "正式版ではリアルタイム GPS と羅針盤、AI が、あなただけの風水を紡ぎます",
+    "bubbleTitle": "心羅針の声",
+    "resultTitle": "【心羅針 — {{loc}}】",
+    "avoidDirection": "✦ 避ける方位 ： {{dir}}",
+    "overallScore": "✦ 気の強さ ： {{score}}/100",
+    "adviceFaceLuckyDir": "💡 {{dir}}方を向きなさい — 流れがそこへ集う",
+    "luckyColorPrefix": "🎨 今日の色 ： {{color}}",
+    "errorMessage": "{{petName}}がこの場の気を探っています...が、糸がまだ落ち着きません。少し後でお試しください。",
+    "locating": "位置を探しています...",
+    "fallbackNarration": "{{petName}}がこの場の気の流れを感じ取ります...",
+    "seatLabel": "座る位置",
+    "avoidLabel": "避ける",
+    "luckyDirLine": "✦ 吉方： {{dir}}",
+    "avoidListLine": "⚠ 避ける ： {{dir}}",
+    "currentLocation": "現在地"
   },
   "pearl": {
     "title": "霊珠",
@@ -175,7 +202,7 @@
     "cat_health": "養生",
     "cat_study": "学",
     "startSoul": "魂のよみときをひらく",
-    "remaining": "本日の占い、あと {{n}} 度",
+    "remaining": "本日 残り {{n}} 回",
     "petHint": "{{name}}が天地の気を聴き取っています...",
     "petChanneling": "{{petName}}が見えざる世界へ手を伸ばしています...",
     "hexagramNum": "第{{n}}卦",
@@ -186,7 +213,13 @@
     "changedHexagram": "変卦（へんか）",
     "changingLines": "変爻（へんこう）",
     "quotaEmpty": "今日の霊力は静かに鎮まりました",
-    "quotaUpgrade": "サブスクリプションにて、占いの流れを絶やさず"
+    "quotaUpgrade": "サブスクリプションにて、占いの流れを絶やさず",
+    "resultTitle": "【{{category}}運勢 — {{level}}】",
+    "resultScore": "✦ {{category}}の数 ： {{score}}/100",
+    "sensing": "霊獣が感応しています...",
+    "petAnalyzing": "{{petName}}が卦を読み解いています...",
+    "timing": "時機",
+    "errorMessage": "{{petName}}が感じ取りました...少し後でお試しください"
   },
   "pet": {
     "title": "霊獣",
@@ -227,7 +260,19 @@
     "defaultMsg2": "穏やかな午後を — これからの集いには、東南の席を。開門が静かに守ってくれるでしょう。",
     "defaultMsg3": "今日もよく歩みました。宵は静けさのうちに — 杜門が北に宿り、瞑想に佳き時です。",
     "evoStage": "覚醒の段階",
-    "compassSensing": "この場所の気を感じています…"
+    "compassSensing": "この場所の気を感じています…",
+    "thinkingPlaceholder": "霊獣が耳を澄ませています...",
+    "askQuestion": "霊獣に問いかける...",
+    "luckyDirSuffix": "✦ 方位 ： {{dir}}",
+    "luckyColorSuffix": "✦ 色 ： {{color}}",
+    "luckyNumSuffix": "✦ 数 ： {{num}}",
+    "a11y": {
+      "collapseBubble": "霊獣の言葉を畳む",
+      "closeBubble": "閉じる",
+      "expandBubble": "開く",
+      "scrollDownMore": "下にスクロールして続きを見る"
+    },
+    "elementBadge": "{{element}}属性"
   },
   "narrator": {
     "greetNight": "夜は更けました — どうぞ身体をいたわって",
@@ -277,7 +322,14 @@
     "good": "順なり",
     "small": "ささやかに順なり",
     "neutral": "平らかなり",
-    "bad": "そっと歩みください"
+    "bad": "そっと歩みください",
+    "level": {
+      "great": "大いに順なり",
+      "good": "順なり",
+      "small": "ささやかに順なり",
+      "neutral": "平らかなり",
+      "caution": "静かに歩む"
+    }
   },
   "qimen": {
     "openGate": "開門",
@@ -338,7 +390,8 @@
     "retry": "もう一度試す",
     "today": "今日",
     "fiveElements": "五行",
-    "note": "正式版では、AIがあなただけの占いを紡ぐ"
+    "note": "正式版では、AIがあなただけの占いを紡ぐ",
+    "luckyItem": "御守り"
   },
   "petUnlock": {
     "basicChat": "日々の語らい",
@@ -365,7 +418,13 @@
     "playResponse": "なんという喜び。あなたと過ごすひととき以上のものはない。",
     "meditateResponse": "静寂のなかに...霊気が動く。{{petName}}は何か新しきものが目覚めゆくのを感じている。",
     "levelUp": "✨ {{petName}}は Lv.{{level}} に至った — 縁はいよいよ深まる。",
-    "evolve": "🌟 {{petName}}は第{{evolution}}段階へと覚醒した。"
+    "evolve": "🌟 {{petName}}は第{{evolution}}段階へと覚醒した。",
+    "evolveTitle": "霊獣の覚醒",
+    "levelupTitle": "段階の高まり",
+    "chatResponse": "霊獣のささやき",
+    "userQuestion": "あなたの問い",
+    "dailyFortune": "今日のささやき",
+    "systemMessage": "お知らせ"
   },
   "upgrade": {
     "petVoice": "あなたへ伝えたきことが、{{petName}}にはまだ多くある。入会すれば、ともに日々を読み解ける — 1日に最大100度まで。",
@@ -418,9 +477,15 @@
   },
   "error": {
     "unexpected": "霊犀に予期せぬことが起きました",
-    "retry": "再読込"
+    "retry": "再読込",
+    "loginRequired": "まずログインしてください",
+    "timeoutRetry": "通信タイムアウト 再試行してください",
+    "network": "通信に失敗しました",
+    "genericTitle": "問題が発生しました"
   },
   "share": {
-    "scanToDownload": "スキャンしてダウンロード"
+    "scanToDownload": "スキャンしてダウンロード",
+    "generating": "生成中...",
+    "action": "シェア ↗"
   }
 }

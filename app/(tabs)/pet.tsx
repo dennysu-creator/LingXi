@@ -65,16 +65,16 @@ function formatHHmm(t: number | string | Date | undefined): string {
 // ─── PetBubble 標題(依訊息 type) ───
 function getBubbleTitle(msgType: string | undefined): string {
   switch (msgType) {
-    case 'evolve':     return '靈寵進化';
-    case 'levelup':    return '靈寵升級';
-    case 'face':       return '靈眼觀相';
-    case 'fengshui':   return '靈心風水';
-    case 'divination': return '靈寵卜卦';
-    case 'chat':       return '靈寵回應';
-    case 'user':       return '主人問';
-    case 'system':     return '系統訊息';
+    case 'evolve':     return i18n.t('chat.evolveTitle', { defaultValue: '靈寵進化' });
+    case 'levelup':    return i18n.t('chat.levelupTitle', { defaultValue: '靈寵升級' });
+    case 'face':       return i18n.t('eye.bubbleTitle', { defaultValue: '靈眼觀相' });
+    case 'fengshui':   return i18n.t('heart.bubbleTitle', { defaultValue: '靈心風水' });
+    case 'divination': return i18n.t('pearl.title', { defaultValue: '靈寵卜卦' });
+    case 'chat':       return i18n.t('chat.chatResponse', { defaultValue: '靈寵回應' });
+    case 'user':       return i18n.t('chat.userQuestion', { defaultValue: '主人問' });
+    case 'system':     return i18n.t('chat.systemMessage', { defaultValue: '系統訊息' });
     case 'fortune':
-    default:           return '今日靈寵奇語';
+    default:           return i18n.t('chat.dailyFortune', { defaultValue: '今日靈寵奇語' });
   }
 }
 
@@ -304,11 +304,11 @@ export default function PetScreen() {
   const glowAnim = useRef(new Animated.Value(0)).current;
 
   const CATEGORIES = [
-    { key: 'career', label: '事業', icon: UI_ICONS.category.career },
-    { key: 'love',   label: '桃花', icon: UI_ICONS.category.love },
-    { key: 'family', label: '家庭', icon: UI_ICONS.category.family },
-    { key: 'health', label: '健康', icon: UI_ICONS.category.health },
-    { key: 'study',  label: '學業', icon: UI_ICONS.category.study },
+    { key: 'career', label: i18n.t('pearl.cat_career', { defaultValue: '事業' }), icon: UI_ICONS.category.career },
+    { key: 'love',   label: i18n.t('pearl.cat_love',   { defaultValue: '桃花' }), icon: UI_ICONS.category.love },
+    { key: 'family', label: i18n.t('pearl.cat_family', { defaultValue: '家庭' }), icon: UI_ICONS.category.family },
+    { key: 'health', label: i18n.t('pearl.cat_health', { defaultValue: '健康' }), icon: UI_ICONS.category.health },
+    { key: 'study',  label: i18n.t('pearl.cat_study',  { defaultValue: '學業' }), icon: UI_ICONS.category.study },
   ];
 
   // 按類別直接算命 → 動畫 → 結果輸出到對話框
@@ -356,7 +356,13 @@ export default function PetScreen() {
           study:  fortuneResult.scores.study,
         };
         const score = scoreMap[catKey] ?? fortuneResult.overallScore;
-        const level = score >= 80 ? '大吉' : score >= 60 ? '中吉' : score >= 40 ? '小吉' : '需留意';
+        const level = score >= 80
+          ? i18n.t('fortune.level.great', { defaultValue: '大吉' })
+          : score >= 60
+            ? i18n.t('fortune.level.good', { defaultValue: '中吉' })
+            : score >= 40
+              ? i18n.t('fortune.level.small', { defaultValue: '小吉' })
+              : i18n.t('fortune.level.caution', { defaultValue: '需留意' });
 
         const narration = generateLocalPetNarration({
           feature: 'fortune',
@@ -369,12 +375,12 @@ export default function PetScreen() {
         });
 
         // 組合完整結果文字
-        const resultText = `【${catLabel}運勢 — ${level}】\n\n` +
+        const resultText = `${i18n.t('pearl.resultTitle', { category: catLabel, level, defaultValue: `【${catLabel}運勢 — ${level}】` })}\n\n` +
           `${narration.spokenText}\n\n` +
-          `✦ ${catLabel}指數：${score}/100\n` +
-          (fortuneResult.luckyDirections?.[0] ? `✦ 幸運方位：${fortuneResult.luckyDirections[0]}\n` : '') +
-          (fortuneResult.luckyColors?.[0]     ? `✦ 幸運色：${fortuneResult.luckyColors[0]}\n`   : '') +
-          (fortuneResult.luckyNumbers?.[0]    ? `✦ 幸運數字：${fortuneResult.luckyNumbers[0]}` : '');
+          `${i18n.t('pearl.resultScore', { category: catLabel, score, defaultValue: `✦ ${catLabel}指數：${score}/100` })}\n` +
+          (fortuneResult.luckyDirections?.[0] ? `${i18n.t('pet.luckyDirSuffix', { dir: fortuneResult.luckyDirections[0], defaultValue: `✦ 幸運方位：${fortuneResult.luckyDirections[0]}` })}\n` : '') +
+          (fortuneResult.luckyColors?.[0]     ? `${i18n.t('pet.luckyColorSuffix', { color: fortuneResult.luckyColors[0], defaultValue: `✦ 幸運色：${fortuneResult.luckyColors[0]}` })}\n`   : '') +
+          (fortuneResult.luckyNumbers?.[0]    ? `${i18n.t('pet.luckyNumSuffix', { num: fortuneResult.luckyNumbers[0], defaultValue: `✦ 幸運數字：${fortuneResult.luckyNumbers[0]}` })}` : '');
 
         addMessage({
           type: 'fortune',
@@ -455,7 +461,7 @@ export default function PetScreen() {
         const { Camera } = require('expo-camera');
         const { status } = await Camera.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-          addMessage({ type: 'system', text: '需要相機權限才能使用靈眼面相功能', data: {} });
+          addMessage({ type: 'system', text: i18n.t('eye.cameraPermissionRequired', { defaultValue: '需要相機權限才能使用靈眼面相功能' }), data: {} });
           return;
         }
       } catch {}
@@ -491,15 +497,19 @@ export default function PetScreen() {
         s1.stop(); g1.stop(); setEyeLoading(false);
 
         const score = data.overall_score || 75;
-        const level = data.fortune_level || (score >= 80 ? '上相' : score >= 60 ? '中相' : '平相');
+        const level = data.fortune_level || (score >= 80
+          ? i18n.t('eye.faceLevel.great', { defaultValue: '上相' })
+          : score >= 60
+            ? i18n.t('eye.faceLevel.good', { defaultValue: '中相' })
+            : i18n.t('eye.faceLevel.neutral', { defaultValue: '平相' }));
         const reading = (data as any).petMessage || data.ai_reading || '';
 
-        const resultText = `【靈眼面相 — ${level}】\n\n` +
-          (reading ? `${reading}\n\n` : `${petName}凝視了主人的面相...\n\n`) +
-          `✦ 整體面相：${score}/100\n` +
+        const resultText = `${i18n.t('eye.resultTitle', { level, defaultValue: `【靈眼面相 — ${level}】` })}\n\n` +
+          (reading ? `${reading}\n\n` : `${i18n.t('eye.fallbackNarration', { petName, defaultValue: `${petName}凝視了你的氣色...` })}\n\n`) +
+          `${i18n.t('eye.overallScore', { score, defaultValue: `✦ 整體面相：${score}/100` })}\n` +
           (data.features?.forehead ? `✦ 天庭：${data.features.forehead.score}/100\n` : '') +
           (data.features?.eyes     ? `✦ 眼相：${data.features.eyes.score}/100\n`     : '') +
-          (data.lucky_direction    ? `✦ 吉方位：${data.lucky_direction}\n`             : '') +
+          (data.lucky_direction    ? `${i18n.t('pet.luckyDirSuffix', { dir: data.lucky_direction, defaultValue: `✦ 幸運方位：${data.lucky_direction}` })}\n` : '') +
           (data.lucky_item         ? `✦ 開運物：${data.lucky_item}`                    : '');
 
         addMessage({ type: 'face', text: resultText, data: { score, level, ...data } });
@@ -507,13 +517,17 @@ export default function PetScreen() {
       } catch {
         s1.stop(); g1.stop(); setEyeLoading(false);
         const score = Math.floor(60 + Math.random() * 30);
-        const level = score >= 80 ? '上相' : score >= 60 ? '中相' : '平相';
-        addMessage({ type: 'face', text: `【靈眼面相 — ${level}】\n\n${petName}凝視了主人的氣色...\n\n✦ 整體面相：${score}/100\n✦ ${score >= 70 ? '今日氣色不錯，適合社交！' : '建議多休息養氣。'}`, data: { score, level } });
+        const level = score >= 80
+          ? i18n.t('eye.faceLevel.great', { defaultValue: '上相' })
+          : score >= 60
+            ? i18n.t('eye.faceLevel.good', { defaultValue: '中相' })
+            : i18n.t('eye.faceLevel.neutral', { defaultValue: '平相' });
+        addMessage({ type: 'face', text: `${i18n.t('eye.resultTitle', { level, defaultValue: `【靈眼面相 — ${level}】` })}\n\n${i18n.t('eye.fallbackNarration', { petName, defaultValue: `${petName}凝視了你的氣色...` })}\n\n${i18n.t('eye.overallScore', { score, defaultValue: `✦ 整體面相：${score}/100` })}\n${score >= 70 ? i18n.t('eye.adviceGood', { defaultValue: '✦ 今日氣色不錯，適合社交' }) : i18n.t('eye.adviceBad', { defaultValue: '✦ 建議多休息養氣' })}`, data: { score, level } });
         incrementUsage();
       }
     } catch {
       setCameraOpen(false);
-      addMessage({ type: 'system', text: '拍照失敗，請重試', data: {} });
+      addMessage({ type: 'system', text: i18n.t('eye.captureFailure', { defaultValue: '拍照失敗，請重試' }), data: {} });
     }
   }, [bazi, petName, addMessage, spinAnim, glowAnim]);
 
@@ -534,20 +548,20 @@ export default function PetScreen() {
           const fortuneResult = calculateUnifiedFortune(bazi, ziwei!, qimenChart, astrology!);
           const luckyDir = fortuneResult.luckyDirections?.[0] || '東南';
           const avoidDir = '西';
-          const locStr = compassLocation || '目前位置';
+          const locStr = compassLocation || i18n.t('heart.currentLocation', { defaultValue: '目前位置' });
 
-          const resultText = `【靈心風水 — ${locStr}】\n\n` +
-            `${petName}感應到此地的靈氣流向...\n\n` +
-            `✦ 吉方位：${luckyDir}\n` +
-            `✦ 避方位：${avoidDir}\n` +
-            `✦ 綜合氣場：${fortuneResult.overallScore}/100\n\n` +
-            `💡 建議面朝${luckyDir}方，有助於提升今日運勢。` +
-            (fortuneResult.luckyColors?.[0] ? `\n🎨 幸運色：${fortuneResult.luckyColors[0]}` : '');
+          const resultText = `${i18n.t('heart.resultTitle', { loc: locStr, defaultValue: `【靈心風水 — ${locStr}】` })}\n\n` +
+            `${i18n.t('heart.fallbackNarration', { petName, defaultValue: `${petName}感應到此地的靈氣流向...` })}\n\n` +
+            `${i18n.t('pet.luckyDirSuffix', { dir: luckyDir, defaultValue: `✦ 幸運方位：${luckyDir}` })}\n` +
+            `${i18n.t('heart.avoidDirection', { dir: avoidDir, defaultValue: `✦ 避方位：${avoidDir}` })}\n` +
+            `${i18n.t('heart.overallScore', { score: fortuneResult.overallScore, defaultValue: `✦ 綜合氣場：${fortuneResult.overallScore}/100` })}\n\n` +
+            `${i18n.t('heart.adviceFaceLuckyDir', { dir: luckyDir, defaultValue: `💡 建議面朝${luckyDir}方，有助於提升今日運勢。` })}` +
+            (fortuneResult.luckyColors?.[0] ? `\n${i18n.t('heart.luckyColorPrefix', { color: fortuneResult.luckyColors[0], defaultValue: `🎨 幸運色：${fortuneResult.luckyColors[0]}` })}` : '');
 
           addMessage({ type: 'fengshui', text: resultText, data: { luckyDir, avoidDir, location: locStr } });
           incrementUsage();
         } catch {
-          addMessage({ type: 'fengshui', text: `${petName}正在感應周圍的風水氣場...但靈力尚不穩定，請稍後再試～`, data: {} });
+          addMessage({ type: 'fengshui', text: i18n.t('heart.errorMessage', { petName, defaultValue: `${petName}正在感應周圍的風水氣場...但靈力尚不穩定，請稍後再試～` }), data: {} });
         }
       });
     }, 2500);
@@ -640,7 +654,7 @@ export default function PetScreen() {
           {compassLocation ? (
             <Text style={styles.compassLocText}>📍 {compassLocation}</Text>
           ) : (
-            <Text style={styles.compassLocText}>📍 定位中...</Text>
+            <Text style={styles.compassLocText}>📍 {i18n.t('heart.locating', { defaultValue: '定位中...' })}</Text>
           )}
           <Text style={styles.compassHint}>{i18n.t('pet.compassSensing', { defaultValue: '靈心感應風水氣場中...' })}</Text>
         </Animated.View>
@@ -734,7 +748,7 @@ export default function PetScreen() {
               onPress={() => setBubbleCollapsed(true)}
               style={styles.bubbleHandleArea}
               accessibilityRole="button"
-              accessibilityLabel="收合靈寵訊息"
+              accessibilityLabel={i18n.t('pet.a11y.collapseBubble', { defaultValue: '收合靈寵訊息' })}
             >
               <View style={styles.bubbleHandleBar} />
             </Pressable>
@@ -752,7 +766,7 @@ export default function PetScreen() {
                   onPress={() => setBubbleCollapsed(true)}
                   style={styles.bubbleCloseBtn}
                   accessibilityRole="button"
-                  accessibilityLabel="關閉靈寵訊息"
+                  accessibilityLabel={i18n.t('pet.a11y.closeBubble', { defaultValue: '關閉靈寵訊息' })}
                   hitSlop={8}
                 >
                   <Text style={styles.bubbleCloseText}>✕</Text>
@@ -782,7 +796,7 @@ export default function PetScreen() {
                   style={styles.bubbleScrollHint}
                   hitSlop={10}
                   accessibilityRole="button"
-                  accessibilityLabel="向下捲動查看更多"
+                  accessibilityLabel={i18n.t('pet.a11y.scrollDownMore', { defaultValue: '向下捲動查看更多' })}
                 >
                   <Text style={styles.bubbleScrollHintText}>⌄</Text>
                 </Pressable>
@@ -797,7 +811,7 @@ export default function PetScreen() {
               style={styles.bubbleShareBtn}
               disabled={isSharing}
             >
-              <Text style={styles.bubbleShareText}>{isSharing ? '生成中...' : '分享 ↗'}</Text>
+              <Text style={styles.bubbleShareText}>{isSharing ? i18n.t('share.generating', { defaultValue: '生成中...' }) : i18n.t('share.action', { defaultValue: '分享 ↗' })}</Text>
             </Pressable>
           </Glass>
         </Animated.View>
@@ -810,7 +824,7 @@ export default function PetScreen() {
           style={styles.collapsedHandleWrap}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel="展開靈寵訊息"
+          accessibilityLabel={i18n.t('pet.a11y.expandBubble', { defaultValue: '展開靈寵訊息' })}
         >
           <View style={styles.collapsedHandleBar} />
         </Pressable>
@@ -822,7 +836,7 @@ export default function PetScreen() {
           <Glass intensity={50} style={styles.composer}>
             <TextInput
               style={styles.composerInput}
-              placeholder={chatLoading ? '靈寵思考中...' : '向靈寵問卦...'}
+              placeholder={chatLoading ? i18n.t('pet.thinkingPlaceholder', { defaultValue: '靈寵思考中...' }) : i18n.t('pet.askQuestion', { defaultValue: '向靈寵問卦...' })}
               placeholderTextColor={V4.text.tertiary}
               value={inputText}
               onChangeText={setInputText}
@@ -847,7 +861,7 @@ export default function PetScreen() {
       <View style={[styles.tabRow, { paddingBottom: Math.max(insets.bottom, 8) }]} pointerEvents="box-none">
         {/* 今日剩餘次數 — 小字置右 */}
         <Text style={styles.tabRemainingText}>
-          今日剩餘 {useUserStore.getState().getRemainingUses('soul', petLevel)} 次
+          {i18n.t('pearl.remaining', { n: useUserStore.getState().getRemainingUses('soul', petLevel), defaultValue: `今日剩餘 ${useUserStore.getState().getRemainingUses('soul', petLevel)} 次` })}
         </Text>
         <View style={styles.tabRowInner}>
           {CATEGORIES.map(cat => {
@@ -876,7 +890,7 @@ export default function PetScreen() {
             <Text style={styles.animSymbol}>{eyeLoading ? '👁' : '☰'}</Text>
           </Animated.View>
           <Animated.Text style={[styles.animText, { opacity: glowOpacity }]}>
-            {eyeLoading ? '靈眼正在觀相中...' : '靈寵正在感應中...'}
+            {eyeLoading ? i18n.t('eye.analyzing', { defaultValue: '靈眼正在觀相中...' }) : i18n.t('pearl.sensing', { defaultValue: '靈寵正在感應中...' })}
           </Animated.Text>
         </Glass>
       )}
@@ -897,9 +911,11 @@ export default function PetScreen() {
 function getTopDimension(result: UnifiedFortuneResult): string {
   const { scores } = result;
   const dims = [
-    { key: '財運', val: scores.wealth }, { key: '桃花', val: scores.love },
-    { key: '事業', val: scores.career }, { key: '健康', val: scores.health },
-    { key: '學業', val: scores.study },
+    { key: i18n.t('home.wealth', { defaultValue: '財運' }), val: scores.wealth },
+    { key: i18n.t('home.love', { defaultValue: '桃花' }), val: scores.love },
+    { key: i18n.t('home.career', { defaultValue: '事業' }), val: scores.career },
+    { key: i18n.t('home.health', { defaultValue: '健康' }), val: scores.health },
+    { key: i18n.t('home.study', { defaultValue: '學業' }), val: scores.study },
   ];
   dims.sort((a, b) => b.val - a.val);
   return dims[0].key;

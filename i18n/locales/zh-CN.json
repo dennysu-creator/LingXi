@@ -100,7 +100,7 @@
     "startAnalysis": "启动灵宠之眼",
     "scanning": "灵宠正在扫描面部...",
     "locating": "五官定位中...",
-    "analyzing": "面相推算中...",
+    "analyzing": "灵眼正在观相中...",
     "generating": "灵宠正在解读...",
     "todayReading": "今日面相运势",
     "featureAnalysis": "五官运势分析",
@@ -125,7 +125,20 @@
     "luckyItemDesc": "今日佩戴可增强水元素，补足命盘不足",
     "luckyItemDir": "东南方",
     "luckyItemNumbers": "3, 6, 8",
-    "petFound": "发现了！{{petName}}看到了什么..."
+    "petFound": "发现了！{{petName}}看到了什么...",
+    "bubbleTitle": "灵眼观相",
+    "cameraPermissionRequired": "需要相机权限才能使用灵眼面相",
+    "captureFailure": "拍照失败，请重试",
+    "resultTitle": "【灵眼面相 — {{level}}】",
+    "overallScore": "✦ 整体面相：{{score}}/100",
+    "adviceGood": "✦ 今日气色不错，适合社交",
+    "adviceBad": "✦ 建议多休息养气",
+    "fallbackNarration": "{{petName}}凝视了你的气色...",
+    "faceLevel": {
+      "great": "上相",
+      "good": "中相",
+      "neutral": "平相"
+    }
   },
   "heart": {
     "title": "灵宠之心",
@@ -140,7 +153,21 @@
     "analyzing": "灵宠正在感应中...",
     "locationAnalysis": "当前位置能量分析",
     "tips": "灵宠建议",
-    "note": "正式版将使用即时 GPS + 指南针 + AI 生成个性化风水解读"
+    "note": "正式版将使用即时 GPS + 指南针 + AI 生成个性化风水解读",
+    "bubbleTitle": "灵心风水",
+    "resultTitle": "【灵心风水 — {{loc}}】",
+    "avoidDirection": "✦ 避方位：{{dir}}",
+    "overallScore": "✦ 综合气场：{{score}}/100",
+    "adviceFaceLuckyDir": "💡 建议面朝{{dir}}方，有助于提升今日运势",
+    "luckyColorPrefix": "🎨 幸运色：{{color}}",
+    "errorMessage": "{{petName}}正在感应周围的风水气场...但灵力尚不稳定，请稍后再试",
+    "locating": "定位中...",
+    "fallbackNarration": "{{petName}}感应到此地的灵气流向...",
+    "seatLabel": "座位",
+    "avoidLabel": "避开",
+    "luckyDirLine": "✦ 吉方：{{dir}}",
+    "avoidListLine": "⚠ 避开：{{dir}}",
+    "currentLocation": "当前位置"
   },
   "pearl": {
     "title": "灵珠威能",
@@ -186,7 +213,13 @@
     "changedHexagram": "变卦",
     "changingLines": "变爻",
     "quotaEmpty": "今日灵力已尽",
-    "quotaUpgrade": "升级方案解锁更多次数"
+    "quotaUpgrade": "升级方案解锁更多次数",
+    "resultTitle": "【{{category}}运势 — {{level}}】",
+    "resultScore": "✦ {{category}}指数：{{score}}/100",
+    "sensing": "灵宠正在感应...",
+    "petAnalyzing": "{{petName}}正在解读卦象...",
+    "timing": "时机",
+    "errorMessage": "{{petName}}感应到了...请稍后再试~"
   },
   "pet": {
     "title": "灵宠",
@@ -227,7 +260,19 @@
     "defaultMsg2": "午安～下午开会建议坐东南方位置，有开门加持。",
     "defaultMsg3": "今天辛苦了！晚上适合静坐冥想，杜门在北方，有利修炼。",
     "evoStage": "进化阶段",
-    "compassSensing": "灵心感应风水气场中..."
+    "compassSensing": "灵心感应风水气场中...",
+    "thinkingPlaceholder": "灵宠思考中...",
+    "askQuestion": "向灵宠问卦...",
+    "luckyDirSuffix": "✦ 幸运方位：{{dir}}",
+    "luckyColorSuffix": "✦ 幸运色：{{color}}",
+    "luckyNumSuffix": "✦ 幸运数字：{{num}}",
+    "a11y": {
+      "collapseBubble": "收合灵宠讯息",
+      "closeBubble": "关闭灵宠讯息",
+      "expandBubble": "展开灵宠讯息",
+      "scrollDownMore": "向下滚动查看更多"
+    },
+    "elementBadge": "{{element}}系"
   },
   "narrator": {
     "greetNight": "夜深了主人",
@@ -277,7 +322,14 @@
     "good": "中吉",
     "small": "小吉",
     "neutral": "平",
-    "bad": "小凶"
+    "bad": "小凶",
+    "level": {
+      "great": "大吉",
+      "good": "中吉",
+      "small": "小吉",
+      "neutral": "平",
+      "caution": "需留意"
+    }
   },
   "qimen": {
     "openGate": "开门",
@@ -338,7 +390,8 @@
     "retry": "重试",
     "today": "今日",
     "fiveElements": "五行",
-    "note": "正式版将由 AI 生成个性化分析"
+    "note": "正式版将由 AI 生成个性化分析",
+    "luckyItem": "幸运物"
   },
   "petUnlock": {
     "basicChat": "基础对话",
@@ -365,7 +418,13 @@
     "playResponse": "好开心！和主人一起玩最快乐了～",
     "meditateResponse": "嗯...感受到灵气在流动...{{petName}}悟性提升了！",
     "levelUp": "✨ {{petName}}升到 Lv.{{level}} 了！感觉更强大了！",
-    "evolve": "🌟 {{petName}}进化了！第{{evolution}}阶段形态！"
+    "evolve": "🌟 {{petName}}进化了！第{{evolution}}阶段形态！",
+    "evolveTitle": "灵宠进化",
+    "levelupTitle": "灵宠升级",
+    "chatResponse": "灵宠回应",
+    "userQuestion": "主人问",
+    "dailyFortune": "今日灵宠奇语",
+    "systemMessage": "系统讯息"
   },
   "upgrade": {
     "petVoice": "主人，今天的次数用完了...升级的话，我能帮你做更多哦！",
@@ -418,9 +477,15 @@
   },
   "error": {
     "unexpected": "灵犀遇到了意外状况",
-    "retry": "重新载入"
+    "retry": "重新载入",
+    "loginRequired": "请先登录",
+    "timeoutRetry": "请求超时，请重试",
+    "network": "网络连接失败",
+    "genericTitle": "发生了一些问题"
   },
   "share": {
-    "scanToDownload": "扫码下载"
+    "scanToDownload": "扫码下载",
+    "generating": "生成中...",
+    "action": "分享 ↗"
   }
 }

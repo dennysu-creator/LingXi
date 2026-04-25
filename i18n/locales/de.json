@@ -100,7 +100,7 @@
     "startAnalysis": "Geistauge öffnen",
     "scanning": "Dein Geist beobachtet...",
     "locating": "Die Züge werden nachgezeichnet...",
-    "analyzing": "Die Konturen werden gelesen...",
+    "analyzing": "Das Geistauge liest...",
     "generating": "Dein Geist deutet die Zeichen...",
     "todayReading": "Spiegel des Tages",
     "featureAnalysis": "Die fünf Züge im Lesen",
@@ -125,7 +125,20 @@
     "luckyItemDesc": "Heute getragen, ruft er das Wasser herbei — und mildert, was deine Karte vermissen lässt",
     "luckyItemDir": "Südosten",
     "luckyItemNumbers": "3, 6, 8",
-    "petFound": "{{petName}} erblickt etwas..."
+    "petFound": "{{petName}} erblickt etwas...",
+    "bubbleTitle": "Geistauge",
+    "cameraPermissionRequired": "Für das Geistauge wird die Kamera-Erlaubnis benötigt",
+    "captureFailure": "Das Bild wurde nicht erfasst — bitte erneut versuchen",
+    "resultTitle": "【Geistauge — {{level}}】",
+    "overallScore": "✦ Antlitz: {{score}}/100",
+    "adviceGood": "✦ Dein Licht ist heute klar — gut für Begegnungen",
+    "adviceBad": "✦ Ruhe, und lass dein Licht sich sammeln",
+    "fallbackNarration": "{{petName}} betrachtete dein Antlitz...",
+    "faceLevel": {
+      "great": "Strahlend",
+      "good": "Gelassen",
+      "neutral": "Ruhig"
+    }
   },
   "heart": {
     "title": "Herzkompass",
@@ -140,7 +153,21 @@
     "analyzing": "Dein Geist erspürt die Strömungen...",
     "locationAnalysis": "Die Energie dieses Ortes",
     "tips": "Rat deines Geistes",
-    "note": "Die vollständige Fassung wird Live-GPS, Kompass und KI nutzen, um dir eine persönliche Feng-Shui-Lesung zu weben"
+    "note": "Die vollständige Fassung wird Live-GPS, Kompass und KI nutzen, um dir eine persönliche Feng-Shui-Lesung zu weben",
+    "bubbleTitle": "Herzkompass",
+    "resultTitle": "【Herzkompass — {{loc}}】",
+    "avoidDirection": "✦ Meide: {{dir}}",
+    "overallScore": "✦ Energie: {{score}}/100",
+    "adviceFaceLuckyDir": "💡 Wende dich nach {{dir}} — die Strömung des Tages neigt sich dorthin",
+    "luckyColorPrefix": "🎨 Farbe des Tages: {{color}}",
+    "errorMessage": "{{petName}} reicht nach der Energie dieses Ortes... doch die Fäden sind unruhig. Versuche es bald erneut.",
+    "locating": "Ortung...",
+    "fallbackNarration": "{{petName}} spürt die Strömung dieses Ortes...",
+    "seatLabel": "Sitzplatz",
+    "avoidLabel": "Meide",
+    "luckyDirLine": "✦ Günstig: {{dir}}",
+    "avoidListLine": "⚠ Meide: {{dir}}",
+    "currentLocation": "Aktueller Ort"
   },
   "pearl": {
     "title": "Geisterperle",
@@ -175,7 +202,7 @@
     "cat_health": "Wohlsein",
     "cat_study": "Studium",
     "startSoul": "Seelenlesung öffnen",
-    "remaining": "{{n}} Lesungen heute verbleibend",
+    "remaining": "Heute noch {{n}} Lesungen",
     "petHint": "{{name}} lauscht dem Atem von Himmel und Erde...",
     "petChanneling": "{{petName}} greift ins Ungesehene...",
     "hexagramNum": "Hexagramm {{n}}",
@@ -186,7 +213,13 @@
     "changedHexagram": "Wandelndes Hexagramm",
     "changingLines": "Wandlungslinien",
     "quotaEmpty": "Der Geist des Tages ist zur Ruhe gekommen",
-    "quotaUpgrade": "Abonniere, damit die Lesungen weiterfließen"
+    "quotaUpgrade": "Abonniere, damit die Lesungen weiterfließen",
+    "resultTitle": "【{{category}} Fortuna — {{level}}】",
+    "resultScore": "✦ {{category}}-Index: {{score}}/100",
+    "sensing": "Dein Geist lauscht...",
+    "petAnalyzing": "{{petName}} entziffert das Hexagramm...",
+    "timing": "Zeitpunkt",
+    "errorMessage": "{{petName}} hat es gespürt... versuche es bald"
   },
   "pet": {
     "title": "Geistgefährte",
@@ -227,7 +260,19 @@
     "defaultMsg2": "Einen schönen Nachmittag — für die kommende Begegnung sitze gen Südosten. Das Offene Tor wird dich tragen.",
     "defaultMsg3": "Du hast heute viel getragen. Lass den Abend still werden — das Tor der Sperre ruht im Norden, ideal zur Meditation.",
     "evoStage": "Stufe des Erwachens",
-    "compassSensing": "Lausche der Energie dieses Ortes…"
+    "compassSensing": "Lausche der Energie dieses Ortes…",
+    "thinkingPlaceholder": "Der Geist lauscht...",
+    "askQuestion": "Sprich zu deinem Geist...",
+    "luckyDirSuffix": "✦ Richtung: {{dir}}",
+    "luckyColorSuffix": "✦ Farbe: {{color}}",
+    "luckyNumSuffix": "✦ Zahl: {{num}}",
+    "a11y": {
+      "collapseBubble": "Geist-Nachricht einklappen",
+      "closeBubble": "Schließen",
+      "expandBubble": "Erweitern",
+      "scrollDownMore": "Nach unten scrollen"
+    },
+    "elementBadge": "{{element}}-Element"
   },
   "narrator": {
     "greetNight": "Es ist spät — sei sanft mit dir",
@@ -277,7 +322,14 @@
     "good": "Günstig",
     "small": "Sanft günstig",
     "neutral": "Ausgeglichen",
-    "bad": "Tritt leise"
+    "bad": "Tritt leise",
+    "level": {
+      "great": "Sehr Günstig",
+      "good": "Günstig",
+      "small": "Leicht Günstig",
+      "neutral": "Im Gleichgewicht",
+      "caution": "Tritt Sanft"
+    }
   },
   "qimen": {
     "openGate": "Tor des Öffnens",
@@ -338,7 +390,8 @@
     "retry": "Erneut versuchen",
     "today": "Heute",
     "fiveElements": "Die Fünf Elemente",
-    "note": "Die vollständige Fassung wird durch KI eine ganz auf dich gestimmte Lesung weben"
+    "note": "Die vollständige Fassung wird durch KI eine ganz auf dich gestimmte Lesung weben",
+    "luckyItem": "Talisman"
   },
   "petUnlock": {
     "basicChat": "Tägliche Gefährtschaft",
@@ -365,7 +418,13 @@
     "playResponse": "Welche Freude. Nichts ist schöner als die Zeit mit dir.",
     "meditateResponse": "Stille... der Geist regt sich. {{petName}} spürt etwas Neues erwachen.",
     "levelUp": "✨ {{petName}} hat Lv.{{level}} erreicht — das Band wird stärker.",
-    "evolve": "🌟 {{petName}} ist in die Stufe {{evolution}} erwacht."
+    "evolve": "🌟 {{petName}} ist in die Stufe {{evolution}} erwacht.",
+    "evolveTitle": "Geistererwachen",
+    "levelupTitle": "Neue Schwelle",
+    "chatResponse": "Der Geist flüstert",
+    "userQuestion": "Du fragst",
+    "dailyFortune": "Flüstern des Tages",
+    "systemMessage": "Hinweis"
   },
   "upgrade": {
     "petVoice": "Es gibt mehr, was {{petName}} dir zeigen möchte. Abonniere, dann lesen wir den Tag gemeinsam — bis zu 100 Mal täglich.",
@@ -418,9 +477,15 @@
   },
   "error": {
     "unexpected": "Ling Xi ist auf etwas Unerwartetes gestoßen",
-    "retry": "Neu laden"
+    "retry": "Neu laden",
+    "loginRequired": "Bitte zuerst anmelden",
+    "timeoutRetry": "Zeitüberschreitung — bitte erneut versuchen",
+    "network": "Netzwerkfehler",
+    "genericTitle": "Etwas ist still geworden"
   },
   "share": {
-    "scanToDownload": "Scannen zum Download"
+    "scanToDownload": "Scannen zum Download",
+    "generating": "Wird erstellt...",
+    "action": "Teilen ↗"
   }
 }

@@ -100,7 +100,7 @@
     "startAnalysis": "Ouvrir l'Œil de l'Esprit",
     "scanning": "Ton Esprit Gardien observe...",
     "locating": "Il suit le tracé des traits...",
-    "analyzing": "Il lit les contours...",
+    "analyzing": "L'Œil de l'Esprit lit...",
     "generating": "Ton Esprit interprète...",
     "todayReading": "Le reflet du jour",
     "featureAnalysis": "Lecture des cinq traits",
@@ -125,7 +125,20 @@
     "luckyItemDesc": "Porté aujourd'hui, il appelle l'Eau — adoucissant ce qui manque dans ta carte",
     "luckyItemDir": "Sud-est",
     "luckyItemNumbers": "3, 6, 8",
-    "petFound": "{{petName}} aperçoit quelque chose..."
+    "petFound": "{{petName}} aperçoit quelque chose...",
+    "bubbleTitle": "Œil de l'Esprit",
+    "cameraPermissionRequired": "L'autorisation de la caméra est requise pour l'Œil de l'Esprit",
+    "captureFailure": "L'image n'a pas été capturée — réessaie",
+    "resultTitle": "【Œil de l'Esprit — {{level}}】",
+    "overallScore": "✦ Visage : {{score}}/100",
+    "adviceGood": "✦ Ta lumière est claire aujourd'hui — propice aux rencontres",
+    "adviceBad": "✦ Repose-toi, laisse ta lumière se rassembler",
+    "fallbackNarration": "{{petName}} a contemplé ton visage...",
+    "faceLevel": {
+      "great": "Rayonnant",
+      "good": "Posé",
+      "neutral": "Tranquille"
+    }
   },
   "heart": {
     "title": "Boussole du Cœur",
@@ -140,7 +153,21 @@
     "analyzing": "Ton Esprit perçoit les courants...",
     "locationAnalysis": "L'énergie de ce lieu",
     "tips": "Le conseil de ton Esprit",
-    "note": "La version complète tissera GPS, boussole et IA pour composer ta lecture personnelle de Feng Shui"
+    "note": "La version complète tissera GPS, boussole et IA pour composer ta lecture personnelle de Feng Shui",
+    "bubbleTitle": "Boussole du Cœur",
+    "resultTitle": "【Boussole du Cœur — {{loc}}】",
+    "avoidDirection": "✦ À éviter : {{dir}}",
+    "overallScore": "✦ Énergie : {{score}}/100",
+    "adviceFaceLuckyDir": "💡 Tourne-toi vers le {{dir}} — le flot du jour s'y porte",
+    "luckyColorPrefix": "🎨 Couleur du jour : {{color}}",
+    "errorMessage": "{{petName}} cherche l'énergie de ce lieu... mais les fils sont agités. Réessaie bientôt.",
+    "locating": "Localisation...",
+    "fallbackNarration": "{{petName}} sent le flot de ce lieu...",
+    "seatLabel": "Place",
+    "avoidLabel": "Évite",
+    "luckyDirLine": "✦ Favorable : {{dir}}",
+    "avoidListLine": "⚠ Évite : {{dir}}",
+    "currentLocation": "Lieu actuel"
   },
   "pearl": {
     "title": "Perle de l'Esprit",
@@ -186,7 +213,13 @@
     "changedHexagram": "Hexagramme changeant",
     "changingLines": "Traits changeants",
     "quotaEmpty": "Le souffle du jour s'est apaisé",
-    "quotaUpgrade": "Abonne-toi pour que les lectures continuent de couler"
+    "quotaUpgrade": "Abonne-toi pour que les lectures continuent de couler",
+    "resultTitle": "【Fortune en {{category}} — {{level}}】",
+    "resultScore": "✦ Indice de {{category}} : {{score}}/100",
+    "sensing": "Ton Esprit ressent...",
+    "petAnalyzing": "{{petName}} déchiffre l'hexagramme...",
+    "timing": "Moment",
+    "errorMessage": "{{petName}} a perçu... réessaie bientôt"
   },
   "pet": {
     "title": "Esprit Gardien",
@@ -227,7 +260,19 @@
     "defaultMsg2": "Bon après-midi — pour la rencontre à venir, place-toi vers le sud-est. La Porte Ouverte t'accompagnera.",
     "defaultMsg3": "Tu as porté beaucoup aujourd'hui. Que le soir soit calme — la Porte Bloquée se tient au nord, propice à la méditation.",
     "evoStage": "Stade de l'éveil",
-    "compassSensing": "À l'écoute de l'énergie de ce lieu…"
+    "compassSensing": "À l'écoute de l'énergie de ce lieu…",
+    "thinkingPlaceholder": "L'Esprit écoute...",
+    "askQuestion": "Parle à ton Esprit...",
+    "luckyDirSuffix": "✦ Direction : {{dir}}",
+    "luckyColorSuffix": "✦ Couleur : {{color}}",
+    "luckyNumSuffix": "✦ Nombre : {{num}}",
+    "a11y": {
+      "collapseBubble": "Replier le message de l'Esprit",
+      "closeBubble": "Fermer le message",
+      "expandBubble": "Ouvrir le message",
+      "scrollDownMore": "Faire défiler pour voir plus"
+    },
+    "elementBadge": "Élément {{element}}"
   },
   "narrator": {
     "greetNight": "L'heure est tardive — sois doux envers toi",
@@ -277,7 +322,14 @@
     "good": "Favorable",
     "small": "Doucement favorable",
     "neutral": "Égal",
-    "bad": "À pas feutrés"
+    "bad": "À pas feutrés",
+    "level": {
+      "great": "Très Favorable",
+      "good": "Favorable",
+      "small": "Doucement Favorable",
+      "neutral": "En Équilibre",
+      "caution": "Marche en Douceur"
+    }
   },
   "qimen": {
     "openGate": "Porte Ouverte",
@@ -338,7 +390,8 @@
     "retry": "Réessayer",
     "today": "Aujourd'hui",
     "fiveElements": "Cinq Éléments",
-    "note": "La version complète composera des lectures façonnées pour toi, par l'IA"
+    "note": "La version complète composera des lectures façonnées pour toi, par l'IA",
+    "luckyItem": "Talisman"
   },
   "petUnlock": {
     "basicChat": "Compagnonnage quotidien",
@@ -365,7 +418,13 @@
     "playResponse": "Quelle joie. Rien n'égale le temps passé avec toi.",
     "meditateResponse": "Silence... l'esprit se met en mouvement. {{petName}} sent quelque chose de neuf s'éveiller.",
     "levelUp": "✨ {{petName}} a atteint le Nv. {{level}} — le lien se renforce.",
-    "evolve": "🌟 {{petName}} s'est éveillé au Stade {{evolution}}."
+    "evolve": "🌟 {{petName}} s'est éveillé au Stade {{evolution}}.",
+    "evolveTitle": "Éveil de l'Esprit",
+    "levelupTitle": "Nouveau Seuil",
+    "chatResponse": "L'Esprit murmure",
+    "userQuestion": "Tu demandes",
+    "dailyFortune": "Murmure du jour",
+    "systemMessage": "Avis"
   },
   "upgrade": {
     "petVoice": "Il y a davantage que {{petName}} aimerait te montrer. Abonne-toi, et nous pourrons lire le jour ensemble — jusqu'à 100 fois par jour.",
@@ -418,9 +477,15 @@
   },
   "error": {
     "unexpected": "Ling Xi a rencontré quelque chose d'inattendu",
-    "retry": "Recharger"
+    "retry": "Recharger",
+    "loginRequired": "Connecte-toi d'abord",
+    "timeoutRetry": "Temps dépassé — réessaie",
+    "network": "Connexion échouée",
+    "genericTitle": "Quelque chose s'est figé"
   },
   "share": {
-    "scanToDownload": "Scanner pour télécharger"
+    "scanToDownload": "Scanner pour télécharger",
+    "generating": "Génération...",
+    "action": "Partager ↗"
   }
 }

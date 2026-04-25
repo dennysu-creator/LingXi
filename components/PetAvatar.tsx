@@ -4,6 +4,7 @@
 
 import { useEffect, useRef } from 'react';
 import { View, Text, Image, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import i18n from '@/i18n';
 import { Colors, Fonts, scale } from '@/config/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -36,7 +37,7 @@ interface PetAvatarProps {
 export default function PetAvatar({ activeFeature, compact = false, fullscreen = false }: PetAvatarProps) {
   const emoji = usePetStore(s => s.emoji) || '🐉';
   const petId = usePetStore(s => s.petId) || '';
-  const name = usePetStore(s => s.name) || '靈寵';
+  const name = usePetStore(s => s.name) || i18n.t('tabs.pet', { defaultValue: '靈寵' });
   const level = usePetStore(s => s.level);
   const evolution = usePetStore(s => s.evolution) || 1;
   const element = usePetStore(s => s.element) || '';
@@ -188,7 +189,7 @@ export default function PetAvatar({ activeFeature, compact = false, fullscreen =
         </View>
         {element !== '' && (
           <View style={[s.elementBadge, { backgroundColor: `${elementColor}15`, borderColor: `${elementColor}30` }]}>
-            <Text style={[s.elementText, { color: elementColor }]}>{element}系</Text>
+            <Text style={[s.elementText, { color: elementColor }]}>{i18n.t('pet.elementBadge', { element, defaultValue: `${element}系` })}</Text>
           </View>
         )}
       </View>

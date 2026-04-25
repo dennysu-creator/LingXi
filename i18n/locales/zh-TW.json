@@ -100,7 +100,7 @@
     "startAnalysis": "啟動靈寵之眼",
     "scanning": "靈寵正在掃描面部...",
     "locating": "五官定位中...",
-    "analyzing": "面相推算中...",
+    "analyzing": "靈眼正在觀相中...",
     "generating": "靈寵正在解讀...",
     "todayReading": "今日面相運勢",
     "featureAnalysis": "五官運勢分析",
@@ -125,7 +125,20 @@
     "luckyItemDesc": "今日佩戴可增強水元素，補足命盤不足",
     "luckyItemDir": "東南方",
     "luckyItemNumbers": "3, 6, 8",
-    "petFound": "發現了！{{petName}}看到了什麼..."
+    "petFound": "發現了！{{petName}}看到了什麼...",
+    "bubbleTitle": "靈眼觀相",
+    "cameraPermissionRequired": "需要相機權限才能使用靈眼面相",
+    "captureFailure": "拍照失敗，請重試",
+    "resultTitle": "【靈眼面相 — {{level}}】",
+    "overallScore": "✦ 整體面相：{{score}}/100",
+    "adviceGood": "✦ 今日氣色不錯，適合社交",
+    "adviceBad": "✦ 建議多休息養氣",
+    "fallbackNarration": "{{petName}}凝視了你的氣色...",
+    "faceLevel": {
+      "great": "上相",
+      "good": "中相",
+      "neutral": "平相"
+    }
   },
   "heart": {
     "title": "靈寵之心",
@@ -140,7 +153,21 @@
     "analyzing": "靈寵正在感應中...",
     "locationAnalysis": "當前位置能量分析",
     "tips": "靈寵建議",
-    "note": "正式版將使用即時 GPS + 指南針 + AI 生成個人化風水解讀"
+    "note": "正式版將使用即時 GPS + 指南針 + AI 生成個人化風水解讀",
+    "bubbleTitle": "靈心風水",
+    "resultTitle": "【靈心風水 — {{loc}}】",
+    "avoidDirection": "✦ 避方位：{{dir}}",
+    "overallScore": "✦ 綜合氣場：{{score}}/100",
+    "adviceFaceLuckyDir": "💡 建議面朝{{dir}}方，有助於提升今日運勢",
+    "luckyColorPrefix": "🎨 幸運色：{{color}}",
+    "errorMessage": "{{petName}}正在感應周圍的風水氣場...但靈力尚不穩定，請稍後再試",
+    "locating": "定位中...",
+    "fallbackNarration": "{{petName}}感應到此地的靈氣流向...",
+    "seatLabel": "座位",
+    "avoidLabel": "避開",
+    "luckyDirLine": "✦ 吉方：{{dir}}",
+    "avoidListLine": "⚠ 避開：{{dir}}",
+    "currentLocation": "目前位置"
   },
   "pearl": {
     "title": "靈珠威能",
@@ -186,7 +213,13 @@
     "changedHexagram": "變卦",
     "changingLines": "變爻",
     "quotaEmpty": "今日靈力已盡",
-    "quotaUpgrade": "升級方案解鎖更多次數"
+    "quotaUpgrade": "升級方案解鎖更多次數",
+    "resultTitle": "【{{category}}運勢 — {{level}}】",
+    "resultScore": "✦ {{category}}指數：{{score}}/100",
+    "sensing": "靈寵正在感應...",
+    "petAnalyzing": "{{petName}}正在解讀卦象...",
+    "timing": "時機",
+    "errorMessage": "{{petName}}感應到了...請稍後再試~"
   },
   "pet": {
     "title": "靈寵",
@@ -227,7 +260,19 @@
     "defaultMsg2": "午安～下午開會建議坐東南方位置，有開門加持。",
     "defaultMsg3": "今天辛苦了！晚上適合靜坐冥想，杜門在北方，有利修練。",
     "evoStage": "進化階段",
-    "compassSensing": "靈心感應風水氣場中..."
+    "compassSensing": "靈心感應風水氣場中...",
+    "thinkingPlaceholder": "靈寵思考中...",
+    "askQuestion": "向靈寵問卦...",
+    "luckyDirSuffix": "✦ 幸運方位：{{dir}}",
+    "luckyColorSuffix": "✦ 幸運色：{{color}}",
+    "luckyNumSuffix": "✦ 幸運數字：{{num}}",
+    "a11y": {
+      "collapseBubble": "收合靈寵訊息",
+      "closeBubble": "關閉靈寵訊息",
+      "expandBubble": "展開靈寵訊息",
+      "scrollDownMore": "向下捲動查看更多"
+    },
+    "elementBadge": "{{element}}系"
   },
   "narrator": {
     "greetNight": "夜深了主人",
@@ -277,7 +322,14 @@
     "good": "中吉",
     "small": "小吉",
     "neutral": "平",
-    "bad": "小凶"
+    "bad": "小凶",
+    "level": {
+      "great": "大吉",
+      "good": "中吉",
+      "small": "小吉",
+      "neutral": "平",
+      "caution": "需留意"
+    }
   },
   "qimen": {
     "openGate": "開門",
@@ -338,7 +390,8 @@
     "retry": "重試",
     "today": "今日",
     "fiveElements": "五行",
-    "note": "正式版將由 AI 生成個人化分析"
+    "note": "正式版將由 AI 生成個人化分析",
+    "luckyItem": "幸運物"
   },
   "petUnlock": {
     "basicChat": "基礎對話",
@@ -365,7 +418,13 @@
     "playResponse": "好開心！和主人一起玩最快樂了～",
     "meditateResponse": "嗯...感受到靈氣在流動...{{petName}}悟性提升了！",
     "levelUp": "✨ {{petName}}升到 Lv.{{level}} 了！感覺更強大了！",
-    "evolve": "🌟 {{petName}}進化了！第{{evolution}}階段形態！"
+    "evolve": "🌟 {{petName}}進化了！第{{evolution}}階段形態！",
+    "evolveTitle": "靈寵進化",
+    "levelupTitle": "靈寵升級",
+    "chatResponse": "靈寵回應",
+    "userQuestion": "主人問",
+    "dailyFortune": "今日靈寵奇語",
+    "systemMessage": "系統訊息"
   },
   "upgrade": {
     "petVoice": "主人，{{petName}}想陪你探索更多天機，訂閱後每天最多 100 次 AI 解讀～",
@@ -418,9 +477,15 @@
   },
   "error": {
     "unexpected": "靈犀遇到了意外狀況",
-    "retry": "重新載入"
+    "retry": "重新載入",
+    "loginRequired": "請先登入",
+    "timeoutRetry": "請求逾時，請重試",
+    "network": "網路連線失敗",
+    "genericTitle": "發生了一些問題"
   },
   "share": {
-    "scanToDownload": "掃碼下載"
+    "scanToDownload": "掃碼下載",
+    "generating": "生成中...",
+    "action": "分享 ↗"
   }
 }

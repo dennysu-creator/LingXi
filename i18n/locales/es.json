@@ -100,7 +100,7 @@
     "startAnalysis": "Abrir la Mirada del Espíritu",
     "scanning": "Tu Espíritu está observando...",
     "locating": "Trazando los rasgos...",
-    "analyzing": "Leyendo los contornos...",
+    "analyzing": "La Mirada del Espíritu está leyendo...",
     "generating": "Tu Espíritu está interpretando...",
     "todayReading": "Reflejo de hoy",
     "featureAnalysis": "Lectura de los cinco rasgos",
@@ -125,7 +125,20 @@
     "luckyItemDesc": "Llevado hoy, atrae el Agua — suavizando lo que tu carta deja pendiente",
     "luckyItemDir": "Sureste",
     "luckyItemNumbers": "3, 6, 8",
-    "petFound": "{{petName}} ve algo..."
+    "petFound": "{{petName}} ve algo...",
+    "bubbleTitle": "Mirada del Espíritu",
+    "cameraPermissionRequired": "Se necesita permiso de cámara para la Mirada del Espíritu",
+    "captureFailure": "La imagen no se capturó — inténtalo de nuevo",
+    "resultTitle": "【Mirada del Espíritu — {{level}}】",
+    "overallScore": "✦ Semblante: {{score}}/100",
+    "adviceGood": "✦ Tu luz está clara hoy — bueno para conectar",
+    "adviceBad": "✦ Descansa, y deja que tu luz se reúna",
+    "fallbackNarration": "{{petName}} contempló tu semblante...",
+    "faceLevel": {
+      "great": "Radiante",
+      "good": "Sereno",
+      "neutral": "Tranquilo"
+    }
   },
   "heart": {
     "title": "Brújula del Corazón",
@@ -140,7 +153,21 @@
     "analyzing": "Tu Espíritu está sintiendo...",
     "locationAnalysis": "La energía de este lugar",
     "tips": "El consejo de tu Espíritu",
-    "note": "La versión completa se valdrá de GPS, brújula e IA en tiempo real para componer tu lectura personal de Feng Shui"
+    "note": "La versión completa se valdrá de GPS, brújula e IA en tiempo real para componer tu lectura personal de Feng Shui",
+    "bubbleTitle": "Brújula del Corazón",
+    "resultTitle": "【Brújula del Corazón — {{loc}}】",
+    "avoidDirection": "✦ Evita: {{dir}}",
+    "overallScore": "✦ Energía: {{score}}/100",
+    "adviceFaceLuckyDir": "💡 Mira hacia el {{dir}} — el flujo del día lo favorece",
+    "luckyColorPrefix": "🎨 Color del día: {{color}}",
+    "errorMessage": "{{petName}} alcanza la energía del lugar... pero los hilos están inquietos. Inténtalo pronto.",
+    "locating": "Localizando...",
+    "fallbackNarration": "{{petName}} percibe el flujo de este lugar...",
+    "seatLabel": "Asiento",
+    "avoidLabel": "Evitar",
+    "luckyDirLine": "✦ Favorable: {{dir}}",
+    "avoidListLine": "⚠ Evita: {{dir}}",
+    "currentLocation": "Ubicación actual"
   },
   "pearl": {
     "title": "Perla del Espíritu",
@@ -175,7 +202,7 @@
     "cat_health": "Bienestar",
     "cat_study": "Estudio",
     "startSoul": "Abrir la Lectura del Alma",
-    "remaining": "{{n}} lecturas restantes hoy",
+    "remaining": "Quedan {{n}} lecturas hoy",
     "petHint": "{{name}} escucha el aliento del cielo y la tierra...",
     "petChanneling": "{{petName}} se adentra en lo invisible...",
     "hexagramNum": "Hexagrama {{n}}",
@@ -186,7 +213,13 @@
     "changedHexagram": "Hexagrama cambiante",
     "changingLines": "Líneas mutantes",
     "quotaEmpty": "El espíritu de hoy ha reposado",
-    "quotaUpgrade": "Suscríbete para mantener el flujo de las lecturas"
+    "quotaUpgrade": "Suscríbete para mantener el flujo de las lecturas",
+    "resultTitle": "【Fortuna en {{category}} — {{level}}】",
+    "resultScore": "✦ Índice de {{category}}: {{score}}/100",
+    "sensing": "Tu Espíritu está sintiendo...",
+    "petAnalyzing": "{{petName}} está leyendo el hexagrama...",
+    "timing": "Momento",
+    "errorMessage": "{{petName}} sintió... inténtalo pronto"
   },
   "pet": {
     "title": "Espíritu",
@@ -227,7 +260,19 @@
     "defaultMsg2": "Buenas tardes — para la reunión que viene, sitúate hacia el sureste. La Puerta Abierta te sostendrá.",
     "defaultMsg3": "Has cargado mucho hoy. Que la noche sea quieta — la Puerta del Bloqueo se halla en el norte, ideal para meditar.",
     "evoStage": "Etapa del despertar",
-    "compassSensing": "Sintiendo la energía de este lugar…"
+    "compassSensing": "Sintiendo la energía de este lugar…",
+    "thinkingPlaceholder": "El Espíritu escucha...",
+    "askQuestion": "Habla con tu Espíritu...",
+    "luckyDirSuffix": "✦ Dirección: {{dir}}",
+    "luckyColorSuffix": "✦ Color: {{color}}",
+    "luckyNumSuffix": "✦ Número: {{num}}",
+    "a11y": {
+      "collapseBubble": "Plegar mensaje del Espíritu",
+      "closeBubble": "Cerrar mensaje",
+      "expandBubble": "Abrir mensaje",
+      "scrollDownMore": "Desplázate para más"
+    },
+    "elementBadge": "Elemento {{element}}"
   },
   "narrator": {
     "greetNight": "Es tarde — sé suave contigo",
@@ -277,7 +322,14 @@
     "good": "Favorable",
     "small": "Levemente favorable",
     "neutral": "En equilibrio",
-    "bad": "Pisa con cuidado"
+    "bad": "Pisa con cuidado",
+    "level": {
+      "great": "Muy Favorable",
+      "good": "Favorable",
+      "small": "Levemente Favorable",
+      "neutral": "En Equilibrio",
+      "caution": "Pisa con Cuidado"
+    }
   },
   "qimen": {
     "openGate": "Puerta Abierta",
@@ -338,7 +390,8 @@
     "retry": "Inténtalo de nuevo",
     "today": "Hoy",
     "fiveElements": "Cinco Elementos",
-    "note": "La versión completa compondrá lecturas hechas a tu medida, mediante IA"
+    "note": "La versión completa compondrá lecturas hechas a tu medida, mediante IA",
+    "luckyItem": "Talismán"
   },
   "petUnlock": {
     "basicChat": "Compañía diaria",
@@ -365,7 +418,13 @@
     "playResponse": "Qué alegría. No hay nada mejor que el tiempo contigo.",
     "meditateResponse": "Quietud... el espíritu se mueve. {{petName}} siente algo nuevo despertar.",
     "levelUp": "✨ {{petName}} ha alcanzado el Lv.{{level}} — el vínculo se hace más fuerte.",
-    "evolve": "🌟 {{petName}} ha despertado en la Etapa {{evolution}}."
+    "evolve": "🌟 {{petName}} ha despertado en la Etapa {{evolution}}.",
+    "evolveTitle": "Despertar del Espíritu",
+    "levelupTitle": "Nuevo Umbral",
+    "chatResponse": "Susurros del Espíritu",
+    "userQuestion": "Tú preguntas",
+    "dailyFortune": "Susurro del día",
+    "systemMessage": "Aviso"
   },
   "upgrade": {
     "petVoice": "Hay más que {{petName}} querría mostrarte. Suscríbete y leeremos el día juntos — hasta 100 veces al día.",
@@ -418,9 +477,15 @@
   },
   "error": {
     "unexpected": "Ling Xi ha encontrado algo inesperado",
-    "retry": "Recargar"
+    "retry": "Recargar",
+    "loginRequired": "Inicia sesión primero",
+    "timeoutRetry": "Tiempo agotado — reintenta",
+    "network": "Error de red",
+    "genericTitle": "Algo se ha detenido"
   },
   "share": {
-    "scanToDownload": "Escanea para descargar"
+    "scanToDownload": "Escanea para descargar",
+    "generating": "Generando...",
+    "action": "Compartir ↗"
   }
 }
