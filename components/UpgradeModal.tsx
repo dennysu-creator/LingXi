@@ -11,6 +11,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Fonts } from '@/config/theme';
@@ -60,6 +61,12 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
   const { t } = useTranslation();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+
+  const isBusy = isPurchasing || isRestoring;
+  const handleClose = () => {
+    if (isBusy) return; // don't dismiss mid-purchase
+    onClose();
+  };
 
   const petEmoji = usePetStore((s) => s.emoji) || '🐉';
   const petName = usePetStore((s) => s.name) || '靈寵';
@@ -114,9 +121,36 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={s.overlay}>
-        <View style={s.modal}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+      {/* Tap backdrop to dismiss (when not busy). Inner Pressable swallows touches so card itself isn't a tap-target. */}
+      <Pressable style={s.overlay} onPress={handleClose} accessible={false}>
+        <Pressable style={s.modalWrap} onPress={() => { /* swallow */ }} accessible={false}>
+          <View
+            style={[s.modal, { maxHeight: '92%' }]}
+            accessibilityViewIsModal
+            importantForAccessibility="yes"
+          >
+            {/* Close button (always visible, top-right) */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.close', { defaultValue: '關閉' })}
+              onPress={handleClose}
+              disabled={isBusy}
+              hitSlop={12}
+              style={({ pressed }) => [
+                s.closeBtn,
+                pressed && { opacity: 0.6 },
+                isBusy && { opacity: 0.3 },
+              ]}
+            >
+              <Text style={s.closeBtnText}>✕</Text>
+            </Pressable>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 8 }}
+              bounces={false}
+            >
           {/* Pet voice header */}
           <View style={s.petVoice}>
             <View style={s.petEmojiWrap}>
@@ -230,8 +264,8 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
             <Text style={s.footerDot}>·</Text>
             <Pressable
               style={({ pressed }) => [s.footerBtn, pressed && { opacity: 0.6 }]}
-              onPress={onClose}
-              disabled={isPurchasing || isRestoring}
+              onPress={handleClose}
+              disabled={isBusy}
             >
               <Text style={s.footerText}>
                 {t('upgrade.laterBtn', { defaultValue: '稍後再說' })}
@@ -246,8 +280,10 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
                 '訂閱會自動續訂，可隨時於 App Store 管理。退款由 Apple 處理，取消後不會恢復免費體驗次數。',
             })}
           </Text>
-        </View>
-      </View>
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -259,9 +295,14 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modal: {
+  modalWrap: {
     width: '88%',
+    maxWidth: 560,
+  },
+  modal: {
+    width: '100%',
     padding: 22,
+    paddingTop: 44, // give room for close button
     borderRadius: 22,
     backgroundColor: Colors.surface,
     borderWidth: 1,
@@ -271,6 +312,27 @@ const s = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 20,
     elevation: 10,
+  },
+  closeBtn: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,197,71,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    lineHeight: 16,
+    textAlign: 'center',
   },
   petVoice: {
     flexDirection: 'row',

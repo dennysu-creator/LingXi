@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, TextInput, KeyboardAvoidingView, Platform, Keyboard, Animated, Easing } from 'react-native';
+import { View, Text, Image, Pressable, StyleSheet, TextInput, KeyboardAvoidingView, Platform, Keyboard, Animated, Easing, ScrollView, useWindowDimensions, type NativeSyntheticEvent, type NativeScrollEvent, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -147,6 +147,66 @@ export default function PetScreen() {
   const [shareCardData, setShareCardData] = useState<ShareCardData | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const shareCardRef = useRef<View>(null);
+
+  // ─── Bubble body scroll state (down-arrow indicator) ───
+  const { height: WIN_H } = useWindowDimensions();
+  // Adaptive max height. Landscape / small screens shrink to 96px floor so the
+  // bubble never pushes the input row off screen.
+  const isLandscape = WIN_H < 600;
+  const bubbleBodyMaxH = isLandscape
+    ? Math.max(96, Math.round(WIN_H * 0.32))
+    : Math.max(180, Math.min(320, Math.round(WIN_H * 0.30)));
+
+  const bubbleScrollRef = useRef<ScrollView>(null);
+  const lastOffsetRef = useRef(0); // tracked outside React state to avoid re-renders
+  const [bubbleScroll, setBubbleScroll] = useState({ contentH: 0, viewH: 0, atBottom: true });
+
+  const onBubbleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (bubbleCollapsed) return; // skip when not visible
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    lastOffsetRef.current = contentOffset.y;
+    const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 8;
+    setBubbleScroll(prev => (prev.atBottom === atBottom ? prev : { ...prev, atBottom }));
+  }, [bubbleCollapsed]);
+
+  const onBubbleContentSize = useCallback((_: number, contentH: number) => {
+    setBubbleScroll(prev => {
+      const atBottom = prev.viewH > 0
+        ? lastOffsetRef.current + prev.viewH >= contentH - 8
+        : true;
+      if (prev.contentH === contentH && prev.atBottom === atBottom) return prev;
+      return { ...prev, contentH, atBottom };
+    });
+  }, []);
+
+  const onBubbleLayout = useCallback((e: LayoutChangeEvent) => {
+    const viewH = e.nativeEvent.layout.height;
+    setBubbleScroll(prev => {
+      const atBottom = prev.contentH > 0
+        ? lastOffsetRef.current + viewH >= prev.contentH - 8
+        : true;
+      if (prev.viewH === viewH && prev.atBottom === atBottom) return prev;
+      return { ...prev, viewH, atBottom };
+    });
+  }, []);
+
+  const scrollBubbleDown = useCallback(() => {
+    bubbleScrollRef.current?.scrollToEnd({ animated: true });
+    // Optimistic: hide the hint immediately even if onScroll lags.
+    setBubbleScroll(prev => (prev.atBottom ? prev : { ...prev, atBottom: true }));
+  }, []);
+
+  // Reset scroll position + measured-state only when message *identity* changes,
+  // not on edits to the same. Use stable key (time|len|type) — text edits keep len.
+  const latestMsgKey = latestMessage
+    ? `${latestMessage.time ?? ''}|${(latestMessage.text || '').length}|${latestMessage.type ?? ''}`
+    : '';
+  useEffect(() => {
+    lastOffsetRef.current = 0;
+    bubbleScrollRef.current?.scrollTo({ y: 0, animated: false });
+    // Optimistic: assume new long text is NOT at bottom; layout/content callbacks will correct.
+    setBubbleScroll({ contentH: 0, viewH: 0, atBottom: true });
+  }, [latestMsgKey]);
 
   const triggerShare = useCallback(async (title: string, content: string, category?: string) => {
     if (isSharing) return;
@@ -669,7 +729,12 @@ export default function PetScreen() {
         >
           <Glass intensity={50} style={styles.bubbleCard}>
             {/* 把手列(可點收合) */}
-            <Pressable onPress={() => setBubbleCollapsed(true)} style={styles.bubbleHandleArea}>
+            <Pressable
+              onPress={() => setBubbleCollapsed(true)}
+              style={styles.bubbleHandleArea}
+              accessibilityRole="button"
+              accessibilityLabel="收合靈寵訊息"
+            >
               <View style={styles.bubbleHandleBar} />
             </Pressable>
             {/* 標題列 */}
@@ -682,15 +747,46 @@ export default function PetScreen() {
               </View>
               <View style={styles.bubbleHeaderRight}>
                 <Text style={styles.bubbleTime}>{formatHHmm(latestMessage?.time)}</Text>
-                <Pressable onPress={() => setBubbleCollapsed(true)} style={styles.bubbleCloseBtn}>
+                <Pressable
+                  onPress={() => setBubbleCollapsed(true)}
+                  style={styles.bubbleCloseBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="關閉靈寵訊息"
+                  hitSlop={8}
+                >
                   <Text style={styles.bubbleCloseText}>✕</Text>
                 </Pressable>
               </View>
             </View>
-            {/* 內文(高亮) */}
-            <Text style={styles.bubbleBody} numberOfLines={6}>
-              {renderHighlightedBody(latestMessage?.text || '')}
-            </Text>
+            {/* 內文(高亮) — 可滾動 */}
+            <View style={[styles.bubbleBodyWrap, { maxHeight: bubbleBodyMaxH }]} onLayout={onBubbleLayout}>
+              <ScrollView
+                ref={bubbleScrollRef}
+                style={styles.bubbleBodyScroll}
+                contentContainerStyle={styles.bubbleBodyContent}
+                onScroll={onBubbleScroll}
+                onContentSizeChange={onBubbleContentSize}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator
+                nestedScrollEnabled
+              >
+                <Text style={styles.bubbleBody}>
+                  {renderHighlightedBody(latestMessage?.text || '')}
+                </Text>
+              </ScrollView>
+              {/* 浮動下箭頭：當內容溢出且尚未捲到底時顯示（兩個高度都需有效） */}
+              {bubbleScroll.viewH > 0 && bubbleScroll.contentH > bubbleScroll.viewH + 8 && !bubbleScroll.atBottom && (
+                <Pressable
+                  onPress={scrollBubbleDown}
+                  style={styles.bubbleScrollHint}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel="向下捲動查看更多"
+                >
+                  <Text style={styles.bubbleScrollHintText}>⌄</Text>
+                </Pressable>
+              )}
+            </View>
             {/* 分享 */}
             <Pressable
               onPress={() => {
@@ -708,7 +804,13 @@ export default function PetScreen() {
 
       {/* ═══ 收合狀態的 8px 把手(讓使用者重新展開) ═══ */}
       {showCollapsedHandle && (
-        <Pressable onPress={() => setBubbleCollapsed(false)} style={styles.collapsedHandleWrap} hitSlop={12}>
+        <Pressable
+          onPress={() => setBubbleCollapsed(false)}
+          style={styles.collapsedHandleWrap}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="展開靈寵訊息"
+        >
           <View style={styles.collapsedHandleBar} />
         </Pressable>
       )}
@@ -957,9 +1059,35 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   bubbleCloseText: { fontSize: 11, color: V4.text.tertiary },
+  bubbleBodyWrap: {
+    position: 'relative',
+    // maxHeight injected inline (viewport-relative)
+  },
+  bubbleBodyScroll: {
+    flexGrow: 0,
+  },
+  bubbleBodyContent: {
+    paddingRight: 4,
+    paddingBottom: 28, // clear the floating down-arrow so last line isn't covered
+  },
   bubbleBody: {
     fontSize: 14, color: V4.text.primary, fontFamily: Fonts.serif,
     lineHeight: 24, letterSpacing: 0.3,
+  },
+  bubbleScrollHint: {
+    position: 'absolute',
+    bottom: 0,
+    alignSelf: 'center',
+    width: 28, height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(232,197,71,0.18)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.35)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  bubbleScrollHintText: {
+    fontSize: 18, lineHeight: 18,
+    color: V4.gold, fontWeight: '700',
+    marginTop: -4,
   },
   bubbleShareBtn: {
     alignSelf: 'flex-start',
