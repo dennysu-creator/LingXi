@@ -1,5 +1,5 @@
 """
-Generate App Store marketing screenshots — 6.7" Display (1290x2796 px)
+Generate App Store marketing screenshots — 6.7" Display (1284x2778 px)
 Theme: 靈寵陪伴成長 (spirit-pet companion growth) — NOT fortune-telling.
 Apple 4.3 spam-safe positioning.
 
@@ -22,8 +22,9 @@ ROOT = Path(__file__).parent
 PETS = Path("C:/Dev/LingXi/assets/pets")
 V7 = Path("g:/共用雲端硬碟/有泉科技有限公司/內部開發/APP/算命系統/ai 圖片/V7-no-chinese")
 
-# Output canvas
-W, H = 1290, 2796
+# Output canvas — 6.5" Display spec (1284x2778)
+# Apple ASC accepts 1242x2688 OR 1284x2778 for 6.5" iPhone slot.
+W, H = 1284, 2778
 
 # Fonts
 F_BRUSH = "C:/Windows/Fonts/STKAITI.TTF"
@@ -450,7 +451,7 @@ def main():
     for name, fn in screens:
         canvas = make_bg()
         fn(canvas)
-        out = ROOT / f"app-{name}-1290x2796.png"
+        out = ROOT / f"app-{name}-1284x2778.png"
         canvas.convert("RGB").save(out, "PNG", optimize=True)
         print(f"  [OK] {out.name} ({out.stat().st_size // 1024} KB)")
 
