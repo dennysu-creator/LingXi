@@ -174,8 +174,8 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
               </View>
               <Text style={s.planSubtext}>
                 {t('subscription.yearlyEquiv', {
-                  monthly: Math.round(1999 / 12),
-                  defaultValue: `約 NT$${Math.round(1999 / 12)}/月，最划算`,
+                  monthly: Math.round(1900 / 12),
+                  defaultValue: `約 NT$${Math.round(1900 / 12)}/月，最划算`,
                 })}
               </Text>
               <View style={s.upgradeBtnYearly}>

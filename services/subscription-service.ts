@@ -41,13 +41,13 @@ export const PAID_PRODUCTS: PaidProduct[] = [
   {
     id: PRODUCT_ID_MONTHLY,
     cadence: 'monthly',
-    priceDisplay: 'NT$199',
+    priceDisplay: 'NT$190',
     periodLabel: 'subscription.perMonth',
   },
   {
     id: PRODUCT_ID_YEARLY,
     cadence: 'yearly',
-    priceDisplay: 'NT$1999',
+    priceDisplay: 'NT$1900',
     periodLabel: 'subscription.perYear',
     badge: 'subscription.savingsBadge',
   },
