@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════
 // 靈犀 多語言設定（i18n）
-// 支援：繁體中文、簡體中文、日文、英文、德文、法文
+// 支援：繁中、簡中、英、日、西、法、德
 // ═══════════════════════════════════════
 
 import i18n from 'i18next';
@@ -11,6 +11,7 @@ import zhTW from './locales/zh-TW.json';
 import zhCN from './locales/zh-CN.json';
 import ja from './locales/ja.json';
 import en from './locales/en.json';
+import es from './locales/es.json';
 import de from './locales/de.json';
 import fr from './locales/fr.json';
 
@@ -20,8 +21,9 @@ export const SUPPORTED_LANGUAGES = {
   'zh-CN': { label: '简体中文', nativeLabel: '简体中文', flag: '🇨🇳' },
   'ja':    { label: '日本語',   nativeLabel: '日本語',   flag: '🇯🇵' },
   'en':    { label: 'English',  nativeLabel: 'English',  flag: '🇺🇸' },
-  'de':    { label: 'Deutsch',  nativeLabel: 'Deutsch',  flag: '🇩🇪' },
+  'es':    { label: 'Español',  nativeLabel: 'Español',  flag: '🇪🇸' },
   'fr':    { label: 'Français', nativeLabel: 'Français', flag: '🇫🇷' },
+  'de':    { label: 'Deutsch',  nativeLabel: 'Deutsch',  flag: '🇩🇪' },
 } as const;
 
 export type SupportedLanguage = keyof typeof SUPPORTED_LANGUAGES;
@@ -40,6 +42,7 @@ function detectLanguage(): SupportedLanguage {
   if (deviceLocale.includes('Hant') || deviceLocale.includes('TW') || deviceLocale.includes('HK')) return 'zh-TW';
   if (deviceLocale.includes('Hans') || deviceLocale.includes('CN')) return 'zh-CN';
   if (langCode === 'ja') return 'ja';
+  if (langCode === 'es') return 'es';
   if (langCode === 'de') return 'de';
   if (langCode === 'fr') return 'fr';
   if (langCode === 'zh') return 'zh-TW'; // 預設繁體
@@ -55,8 +58,9 @@ i18n
       'zh-CN': { translation: zhCN },
       'ja':    { translation: ja },
       'en':    { translation: en },
-      'de':    { translation: de },
+      'es':    { translation: es },
       'fr':    { translation: fr },
+      'de':    { translation: de },
     },
     lng: detectLanguage(),
     fallbackLng: 'en',

@@ -2,7 +2,8 @@
   "app": {
     "name": "靈犀",
     "slogan": "你的隨身玄學生活顧問",
-    "subtitle": "AI 面相 · 八字命理 · 紫微斗數 · 奇門遁甲 · 靈寵陪伴 · 即時風水"
+    "subtitle": "AI 面相 · 八字命理 · 紫微斗數 · 奇門遁甲 · 靈寵陪伴 · 即時風水",
+    "tagline": "東方智慧 · AI 靈寵"
   },
   "tabs": {
     "home": "靈犀",
@@ -225,7 +226,8 @@
     "defaultMsg1": "主人早安～今日景門在南方，適合社交活動，記得穿亮色系！",
     "defaultMsg2": "午安～下午開會建議坐東南方位置，有開門加持。",
     "defaultMsg3": "今天辛苦了！晚上適合靜坐冥想，杜門在北方，有利修練。",
-    "evoStage": "進化階段"
+    "evoStage": "進化階段",
+    "compassSensing": "靈心感應風水氣場中..."
   },
   "narrator": {
     "greetNight": "夜深了主人",
@@ -368,16 +370,16 @@
   "upgrade": {
     "petVoice": "主人，{{petName}}想陪你探索更多天機，訂閱後每天最多 100 次 AI 解讀～",
     "trialRemaining": "免費體驗剩餘 {{remaining}}/{{total}} 次",
-    "featDaily": "· 每日最多 100 次 AI 解讀",
-    "featAi": "· AI 深度命理解讀",
-    "featPet": "· 靈寵成長無上限",
-    "featShare": "· 專屬靈寵分享卡",
+    "featDaily": "每日最多 100 次靈寵感應",
+    "featAi": "AI 深度個人化解讀",
+    "featPet": "靈寵成長無上限",
+    "featShare": "專屬靈寵分享卡",
     "subscribeMonthly": "訂閱月付",
     "subscribeYearly": "訂閱年付",
     "restore": "恢復購買",
     "restoreSuccess": "已恢復訂閱",
     "restoreNothing": "未找到有效訂閱",
-    "restoreNothingDesc": "您的 Apple ID 尚未購買靈犀訂閱",
+    "restoreNothingDesc": "您的 Apple ID 尚未訂閱靈犀",
     "restoreFailed": "恢復失敗",
     "purchaseFailed": "購買失敗",
     "laterBtn": "稍後再說",
@@ -413,5 +415,12 @@
     "restoreSuccess": "恢復購買成功",
     "restoreFailed": "恢復購買失敗",
     "upgradeCta": "升級會員解鎖更多功能"
+  },
+  "error": {
+    "unexpected": "靈犀遇到了意外狀況",
+    "retry": "重新載入"
+  },
+  "share": {
+    "scanToDownload": "掃碼下載"
   }
 }

@@ -4,6 +4,7 @@
 
 import { Component, type ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import i18n from '@/i18n';
 import { Colors, Fonts } from '@/config/theme';
 
 interface Props {
@@ -42,12 +43,12 @@ export default class ErrorBoundary extends Component<Props, State> {
           <Text style={styles.title}>
             {this.props.fallbackMessage || '發生了一些問題'}
           </Text>
-          <Text style={styles.subtitle}>靈犀遇到了意外狀況</Text>
+          <Text style={styles.subtitle}>{i18n.t('error.unexpected', { defaultValue: '靈犀遇到了意外狀況' })}</Text>
           <Pressable
             style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.7 }]}
             onPress={this.handleRetry}
           >
-            <Text style={styles.retryText}>重新載入</Text>
+            <Text style={styles.retryText}>{i18n.t('error.retry', { defaultValue: '重新載入' })}</Text>
           </Pressable>
         </View>
       );

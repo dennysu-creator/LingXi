@@ -16,6 +16,7 @@ import {
   ImageSourcePropType,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import i18n from '@/i18n';
 import { Colors, Fonts } from '@/config/theme';
 
 export const CARD_PHYSICAL_WIDTH = 1080;
@@ -124,7 +125,7 @@ const ShareCard = forwardRef<View, Props>(({ data }, ref) => {
             backgroundColor="#F5F1E8"
             ecl="H"
           />
-          <Text style={styles.qrCaption}>掃碼下載</Text>
+          <Text style={styles.qrCaption}>{i18n.t('share.scanToDownload', { defaultValue: '掃碼下載' })}</Text>
         </View>
       </View>
     </View>

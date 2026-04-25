@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, TextInput, KeyboardAvoidingView, Platform, Keyboard, Animated, Easing, ScrollView, useWindowDimensions, type NativeSyntheticEvent, type NativeScrollEvent, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
+import i18n from '@/i18n';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -641,7 +642,7 @@ export default function PetScreen() {
           ) : (
             <Text style={styles.compassLocText}>📍 定位中...</Text>
           )}
-          <Text style={styles.compassHint}>靈心感應風水氣場中...</Text>
+          <Text style={styles.compassHint}>{i18n.t('pet.compassSensing', { defaultValue: '靈心感應風水氣場中...' })}</Text>
         </Animated.View>
       )}
 
@@ -687,10 +688,10 @@ export default function PetScreen() {
           <View style={styles.cameraOverlay}>
             <CameraView ref={cameraRef} style={styles.cameraView} facing="front" />
             <View style={styles.cameraUI}>
-              <Text style={styles.cameraHint}>將臉部對準畫面中央</Text>
+              <Text style={styles.cameraHint}>{i18n.t('eye.alignFace', { defaultValue: '將臉部對準畫面中央' })}</Text>
               <View style={styles.cameraBtnRow}>
                 <Pressable style={styles.cameraCancelBtn} onPress={() => setCameraOpen(false)}>
-                  <Text style={styles.cameraCancelText}>取消</Text>
+                  <Text style={styles.cameraCancelText}>{i18n.t('common.cancel', { defaultValue: '取消' })}</Text>
                 </Pressable>
                 <Pressable style={styles.cameraShutterBtn} onPress={handleCameraCapture}>
                   <View style={styles.cameraShutterInner} />

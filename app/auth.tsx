@@ -125,7 +125,7 @@ export default function AuthScreen() {
         <View style={styles.logoSection}>
           <Image source={LOGO.splash} style={styles.logoImage} />
           <Image source={LOGO.splashText} style={styles.logoTextImage} />
-          <Text style={styles.logoTagline}>東方命理 · AI 靈寵</Text>
+          <Text style={styles.logoTagline}>{t('app.tagline', { defaultValue: '東方智慧 · AI 靈寵' })}</Text>
         </View>
 
         {/* ═══ Apple Sign-In（iOS 優先顯示）═══ */}
