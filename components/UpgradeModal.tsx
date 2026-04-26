@@ -2,7 +2,7 @@
 // 升級方案彈窗 — 月/年兩個產品、單一 paid entitlement
 // ═══════════════════════════════════════════════════════════════
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { api } from '@/services/api-client';
 import { usePetStore } from '@/stores/pet-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useUserStore } from '@/stores/user-store';
+import { playMusic, playSfx, getCurrentMusicKey, type MusicKey } from '@/services/audio-controller';
 import {
   PRODUCT_ID_MONTHLY,
   PRODUCT_ID_YEARLY,
@@ -62,6 +63,20 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
+  // 開啟時切到 paywall 配樂,關閉時還原前一首
+  const prevMusicRef = useRef<MusicKey | null>(null);
+  useEffect(() => {
+    if (visible) {
+      prevMusicRef.current = getCurrentMusicKey();
+      void playMusic('paywall');
+    } else {
+      // 關閉:還原到先前音樂,若無則回 pet-idle
+      const back = prevMusicRef.current ?? 'pet-idle';
+      void playMusic(back);
+      prevMusicRef.current = null;
+    }
+  }, [visible]);
+
   const isBusy = isPurchasing || isRestoring;
   const handleClose = () => {
     if (isBusy) return; // don't dismiss mid-purchase
@@ -83,11 +98,13 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
       const result = await purchasePlan(productId);
       if (result.cancelled) return;
       if (result.planType === 'paid') {
+        playSfx('subscription-success');
         useAuthStore.getState().updatePlan('paid' as PlanType);
         await syncServerSubscription();
         onClose();
       }
     } catch (err) {
+      playSfx('error');
       const msg = err instanceof Error ? err.message : '購買失敗';
       Alert.alert(t('upgrade.purchaseFailed', { defaultValue: '購買失敗' }), msg);
     } finally {
@@ -101,6 +118,7 @@ export default function UpgradeModal({ visible, onClose }: UpgradeModalProps) {
       const result = await restorePurchases();
       await syncServerSubscription();
       if (result.planType === 'paid') {
+        playSfx('subscription-success');
         useAuthStore.getState().updatePlan('paid' as PlanType);
         Alert.alert(t('upgrade.restoreSuccess', { defaultValue: '已恢復訂閱' }));
         onClose();

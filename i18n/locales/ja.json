@@ -511,5 +511,12 @@
     "scanToDownload": "スキャンしてダウンロード",
     "generating": "生成中...",
     "action": "シェア ↗"
+  },
+  "audio": {
+    "title": "音",
+    "muted": "ミュート",
+    "musicVolume": "BGM 音量",
+    "sfxVolume": "効果音 音量",
+    "testSfx": "試聴"
   }
 }

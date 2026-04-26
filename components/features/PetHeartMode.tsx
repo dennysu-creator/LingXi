@@ -25,6 +25,7 @@ import { analyzeFengShui, type FengShuiResult } from '@/services/claude-api';
 import { formatCoordinate } from '@/services/date-utils';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
 import { localizeDirection, localizeDirections, localeJoin } from '@/services/i18n-fortune-values';
+import { playSfx } from '@/services/audio-controller';
 
 const DIRECTIONS = ['北', '東北', '東', '東南', '南', '西南', '西', '西北'] as const;
 const DIR_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -130,6 +131,7 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
   const startAnalysis = useCallback(async () => {
     const canUse = useFeature('heart', petLevel);
     if (!canUse) {
+      playSfx('quota-warning');
       onQuotaExhausted();
       return;
     }
@@ -139,6 +141,7 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
       return;
     }
 
+    playSfx('compass-spin');
     setIsAnalyzing(true);
     try {
       const baziStr = bazi
@@ -171,6 +174,7 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
         return;
       }
     } catch (err) {
+      playSfx('error');
       let msg = t('heart.analysisFailed', { defaultValue: '分析失敗，請重試' });
       if (err instanceof ApiError) {
         if (err.status === 401) msg = t('error.loginRequired', { defaultValue: '請先登入' });

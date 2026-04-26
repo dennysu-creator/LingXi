@@ -511,5 +511,12 @@
     "scanToDownload": "Scannen zum Download",
     "generating": "Wird erstellt...",
     "action": "Teilen ↗"
+  },
+  "audio": {
+    "title": "Klang",
+    "muted": "Stumm",
+    "musicVolume": "Musiklautstärke",
+    "sfxVolume": "Effektlautstärke",
+    "testSfx": "Anhören"
   }
 }

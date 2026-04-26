@@ -27,6 +27,7 @@ import PetAvatar, { type ActiveFeature } from '@/components/PetAvatar';
 import UpgradeModal from '@/components/UpgradeModal';
 import ShareCard, { type ShareCardData } from '@/components/ShareCard';
 import { buildShareCardData, captureAndShare } from '@/services/share-service';
+import { playMusic, playSfx } from '@/services/audio-controller';
 
 // 羅盤浮層（靈心用）
 import * as Location from 'expo-location';
@@ -131,6 +132,22 @@ export default function PetScreen() {
       initPet(birthMonth, birthDay);
     }
   }, [petId, birthMonth, birthDay, initPet]);
+
+  // ─── Background music: 進入 pet 頁 → pet-idle ───
+  useEffect(() => {
+    void playMusic('pet-idle');
+  }, []);
+
+  // ─── activeFeature 變動 → 切換背景音樂(crossfade) ───
+  useEffect(() => {
+    if (activeFeature === 'eye') {
+      void playMusic('face-reading');
+    } else if (activeFeature === 'heart') {
+      void playMusic('fengshui');
+    } else if (activeFeature === null) {
+      void playMusic('pet-idle');
+    }
+  }, [activeFeature]);
   const ziwei = useUserStore(s => s.ziwei);
   const astrology = useUserStore(s => s.astrology);
   const canLevelUp = usePetStore(s => s.canLevelUp);
@@ -318,7 +335,10 @@ export default function PetScreen() {
     if (!bazi || !ziwei || !astrology) return;
     // F4: 檢查每日額度
     const canUse = useUserStore.getState().useFeature('soul', petLevel);
-    if (!canUse) { setShowUpgrade(true); return; }
+    if (!canUse) { playSfx('quota-warning'); setShowUpgrade(true); return; }
+    // 音效:類別點選 + 切到 divination 配樂
+    playSfx('category-select');
+    void playMusic('divination');
     setDivinationLoading(true);
 
     const catLabel = CATEGORIES.find(c => c.key === catKey)?.label || '';
@@ -398,11 +418,16 @@ export default function PetScreen() {
             luckyNumber: fortuneResult.luckyNumbers?.[0],
           },
         });
+        // 結果出爐音效 + 切回 fortune-reveal 配樂
+        playSfx('result-fortune');
+        void playMusic('fortune-reveal');
         // 使用次數 +1（升級/進化）
         const result = incrementUsage();
         if (result.evolved) {
+          playSfx('evolution');
           setTimeout(() => addMessage({ type: 'evolve', text: `🌟 ${petName}進化了！第${result.newEvolution}階段！`, data: { evolution: result.newEvolution } }), 500);
         } else if (result.leveledUp) {
+          playSfx('level-up');
           setTimeout(() => addMessage({ type: 'levelup', text: `✨ ${petName}升到 Lv.${result.newLevel} 了！`, data: { level: result.newLevel } }), 500);
         }
       } catch {
@@ -455,7 +480,9 @@ export default function PetScreen() {
     if (eyeLoading || cameraOpen) return;
     // F4: 檢查每日額度
     const canUse = useUserStore.getState().useFeature('eye', petLevel);
-    if (!canUse) { setShowUpgrade(true); return; }
+    if (!canUse) { playSfx('quota-warning'); setShowUpgrade(true); return; }
+    playSfx('pet-tap');
+    void playMusic('face-reading');
     // 請求相機權限
     if (Platform.OS !== 'web') {
       try {
@@ -474,6 +501,7 @@ export default function PetScreen() {
   const handleCameraCapture = useCallback(async () => {
     if (!cameraRef.current) return;
     try {
+      playSfx('camera-capture');
       const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
       setCameraOpen(false);
       if (!photo?.base64) return;
@@ -514,9 +542,11 @@ export default function PetScreen() {
           (data.lucky_item         ? `✦ 開運物：${data.lucky_item}`                    : '');
 
         addMessage({ type: 'face', text: resultText, data: { score, level, ...data } });
+        playSfx('result-fortune');
         incrementUsage();
       } catch {
         s1.stop(); g1.stop(); setEyeLoading(false);
+        playSfx('error');
         const score = Math.floor(60 + Math.random() * 30);
         const level = score >= 80
           ? i18n.t('eye.faceLevel.great', { defaultValue: '上相' })
@@ -528,6 +558,7 @@ export default function PetScreen() {
       }
     } catch {
       setCameraOpen(false);
+      playSfx('error');
       addMessage({ type: 'system', text: i18n.t('eye.captureFailure', { defaultValue: '拍照失敗，請重試' }), data: {} });
     }
   }, [bazi, petName, addMessage, spinAnim, glowAnim]);
@@ -536,7 +567,9 @@ export default function PetScreen() {
     if (compassActive || !bazi) return;
     // F4: 檢查每日額度
     const canUse = useUserStore.getState().useFeature('heart', petLevel);
-    if (!canUse) { setShowUpgrade(true); return; }
+    if (!canUse) { playSfx('quota-warning'); setShowUpgrade(true); return; }
+    playSfx('compass-spin');
+    void playMusic('fengshui');
     setCompassActive(true);
 
     // 2.5 秒後關閉羅盤，直接輸出風水結果到對話
@@ -564,8 +597,10 @@ export default function PetScreen() {
             (luckyColorRaw ? `\n${i18n.t('heart.luckyColorPrefix', { color: luckyColor, defaultValue: `🎨 幸運色：${luckyColor}` })}` : '');
 
           addMessage({ type: 'fengshui', text: resultText, data: { luckyDir: luckyDirRaw, avoidDir: avoidDirRaw, location: locStr } });
+          playSfx('result-fortune');
           incrementUsage();
         } catch {
+          playSfx('error');
           addMessage({ type: 'fengshui', text: i18n.t('heart.errorMessage', { petName, defaultValue: `${petName}正在感應周圍的風水氣場...但靈力尚不穩定，請稍後再試～` }), data: {} });
         }
       });

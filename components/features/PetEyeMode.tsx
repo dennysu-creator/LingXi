@@ -25,6 +25,7 @@ import { analyzeFace, type FaceReadingResult } from '@/services/claude-api';
 import { getLocalDateKey } from '@/services/date-utils';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
 import { localizeDirection } from '@/services/i18n-fortune-values';
+import { playSfx } from '@/services/audio-controller';
 
 type Phase = 'idle' | 'preview' | 'analyzing' | 'result';
 
@@ -74,6 +75,7 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
   const takePicture = useCallback(async () => {
     if (!cameraRef.current) return;
     try {
+      playSfx('camera-capture');
       const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
       if (photo?.base64) {
         setCapturedImage(photo.base64);
@@ -81,6 +83,7 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
         setPhase('analyzing');
       }
     } catch {
+      playSfx('error');
       Alert.alert(t('eye.cameraError', { defaultValue: '拍照失敗' }));
     }
   }, [t]);
@@ -140,6 +143,7 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
     } catch (err) {
       clearInterval(interval);
       setPhase('preview');
+      playSfx('error');
       let msg = t('eye.analysisFailed', { defaultValue: '分析失敗，請重試' });
       if (err instanceof ApiError) {
         if (err.status === 401) msg = t('error.loginRequired', { defaultValue: '請先登入' });

@@ -2,7 +2,7 @@
 // 靈犀 App 根佈局
 // ═══════════════════════════════════════
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { setTokens } from '@/services/api-client';
 import { initSubscriptionService, identifyUser } from '@/services/subscription-service';
 import { initNotifications } from '@/services/notification-service';
+import { initAudio, playSfx } from '@/services/audio-controller';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import '@/i18n'; // 初始化多語言系統
 
@@ -56,6 +57,8 @@ export default function RootLayout() {
         await initSubscriptionService();
         // 初始化每日推播通知（8AM + 6PM）
         await initNotifications();
+        // 音效系統(audio session + AppState 監聽)
+        await initAudio();
       } catch {
         // 認證檢查失敗 → 當作未登入
       } finally {
@@ -72,10 +75,15 @@ export default function RootLayout() {
     }
   }, [isAuthenticated, authUser?.id]);
 
-  // 隱藏 Splash Screen
+  // 隱藏 Splash Screen + 啟動音效(只播一次)
+  const launchSfxFiredRef = useRef(false);
   useEffect(() => {
     if (fontsLoaded && authChecked) {
       SplashScreen.hideAsync();
+      if (!launchSfxFiredRef.current) {
+        launchSfxFiredRef.current = true;
+        playSfx('app-launch');
+      }
     }
   }, [fontsLoaded, authChecked]);
 

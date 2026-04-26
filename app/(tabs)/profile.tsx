@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════
 
 import { useState } from 'react';
-import { View, Text, Image, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, Platform, Linking } from 'react-native';
+import { View, Text, Image, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator, Platform, Linking, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Colors, Fonts, Spacing } from '@/config/theme';
@@ -11,7 +11,9 @@ import { useUserStore } from '@/stores/user-store';
 import { usePetStore } from '@/stores/pet-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore } from '@/stores/chat-store';
+import { useAudioStore } from '@/stores/audio-store';
 import { restorePurchases } from '@/services/subscription-service';
+import { playSfx, setMuted as setAudioMuted, setMusicVolume, setSfxVolume } from '@/services/audio-controller';
 import { getPetImage } from '@/assets/images';
 import LanguageSelector from '@/components/LanguageSelector';
 import PetChat from '@/components/PetChat';
@@ -34,6 +36,11 @@ export default function ProfileScreen() {
   const ziwei = useUserStore(s => s.ziwei);
   const astrology = useUserStore(s => s.astrology);
   const planType = useUserStore(s => s.planType);
+
+  // 音效設定
+  const audioMuted = useAudioStore(s => s.muted);
+  const musicVolume = useAudioStore(s => s.musicVolume);
+  const sfxVolume = useAudioStore(s => s.sfxVolume);
 
   const petName = usePetStore(s => s.name) || '靈寵';
   const petEmoji = usePetStore(s => s.emoji) || '🐉';
@@ -139,6 +146,72 @@ export default function ProfileScreen() {
       <Text style={styles.sectionLabel}>{t('profile.language')}</Text>
       <View style={styles.sectionCard}>
         <LanguageSelector />
+      </View>
+
+      {/* ═══ 聲音設定 ═══ */}
+      <Text style={styles.sectionLabel}>{t('audio.title', { defaultValue: '聲音' })}</Text>
+      <View style={styles.sectionCard}>
+        {/* 靜音 toggle */}
+        <View style={styles.audioRow}>
+          <Text style={styles.dataLabel}>{t('audio.muted', { defaultValue: '靜音' })}</Text>
+          <Switch
+            value={audioMuted}
+            onValueChange={(v) => setAudioMuted(v)}
+            trackColor={{ false: 'rgba(255,255,255,0.18)', true: 'rgba(232,197,71,0.6)' }}
+            thumbColor={audioMuted ? '#e8c547' : '#ccc'}
+          />
+        </View>
+        {/* 背景音樂音量 */}
+        <View style={styles.audioColumn}>
+          <View style={styles.audioRow}>
+            <Text style={styles.dataLabel}>{t('audio.musicVolume', { defaultValue: '背景音樂音量' })}</Text>
+            <Text style={styles.dataValue}>{Math.round(musicVolume * 100)}%</Text>
+          </View>
+          <View style={styles.audioStepRow}>
+            {[0, 0.25, 0.5, 0.75, 1].map(v => (
+              <Pressable
+                key={v}
+                onPress={() => setMusicVolume(v)}
+                style={({ pressed }) => [
+                  styles.audioStep,
+                  Math.abs(musicVolume - v) < 0.01 && styles.audioStepActive,
+                  pressed && { opacity: 0.6 },
+                ]}
+              >
+                <Text style={styles.audioStepText}>{Math.round(v * 100)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+        {/* SFX 音量 */}
+        <View style={styles.audioColumn}>
+          <View style={styles.audioRow}>
+            <Text style={styles.dataLabel}>{t('audio.sfxVolume', { defaultValue: '音效音量' })}</Text>
+            <Text style={styles.dataValue}>{Math.round(sfxVolume * 100)}%</Text>
+          </View>
+          <View style={styles.audioStepRow}>
+            {[0, 0.25, 0.5, 0.75, 1].map(v => (
+              <Pressable
+                key={v}
+                onPress={() => { setSfxVolume(v); playSfx('notification'); }}
+                style={({ pressed }) => [
+                  styles.audioStep,
+                  Math.abs(sfxVolume - v) < 0.01 && styles.audioStepActive,
+                  pressed && { opacity: 0.6 },
+                ]}
+              >
+                <Text style={styles.audioStepText}>{Math.round(v * 100)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+        {/* 試聽 */}
+        <Pressable
+          style={({ pressed }) => [styles.audioPreviewBtn, pressed && { opacity: 0.7 }]}
+          onPress={() => playSfx('achievement')}
+        >
+          <Text style={styles.audioPreviewText}>{t('audio.testSfx', { defaultValue: '試聽音效' })}</Text>
+        </Pressable>
       </View>
 
       {/* ═══ 命盤資料 ═══ */}
@@ -351,4 +424,33 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(232,197,71,0.08)',
     marginBottom: 20,
   },
+
+  // 音效設定
+  audioRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 8,
+  },
+  audioColumn: {
+    paddingVertical: 6,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.04)',
+  },
+  audioStepRow: {
+    flexDirection: 'row', justifyContent: 'space-between', gap: 6, marginTop: 6,
+  },
+  audioStep: {
+    flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  },
+  audioStepActive: {
+    backgroundColor: 'rgba(232,197,71,0.15)',
+    borderColor: 'rgba(232,197,71,0.45)',
+  },
+  audioStepText: { fontSize: 12, color: Colors.textSecondary, fontFamily: Fonts.serif },
+  audioPreviewBtn: {
+    marginTop: 12, paddingVertical: 10, alignItems: 'center', borderRadius: 10,
+    backgroundColor: 'rgba(232,197,71,0.10)',
+    borderWidth: 1, borderColor: 'rgba(232,197,71,0.20)',
+  },
+  audioPreviewText: { fontSize: 13, color: Colors.primary, fontWeight: '600', letterSpacing: 1 },
 });

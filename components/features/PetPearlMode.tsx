@@ -22,6 +22,7 @@ import {
 import { CATEGORY_IMAGES, FEATURE_PANEL, PET_FRAME, getPetImage } from '@/assets/images';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
 import api, { ApiError } from '@/services/api-client';
+import { playMusic, playSfx } from '@/services/audio-controller';
 
 type Phase = 'idle' | 'shaking' | 'analyzing' | 'result';
 
@@ -80,11 +81,14 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
 
     const canUse = useFeature('soul', petLevel);
     if (!canUse) {
+      playSfx('quota-warning');
       onQuotaExhausted();
       return;
     }
 
     setPhase('shaking');
+    playSfx('compass-spin');
+    void playMusic('divination');
     if (Platform.OS !== 'web') {
       Vibration.vibrate([0, 80, 60, 80, 60, 80, 60, 150]);
     }
@@ -94,6 +98,19 @@ export default function PetPearlMode({ visible, onClose, onResult, onQuotaExhaus
       setResult(hexResult);
 
       const interp = hexResult.hexagram.interpretations[hexResult.category];
+
+      // 擲筊音效:依 verdict 對應 yes/maybe/no
+      const verdict = (interp.verdict || '').toString();
+      if (/吉|宜|可|順|利/.test(verdict)) {
+        playSfx('jiao-yes');
+      } else if (/凶|忌|不利|阻/.test(verdict)) {
+        playSfx('jiao-no');
+      } else {
+        playSfx('jiao-maybe');
+      }
+      // 卦象揭示音效 + 切換配樂
+      playSfx('hexagram-reveal');
+      void playMusic('hexagram-reveal');
 
       // Local narration as fallback
       const localNarr = generateLocalPetNarration({

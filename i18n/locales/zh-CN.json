@@ -511,5 +511,12 @@
     "scanToDownload": "扫码下载",
     "generating": "生成中...",
     "action": "分享 ↗"
+  },
+  "audio": {
+    "title": "声音",
+    "muted": "静音",
+    "musicVolume": "背景音乐音量",
+    "sfxVolume": "音效音量",
+    "testSfx": "试听音效"
   }
 }
