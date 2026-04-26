@@ -354,6 +354,30 @@
     "northwest": "Northwest",
     "center": "Center"
   },
+  "colors": {
+    "white": "White",
+    "gold": "Gold",
+    "silver": "Silver",
+    "green": "Green",
+    "azure": "Azure",
+    "emerald": "Emerald",
+    "black": "Black",
+    "blue": "Blue",
+    "deepblue": "Deep Blue",
+    "red": "Red",
+    "orange": "Orange",
+    "purple": "Purple",
+    "yellow": "Yellow",
+    "brown": "Brown",
+    "beige": "Beige"
+  },
+  "elements": {
+    "metal": "Metal",
+    "wood": "Wood",
+    "water": "Water",
+    "fire": "Fire",
+    "earth": "Earth"
+  },
   "subscription": {
     "free": "Free Trial",
     "paid": "Ling Xi Subscription",

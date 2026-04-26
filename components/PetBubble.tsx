@@ -9,6 +9,7 @@ import i18n from '@/i18n';
 import { Colors, Fonts } from '@/config/theme';
 import type { ChatMessage, FortuneData, FaceData, FengshuiData, DivinationData, PetActionData, LevelUpData, EvolveData } from '@/stores/chat-store';
 import { CHAT_BUBBLE } from '@/assets/images';
+import { localizeColor, localizeDirection, localizeDirections, localizeElement, localeJoin } from '@/services/i18n-fortune-values';
 
 // ─── Star Rating ───
 function StarRating({ count }: { count: number }) {
@@ -142,7 +143,7 @@ function buildLuckyPills(type: string, data: any): LuckyPill[] {
         pills.push({ emoji: data.lucky_item.emoji || '🍀', label: i18n.t('common.luckyItem', { defaultValue: '幸運物' }), value: data.lucky_item.name || '' });
       }
       if (data?.lucky_direction) {
-        pills.push({ emoji: '📍', label: i18n.t('home.luckyDirection', { defaultValue: '吉方' }), value: data.lucky_direction });
+        pills.push({ emoji: '📍', label: i18n.t('home.luckyDirection', { defaultValue: '吉方' }), value: localizeDirection(data.lucky_direction) });
       }
       if (data?.lucky_number != null) {
         pills.push({ emoji: '🔢', label: i18n.t('home.luckyNumber', { defaultValue: '幸運數' }), value: String(data.lucky_number) });
@@ -151,13 +152,13 @@ function buildLuckyPills(type: string, data: any): LuckyPill[] {
     }
     case 'fengshui': {
       if (data?.luckyDirections?.length) {
-        pills.push({ emoji: '✦', label: i18n.t('home.luckyDirection', { defaultValue: '吉方' }), value: data.luckyDirections.join('、') });
+        pills.push({ emoji: '✦', label: i18n.t('home.luckyDirection', { defaultValue: '吉方' }), value: localeJoin(localizeDirections(data.luckyDirections)) });
       }
       if (data?.seat_advice) {
         pills.push({ emoji: '🪑', label: i18n.t('heart.seatLabel', { defaultValue: '座位' }), value: data.seat_advice });
       }
       if (data?.dangerDirections?.length) {
-        pills.push({ emoji: '⚠️', label: i18n.t('heart.avoidLabel', { defaultValue: '避開' }), value: data.dangerDirections.join('、') });
+        pills.push({ emoji: '⚠️', label: i18n.t('heart.avoidLabel', { defaultValue: '避開' }), value: localeJoin(localizeDirections(data.dangerDirections)) });
       }
       break;
     }
@@ -167,22 +168,22 @@ function buildLuckyPills(type: string, data: any): LuckyPill[] {
         pills.push({ emoji: '⏰', label: i18n.t('pearl.timing', { defaultValue: '時機' }), value: timing });
       }
       if (data?.hexagram?.element) {
-        pills.push({ emoji: '🌀', label: i18n.t('pearl.element', { defaultValue: '五行' }), value: data.hexagram.element });
+        pills.push({ emoji: '🌀', label: i18n.t('pearl.element', { defaultValue: '五行' }), value: localizeElement(data.hexagram.element) });
       }
       break;
     }
     case 'fortune': {
       if (data?.luckyDirection) {
-        pills.push({ emoji: '🧭', label: i18n.t('home.luckyDirection', { defaultValue: '吉方' }), value: data.luckyDirection });
+        pills.push({ emoji: '🧭', label: i18n.t('home.luckyDirection', { defaultValue: '吉方' }), value: localizeDirection(data.luckyDirection) });
       }
       if (data?.luckyColor) {
-        pills.push({ emoji: '🎨', label: i18n.t('home.luckyColor', { defaultValue: '幸運色' }), value: data.luckyColor });
+        pills.push({ emoji: '🎨', label: i18n.t('home.luckyColor', { defaultValue: '幸運色' }), value: localizeColor(data.luckyColor) });
       }
       if (data?.luckyNumber != null) {
         pills.push({ emoji: '🔢', label: i18n.t('home.luckyNumber', { defaultValue: '幸運數' }), value: String(data.luckyNumber) });
       }
       if (data?.luckyElement) {
-        pills.push({ emoji: '🌀', label: i18n.t('pearl.element', { defaultValue: '五行' }), value: data.luckyElement });
+        pills.push({ emoji: '🌀', label: i18n.t('pearl.element', { defaultValue: '五行' }), value: localizeElement(data.luckyElement) });
       }
       break;
     }
@@ -296,12 +297,18 @@ export default function PetBubble({ message, petEmoji, petName }: PetBubbleProps
             <View style={s.directionSection}>
               {d.luckyDirections?.length ? (
                 <Text style={s.directionGood}>
-                  {i18n.t('heart.luckyDirLine', { dir: d.luckyDirections.join('、'), defaultValue: `✦ 吉方：${d.luckyDirections.join('、')}` })}
+                  {(() => {
+                    const localized = localeJoin(localizeDirections(d.luckyDirections));
+                    return i18n.t('heart.luckyDirLine', { dir: localized, defaultValue: `✦ 吉方：${localized}` });
+                  })()}
                 </Text>
               ) : null}
               {d.dangerDirections?.length ? (
                 <Text style={s.directionBad}>
-                  {i18n.t('heart.avoidListLine', { dir: d.dangerDirections.join('、'), defaultValue: `⚠ 避開：${d.dangerDirections.join('、')}` })}
+                  {(() => {
+                    const localized = localeJoin(localizeDirections(d.dangerDirections));
+                    return i18n.t('heart.avoidListLine', { dir: localized, defaultValue: `⚠ 避開：${localized}` });
+                  })()}
                 </Text>
               ) : null}
             </View>

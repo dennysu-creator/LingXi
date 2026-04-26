@@ -24,15 +24,10 @@ import { getCurrentShichen } from '@/services/bazi-engine';
 import { analyzeFengShui, type FengShuiResult } from '@/services/claude-api';
 import { formatCoordinate } from '@/services/date-utils';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
+import { localizeDirection, localizeDirections, localeJoin } from '@/services/i18n-fortune-values';
 
 const DIRECTIONS = ['北', '東北', '東', '東南', '南', '西南', '西', '西北'] as const;
 const DIR_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
-const DIR_I18N: Record<string, string> = {
-  '北': 'directions.north', '東北': 'directions.northeast',
-  '東': 'directions.east', '東南': 'directions.southeast',
-  '南': 'directions.south', '西南': 'directions.southwest',
-  '西': 'directions.west', '西北': 'directions.northwest',
-};
 
 interface PetHeartModeProps {
   visible?: boolean;
@@ -88,7 +83,7 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
     },
   });
 
-  const tDir = (d: string) => DIR_I18N[d] ? t(DIR_I18N[d]) : d;
+  const tDir = (d: string) => localizeDirection(d);
 
   // 取得 GPS 位置 — 只在 visible 時啟動
   useEffect(() => {
@@ -275,7 +270,7 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
           <View style={styles.dirBox}>
             <Text style={styles.dirBoxTitle}>{t('heart.luckyDir')}</Text>
             {luckyDirs.length > 0 ? (
-              <Text style={styles.dirBoxLucky}>{luckyDirs.map(d => tDir(d)).join(', ')}</Text>
+              <Text style={styles.dirBoxLucky}>{localeJoin(localizeDirections(luckyDirs))}</Text>
             ) : (
               <Text style={styles.dirBoxText}>{t('heart.calculating')}</Text>
             )}
@@ -283,7 +278,7 @@ export default function PetHeartMode({ visible, onClose, onResult, onQuotaExhaus
           <View style={styles.dirBox}>
             <Text style={styles.dirBoxTitle}>{t('heart.dangerDir')}</Text>
             {dangerDirs.length > 0 ? (
-              <Text style={styles.dirBoxDanger}>{dangerDirs.slice(0, 2).map(d => tDir(d)).join(', ')}</Text>
+              <Text style={styles.dirBoxDanger}>{localeJoin(localizeDirections(dangerDirs.slice(0, 2)))}</Text>
             ) : (
               <Text style={styles.dirBoxText}>{t('heart.calculating')}</Text>
             )}

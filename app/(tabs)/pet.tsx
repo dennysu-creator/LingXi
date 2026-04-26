@@ -21,6 +21,7 @@ import { calculateUnifiedFortune, type UnifiedFortuneResult } from '@/services/u
 import { getCurrentShichen } from '@/services/bazi-engine';
 import { getLocalDateKey } from '@/services/date-utils';
 import { generateQimenChart } from '@/services/qimen-engine';
+import { localizeColor, localizeDirection } from '@/services/i18n-fortune-values';
 
 import PetAvatar, { type ActiveFeature } from '@/components/PetAvatar';
 import UpgradeModal from '@/components/UpgradeModal';
@@ -268,7 +269,7 @@ export default function PetScreen() {
         data: {
           level: fortuneResult.overallLevel,
           topDimension: getTopDimension(fortuneResult),
-          topDirection: fortuneResult.luckyDirections?.[0] || '東南',
+          topDirection: localizeDirection(fortuneResult.luckyDirections?.[0] || '東南'),
         },
       });
 
@@ -370,7 +371,7 @@ export default function PetScreen() {
           data: {
             level,
             topDimension: catLabel,
-            topDirection: fortuneResult.luckyDirections?.[0] || '東南',
+            topDirection: localizeDirection(fortuneResult.luckyDirections?.[0] || '東南'),
           },
         });
 
@@ -378,8 +379,8 @@ export default function PetScreen() {
         const resultText = `${i18n.t('pearl.resultTitle', { category: catLabel, level, defaultValue: `【${catLabel}運勢 — ${level}】` })}\n\n` +
           `${narration.spokenText}\n\n` +
           `${i18n.t('pearl.resultScore', { category: catLabel, score, defaultValue: `✦ ${catLabel}指數：${score}/100` })}\n` +
-          (fortuneResult.luckyDirections?.[0] ? `${i18n.t('pet.luckyDirSuffix', { dir: fortuneResult.luckyDirections[0], defaultValue: `✦ 幸運方位：${fortuneResult.luckyDirections[0]}` })}\n` : '') +
-          (fortuneResult.luckyColors?.[0]     ? `${i18n.t('pet.luckyColorSuffix', { color: fortuneResult.luckyColors[0], defaultValue: `✦ 幸運色：${fortuneResult.luckyColors[0]}` })}\n`   : '') +
+          (fortuneResult.luckyDirections?.[0] ? `${i18n.t('pet.luckyDirSuffix', { dir: localizeDirection(fortuneResult.luckyDirections[0]), defaultValue: `✦ 幸運方位：${localizeDirection(fortuneResult.luckyDirections[0])}` })}\n` : '') +
+          (fortuneResult.luckyColors?.[0]     ? `${i18n.t('pet.luckyColorSuffix', { color: localizeColor(fortuneResult.luckyColors[0]), defaultValue: `✦ 幸運色：${localizeColor(fortuneResult.luckyColors[0])}` })}\n`   : '') +
           (fortuneResult.luckyNumbers?.[0]    ? `${i18n.t('pet.luckyNumSuffix', { num: fortuneResult.luckyNumbers[0], defaultValue: `✦ 幸運數字：${fortuneResult.luckyNumbers[0]}` })}` : '');
 
         addMessage({
@@ -509,7 +510,7 @@ export default function PetScreen() {
           `${i18n.t('eye.overallScore', { score, defaultValue: `✦ 整體面相：${score}/100` })}\n` +
           (data.features?.forehead ? `✦ 天庭：${data.features.forehead.score}/100\n` : '') +
           (data.features?.eyes     ? `✦ 眼相：${data.features.eyes.score}/100\n`     : '') +
-          (data.lucky_direction    ? `${i18n.t('pet.luckyDirSuffix', { dir: data.lucky_direction, defaultValue: `✦ 幸運方位：${data.lucky_direction}` })}\n` : '') +
+          (data.lucky_direction    ? `${i18n.t('pet.luckyDirSuffix', { dir: localizeDirection(data.lucky_direction), defaultValue: `✦ 幸運方位：${localizeDirection(data.lucky_direction)}` })}\n` : '') +
           (data.lucky_item         ? `✦ 開運物：${data.lucky_item}`                    : '');
 
         addMessage({ type: 'face', text: resultText, data: { score, level, ...data } });
@@ -546,8 +547,12 @@ export default function PetScreen() {
         try {
           const qimenChart = generateQimenChart(new Date());
           const fortuneResult = calculateUnifiedFortune(bazi, ziwei!, qimenChart, astrology!);
-          const luckyDir = fortuneResult.luckyDirections?.[0] || '東南';
-          const avoidDir = '西';
+          const luckyDirRaw = fortuneResult.luckyDirections?.[0] || '東南';
+          const avoidDirRaw = '西';
+          const luckyDir = localizeDirection(luckyDirRaw);
+          const avoidDir = localizeDirection(avoidDirRaw);
+          const luckyColorRaw = fortuneResult.luckyColors?.[0];
+          const luckyColor = luckyColorRaw ? localizeColor(luckyColorRaw) : '';
           const locStr = compassLocation || i18n.t('heart.currentLocation', { defaultValue: '目前位置' });
 
           const resultText = `${i18n.t('heart.resultTitle', { loc: locStr, defaultValue: `【靈心風水 — ${locStr}】` })}\n\n` +
@@ -556,9 +561,9 @@ export default function PetScreen() {
             `${i18n.t('heart.avoidDirection', { dir: avoidDir, defaultValue: `✦ 避方位：${avoidDir}` })}\n` +
             `${i18n.t('heart.overallScore', { score: fortuneResult.overallScore, defaultValue: `✦ 綜合氣場：${fortuneResult.overallScore}/100` })}\n\n` +
             `${i18n.t('heart.adviceFaceLuckyDir', { dir: luckyDir, defaultValue: `💡 建議面朝${luckyDir}方，有助於提升今日運勢。` })}` +
-            (fortuneResult.luckyColors?.[0] ? `\n${i18n.t('heart.luckyColorPrefix', { color: fortuneResult.luckyColors[0], defaultValue: `🎨 幸運色：${fortuneResult.luckyColors[0]}` })}` : '');
+            (luckyColorRaw ? `\n${i18n.t('heart.luckyColorPrefix', { color: luckyColor, defaultValue: `🎨 幸運色：${luckyColor}` })}` : '');
 
-          addMessage({ type: 'fengshui', text: resultText, data: { luckyDir, avoidDir, location: locStr } });
+          addMessage({ type: 'fengshui', text: resultText, data: { luckyDir: luckyDirRaw, avoidDir: avoidDirRaw, location: locStr } });
           incrementUsage();
         } catch {
           addMessage({ type: 'fengshui', text: i18n.t('heart.errorMessage', { petName, defaultValue: `${petName}正在感應周圍的風水氣場...但靈力尚不穩定，請稍後再試～` }), data: {} });
@@ -593,7 +598,7 @@ export default function PetScreen() {
       addMessage({ type: 'chat', text: resp.data.reply, data: { question } });
     } catch {
       // API 失敗時用本地回覆
-      const narration = generateLocalPetNarration({ feature: 'fortune', pet: petInfo, data: { level: '中吉', topDimension: '綜合', topDirection: '東南' } });
+      const narration = generateLocalPetNarration({ feature: 'fortune', pet: petInfo, data: { level: '中吉', topDimension: '綜合', topDirection: localizeDirection('東南') } });
       addMessage({ type: 'chat', text: narration.spokenText, data: { question } });
     } finally {
       setChatLoading(false);

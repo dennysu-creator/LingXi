@@ -354,6 +354,30 @@
     "northwest": "北西",
     "center": "中宮"
   },
+  "colors": {
+    "white": "白",
+    "gold": "金",
+    "silver": "銀",
+    "green": "緑",
+    "azure": "青",
+    "emerald": "翡翠",
+    "black": "黒",
+    "blue": "藍",
+    "deepblue": "深い藍",
+    "red": "紅",
+    "orange": "橙",
+    "purple": "紫",
+    "yellow": "黄",
+    "brown": "茶",
+    "beige": "生成り"
+  },
+  "elements": {
+    "metal": "金",
+    "wood": "木",
+    "water": "水",
+    "fire": "火",
+    "earth": "土"
+  },
   "subscription": {
     "free": "無料体験",
     "paid": "霊犀サブスクリプション",

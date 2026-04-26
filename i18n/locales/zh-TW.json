@@ -354,6 +354,30 @@
     "northwest": "西北",
     "center": "中宮"
   },
+  "colors": {
+    "white": "白色",
+    "gold": "金色",
+    "silver": "銀色",
+    "green": "綠色",
+    "azure": "青色",
+    "emerald": "翠色",
+    "black": "黑色",
+    "blue": "藍色",
+    "deepblue": "深藍",
+    "red": "紅色",
+    "orange": "橙色",
+    "purple": "紫色",
+    "yellow": "黃色",
+    "brown": "棕色",
+    "beige": "米色"
+  },
+  "elements": {
+    "metal": "金",
+    "wood": "木",
+    "water": "水",
+    "fire": "火",
+    "earth": "土"
+  },
   "subscription": {
     "free": "免費體驗",
     "paid": "靈犀訂閱",

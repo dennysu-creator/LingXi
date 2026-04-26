@@ -24,6 +24,7 @@ import { ApiError } from '@/services/api-client';
 import { analyzeFace, type FaceReadingResult } from '@/services/claude-api';
 import { getLocalDateKey } from '@/services/date-utils';
 import { generateLocalPetNarration, type PetInfo } from '@/services/pet-narrator';
+import { localizeDirection } from '@/services/i18n-fortune-values';
 
 type Phase = 'idle' | 'preview' | 'analyzing' | 'result';
 
@@ -353,7 +354,7 @@ export default function PetEyeMode({ visible, onClose, onResult, onQuotaExhauste
                     <Text style={[styles.luckyName, { color: '#64b4ff' }]}>{result.lucky_item.name}</Text>
                     <Text style={styles.luckyDesc}>{result.lucky_item.reason}</Text>
                     <View style={styles.luckyMeta}>
-                      <Text style={styles.luckyMetaText}>🧭 {result.lucky_direction}</Text>
+                      <Text style={styles.luckyMetaText}>🧭 {localizeDirection(result.lucky_direction)}</Text>
                       <Text style={styles.luckyMetaText}>🔢 {result.lucky_number}</Text>
                     </View>
                   </View>

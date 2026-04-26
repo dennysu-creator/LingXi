@@ -354,6 +354,30 @@
     "northwest": "Nordwesten",
     "center": "Zentrum"
   },
+  "colors": {
+    "white": "Weiß",
+    "gold": "Gold",
+    "silver": "Silber",
+    "green": "Grün",
+    "azure": "Cyan",
+    "emerald": "Smaragd",
+    "black": "Schwarz",
+    "blue": "Blau",
+    "deepblue": "Tiefblau",
+    "red": "Rot",
+    "orange": "Orange",
+    "purple": "Violett",
+    "yellow": "Gelb",
+    "brown": "Braun",
+    "beige": "Beige"
+  },
+  "elements": {
+    "metal": "Metall",
+    "wood": "Holz",
+    "water": "Wasser",
+    "fire": "Feuer",
+    "earth": "Erde"
+  },
   "subscription": {
     "free": "Kostenfrei",
     "paid": "Ling Xi Abonnement",
