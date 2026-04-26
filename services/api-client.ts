@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { getDeviceIdAsync, getPlatformTag } from '@/hooks/useDeviceId';
+import i18n from '@/i18n';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lingxi-api-440150253440.asia-east1.run.app';
 
@@ -13,17 +14,36 @@ const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://lingxi-api-440
 const TOKEN_KEY = 'lingxi_jwt_token';
 const REFRESH_KEY = 'lingxi_refresh_token';
 
-// ─── Device headers for attestation / analytics ──────────────
-async function getDeviceHeaders(): Promise<Record<string, string>> {
+// 後端必須認得的語言碼集合（與 server/src/services/language-directive.ts 同步）
+const SERVER_LANG_WHITELIST = new Set(['zh-TW', 'zh-CN', 'en', 'ja', 'es', 'fr', 'de']);
+
+function getCurrentLanguage(): string {
   try {
-    if (Platform.OS === 'web') return {};
+    const lang = i18n.language;
+    if (typeof lang === 'string' && SERVER_LANG_WHITELIST.has(lang)) return lang;
+  } catch {
+    // i18n not initialized (very early in app boot) — fall through
+  }
+  return 'en';
+}
+
+// ─── Device headers for attestation / analytics / i18n ───────
+async function getDeviceHeaders(): Promise<Record<string, string>> {
+  // X-Language is sent for ALL platforms (incl. web) so server-side AI
+  // calls always know which language to respond in.
+  const base: Record<string, string> = {
+    'X-Language': getCurrentLanguage(),
+  };
+  try {
+    if (Platform.OS === 'web') return base;
     const deviceId = await getDeviceIdAsync();
     return {
+      ...base,
       'X-Device-Key': deviceId,
       'X-Device-Platform': getPlatformTag(),
     };
   } catch {
-    return {};
+    return base;
   }
 }
 

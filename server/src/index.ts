@@ -12,6 +12,7 @@ import userRoutes from './routes/user';
 import petRoutes from './routes/pet';
 import aiRoutes from './routes/ai';
 import subscriptionRoutes from './routes/subscription';
+import { logLoadedDirectives } from './services/language-directive';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '8080', 10);
@@ -47,6 +48,7 @@ app.use(
       'X-Device-Key',
       'X-Device-Platform',
       'X-Attestation-Token',
+      'X-Language',
     ],
     maxAge: 86400,
   })
@@ -163,6 +165,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`LingXi API server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+  logLoadedDirectives();
 });
 
 // Graceful shutdown for Cloud Run SIGTERM

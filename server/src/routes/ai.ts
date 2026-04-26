@@ -21,6 +21,7 @@ import {
   HEXAGRAM_DIVINATION_SYSTEM,
   UNIFIED_FORTUNE_SYSTEM,
 } from './ai-prompts';
+import { wrapSystemPrompt, extractLanguage } from '../services/language-directive';
 
 const router = Router();
 
@@ -155,6 +156,7 @@ router.post('/face-reading', async (req: Request, res: Response): Promise<void> 
     return;
   }
 
+  const lang = extractLanguage(req);
   await executeAiCall(req, res, 'face-reading', async () => {
     const model = selectModel();
     const userPrompt = `請分析這張面部照片。
@@ -165,7 +167,12 @@ router.post('/face-reading', async (req: Request, res: Response): Promise<void> 
 
 請提供完整的面相分析結果，以 JSON 格式回覆。`;
 
-    const rawResponse = await callClaudeVision(model, FACE_READING_SYSTEM, userPrompt, imageBase64);
+    const rawResponse = await callClaudeVision(
+      model,
+      wrapSystemPrompt(FACE_READING_SYSTEM, lang),
+      userPrompt,
+      imageBase64,
+    );
     const parsed = parseClaudeJson(rawResponse);
     safeSaveMessage(userId, 'user', '[Face Reading Request]', 'face-reading', { bazi, date });
     safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'face-reading');
@@ -190,6 +197,7 @@ router.post('/feng-shui', async (req: Request, res: Response): Promise<void> => 
     return;
   }
 
+  const lang = extractLanguage(req);
   await executeAiCall(req, res, 'feng-shui', async () => {
     const model = selectModel();
     const userPrompt = `請分析以下位置的風水：
@@ -202,7 +210,7 @@ GPS 座標：${latitude}, ${longitude}
 
 請以 JSON 格式回覆風水分析結果。`;
 
-    const rawResponse = await callClaude(model, FENGSHUI_SYSTEM, userPrompt);
+    const rawResponse = await callClaude(model, wrapSystemPrompt(FENGSHUI_SYSTEM, lang), userPrompt);
     const parsed = parseClaudeJson(rawResponse);
     safeSaveMessage(userId, 'user', userPrompt, 'feng-shui');
     safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'feng-shui');
@@ -223,6 +231,7 @@ router.post('/fortune', async (req: Request, res: Response): Promise<void> => {
     unified?: boolean;
   };
 
+  const lang = extractLanguage(req);
   await executeAiCall(req, res, 'fortune', async () => {
     const model = selectModel();
     const systemPrompt = unified ? UNIFIED_FORTUNE_SYSTEM : DAILY_FORTUNE_SYSTEM;
@@ -246,7 +255,7 @@ router.post('/fortune', async (req: Request, res: Response): Promise<void> => {
 
 請以 JSON 格式回覆今日運勢。`;
 
-    const rawResponse = await callClaude(model, systemPrompt, userPrompt);
+    const rawResponse = await callClaude(model, wrapSystemPrompt(systemPrompt, lang), userPrompt);
     const parsed = parseClaudeJson(rawResponse);
     safeSaveMessage(userId, 'user', '[Fortune Request]', 'fortune', { date, unified });
     safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'fortune');
@@ -264,6 +273,7 @@ router.post('/outfit', async (req: Request, res: Response): Promise<void> => {
     faceAnalysis?: string;
   };
 
+  const lang = extractLanguage(req);
   await executeAiCall(req, res, 'outfit', async () => {
     const model = selectModel();
     const userPrompt = `請提供今日穿搭建議。
@@ -275,7 +285,7 @@ router.post('/outfit', async (req: Request, res: Response): Promise<void> => {
 
 請以 JSON 格式回覆穿搭建議。`;
 
-    const rawResponse = await callClaude(model, OUTFIT_SYSTEM, userPrompt);
+    const rawResponse = await callClaude(model, wrapSystemPrompt(OUTFIT_SYSTEM, lang), userPrompt);
     const parsed = parseClaudeJson(rawResponse);
     safeSaveMessage(userId, 'user', '[Outfit Request]', 'outfit');
     safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'outfit');
@@ -322,6 +332,7 @@ router.post('/divination', async (req: Request, res: Response): Promise<void> =>
     astrology?: string;
   };
 
+  const lang = extractLanguage(req);
   await executeAiCall(req, res, 'divination', async () => {
     const model = selectModel();
     let systemPrompt: string;
@@ -363,7 +374,7 @@ ${poem || '未提供'}
 請以 JSON 格式回覆完整解籤結果。`;
     }
 
-    const rawResponse = await callClaude(model, systemPrompt, userPrompt);
+    const rawResponse = await callClaude(model, wrapSystemPrompt(systemPrompt, lang), userPrompt);
     const parsed = parseClaudeJson(rawResponse);
     safeSaveMessage(userId, 'user', `[Divination: ${type}]`, 'divination', { type, question });
     safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'divination');
@@ -388,6 +399,7 @@ router.post('/pet-message', async (req: Request, res: Response): Promise<void> =
       messageType?: string;
     };
 
+  const lang = extractLanguage(req);
   await executeAiCall(req, res, 'pet-message', async () => {
     const model = selectModel();
     const userPrompt = `靈寵資訊：
@@ -407,7 +419,7 @@ router.post('/pet-message', async (req: Request, res: Response): Promise<void> =
 
 請以 JSON 格式回覆靈寵訊息。`;
 
-    const rawResponse = await callClaude(model, PET_MESSAGE_SYSTEM, userPrompt);
+    const rawResponse = await callClaude(model, wrapSystemPrompt(PET_MESSAGE_SYSTEM, lang), userPrompt);
     const parsed = parseClaudeJson(rawResponse);
     safeSaveMessage(userId, 'assistant', JSON.stringify(parsed), 'pet-message');
     return parsed;
@@ -434,6 +446,7 @@ router.post('/pet-chat', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  const lang = extractLanguage(req);
   await executeAiCall(req, res, 'pet-chat', async () => {
     const model = selectModel();
     const now = new Date();
@@ -463,7 +476,7 @@ router.post('/pet-chat', async (req: Request, res: Response): Promise<void> => {
 - 偶爾用「...」表示靈感湧現，用「✦」標記重要啟示
 - 展現你作為${creature || '靈獸'}的獨特靈性`;
 
-    const rawResponse = await callClaude(model, systemPrompt, message);
+    const rawResponse = await callClaude(model, wrapSystemPrompt(systemPrompt, lang), message);
     safeSaveMessage(userId, 'user', message, 'pet-chat');
     safeSaveMessage(userId, 'assistant', rawResponse, 'pet-chat');
     return { reply: rawResponse };
